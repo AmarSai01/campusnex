@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+    
+    function isFaculty() {
+      return isAuthenticated() && getUserData().role == 'faculty';
+    }
+    
+    function isStudent() {
+      return isAuthenticated() && getUserData().role == 'student';
+    }
+
+    function isCourseFaculty(courseId) {
+      return isFaculty() && get(/databases/$(database)/documents/courses/$(courseId)).data.faculty_id == request.auth.uid;
+    }
+
+    function isEnrolled(studentId, courseId) {
+      return exists(/databases/$(database)/documents/enrollments/$(studentId + '_' + courseId));
+    }
+
+    // Users Collection
+    // Admin: full read/write/delete across all users
+    // Faculty: read/write/edit students within their own department; read faculty details; read own document
+    // Student: read own document and faculty details
+    // Delete: strictly restricted to Admin
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == userId ||
+        resource.data.role == 'faculty' ||
+        (isFaculty() && resource.data.role == 'student' && resource.data.department_id == getUserData().department_id)
+      );
+      
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        (isFaculty() &&
+         request.resource.data.role == 'student' &&
+         request.resource.data.department_id == getUserData().department_id)
+      );
+      
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isFaculty() &&
+         resource.data.role == 'student' &&
+         request.resource.data.role == 'student' &&
+         resource.data.department_id == getUserData().department_id &&
+         request.resource.data.department_id == getUserData().department_id) ||
+        (request.auth.uid == userId)
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // Departments Collection
+    match /departments/{deptId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Courses Collection
+    match /courses/{courseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Enrollments Collection
+    match /enrollments/{enrollmentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.student_id == request.auth.uid ||
+        isCourseFaculty(resource.data.course_id)
+      );
+      allow write: if isAdmin() || isFaculty();
+    }
+
+    // Attendance Collection
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.student_id == request.auth.uid ||
+        isCourseFaculty(resource.data.course_id)
+      );
+      allow create, update, delete: if isAdmin() || (
+        isFaculty() && isCourseFaculty(request.resource.data.course_id)
+      );
+    }
+
+    // IA Marks Collection
+    match /ia_marks/{markId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        isCourseFaculty(resource.data.course_id) ||
+        (resource.data.student_id == request.auth.uid && resource.data.published == true)
+      );
+      allow create, update, delete: if isAdmin() || (
+        isFaculty() && isCourseFaculty(request.resource.data.course_id)
+      );
+    }
+
+    // Assignments Collection
+    match /assignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin() || (
+        isFaculty() && isCourseFaculty(request.resource.data.course_id)
+      );
+    }
+
+    // Submissions Collection
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.student_id == request.auth.uid ||
+        isCourseFaculty(get(/databases/$(database)/documents/assignments/$(resource.data.assignment_id)).data.course_id)
+      );
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        (isStudent() && request.resource.data.student_id == request.auth.uid)
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isStudent() && resource.data.student_id == request.auth.uid) ||
+        (isFaculty() && isCourseFaculty(get(/databases/$(database)/documents/assignments/$(resource.data.assignment_id)).data.course_id))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Timetable Collection
+    match /timetable/{slotId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Announcements Collection
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || isFaculty();
+      allow update, delete: if isAdmin() || (isFaculty() && resource.data.author_id == request.auth.uid);
+    }
+
+    // Notifications Collection
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.user_id == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.user_id == request.auth.uid);
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.user_id == request.auth.uid);
+    }
+
+    // Calendar Events Collection
+    match /calendar_events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Exam Rooms Collection
+    // Admin: full CRUD (rooms are shared infrastructure)
+    // Faculty & Student: read-only
+    match /exam_rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Exam Timetable Collection
+    // Admin: full CRUD across all departments
+    // Faculty: add/edit for own department only; no delete
+    // Student: read-only
+    match /exam_timetables/{timetableId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || (
+        isFaculty() && request.resource.data.department_id == getUserData().department_id
+      );
+      allow update: if isAdmin() || (
+        isFaculty() &&
+        resource.data.department_id == getUserData().department_id &&
+        request.resource.data.department_id == getUserData().department_id
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Exam Seating Plans Collection (Room-level arrangement)
+    // Admin: full CRUD across all departments
+    // Faculty: scoped add/edit for participating departments; no delete
+    match /exam_seating_plans/{planId} {
+      allow read: if isAuthenticated() && (isAdmin() || isFaculty());
+      allow create: if isAdmin() || (
+        isFaculty() && (
+          request.resource.data.department_id == getUserData().department_id ||
+          getUserData().department_id in request.resource.data.department_ids
+        )
+      );
+      allow update: if isAdmin() || (
+        isFaculty() && (
+          resource.data.department_id == getUserData().department_id ||
+          getUserData().department_id in resource.data.department_ids
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Exam Seatings Collection (Student-level seat allocation)
+    // Admin: full access
+    // Faculty: scoped write for own department
+    // Students: read-only on own record
+    match /exam_seatings/{seatingId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        isFaculty() ||
+        resource.data.student_id == request.auth.uid
+      );
+      allow create: if isAdmin() || (
+        isFaculty() && request.resource.data.department_id == getUserData().department_id
+      );
+      allow update: if isAdmin() || (
+        isFaculty() &&
+        resource.data.department_id == getUserData().department_id &&
+        request.resource.data.department_id == getUserData().department_id
+      );
+      allow delete: if isAdmin();
+    }
+  }
+}
+
