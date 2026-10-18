@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
-export const CONTACT_EMAIL = '__CONTACT_EMAIL__'
+// Demo address for now (.example never delivers); replace with the real contact email.
+export const CONTACT_EMAIL = 'hello@campusnex.example'
 export const contactHref = (subject) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
 // The address is shown as text only once a real one is filled in.
 const HAS_CONTACT_EMAIL = !CONTACT_EMAIL.startsWith('__')
