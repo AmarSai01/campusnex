@@ -32,6 +32,10 @@ export default function SeatingArrangementManager() {
   const isAdmin = currentUser?.role === 'admin';
   const isFaculty = currentUser?.role === 'faculty';
   const facultyDeptId = currentUser?.department_id;
+  // Faculty can only arrange seating for their own department's exams.
+  const schedulableExams = isFaculty
+    ? exam_timetables.filter(e => e.department_id === facultyDeptId)
+    : exam_timetables;
 
   const [selectedPlanId, setSelectedPlanId] = useState(
     exam_seating_plans[0]?.id || ''
@@ -82,7 +86,7 @@ export default function SeatingArrangementManager() {
   });
 
   const handleOpenGenerateModal = () => {
-    const defaultExam = exam_timetables[0];
+    const defaultExam = schedulableExams[0];
     const initialDept1 = isFaculty && facultyDeptId ? facultyDeptId : (departments[0]?.id || 'dept_cse');
     const initialDept2 = departments.find(d => d.id !== initialDept1)?.id || initialDept1;
 
@@ -628,7 +632,7 @@ export default function SeatingArrangementManager() {
               required
             >
               <option value="">-- Choose Exam --</option>
-              {exam_timetables.map(exam => (
+              {schedulableExams.map(exam => (
                 <option key={exam.id} value={exam.id}>
                   {exam.subject} ({exam.exam_date} • {exam.start_time}-{exam.end_time})
                 </option>

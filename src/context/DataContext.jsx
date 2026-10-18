@@ -1111,6 +1111,9 @@ export function DataProvider({ children }) {
     }
 
     const exam = (data.exam_timetables || []).find(e => e.id === exam_id);
+    if (actorRole === 'faculty' && actorDeptId && exam?.department_id !== actorDeptId) {
+      throw new Error('Permission Denied: Faculty can only arrange seating for exams of their own department.');
+    }
     const selectedRooms = (data.exam_rooms || []).filter(r => room_ids.includes(r.id));
     if (selectedRooms.length === 0) throw new Error('Selected room(s) not found.');
 
