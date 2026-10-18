@@ -10,7 +10,9 @@ import {
   Layers,
   Menu
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export default function MobileNav({ activeTab, setActiveTab, onOpenDrawer }) {
   const { currentUser } = useAuth();
@@ -46,33 +48,36 @@ export default function MobileNav({ activeTab, setActiveTab, onOpenDrawer }) {
   const tabs = getMobileTabs();
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 flex items-center justify-around shadow-lg">
+    <div className="fixed right-0 bottom-0 left-0 z-30 flex items-center justify-around border-t border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-md lg:hidden">
       {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
+        const Icon = tab.icon
+        const isActive = activeTab === tab.id
         return (
-          <button
+          <Button
             key={tab.id}
+            variant="ghost"
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-xs font-bold transition-all ${
+            className={cn(
+              'h-auto flex-col gap-1 rounded-xl px-3 py-1 text-xs font-bold',
               isActive
-                ? 'text-brand-600'
+                ? 'text-brand-600 hover:text-brand-600'
                 : 'text-slate-500 hover:text-slate-900'
-            }`}
+            )}
           >
-            <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+            <Icon className={cn('h-5 w-5', isActive && 'stroke-[2.5]')} />
             <span className="text-[10px]">{tab.label}</span>
-          </button>
-        );
+          </Button>
+        )
       })}
 
-      <button
+      <Button
+        variant="ghost"
         onClick={onOpenDrawer}
-        className="flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-900"
+        className="h-auto flex-col gap-1 rounded-xl px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-900"
       >
-        <Menu className="w-5 h-5" />
+        <Menu className="h-5 w-5" />
         <span className="text-[10px]">More</span>
-      </button>
+      </Button>
     </div>
-  );
+  )
 }

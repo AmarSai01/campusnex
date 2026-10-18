@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   GraduationCap,
   ShieldAlert,
@@ -6,266 +6,332 @@ import {
   User,
   Lock,
   ArrowRight,
+  ArrowLeft,
   Sparkles,
   Info,
-  CheckCircle2,
-  AlertCircle
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../context/DataContext';
+  AlertCircle,
+} from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+import { DEMO_PASSWORD } from '@/lib/supabase'
 
-export default function LoginView() {
-  const { login, switchUser } = useAuth();
-  const { users } = useData();
+export default function LoginView({ onBack }) {
+  const { login, activateAccount, switchUser, isDemo } = useAuth()
 
-  const [activeRoleTab, setActiveRoleTab] = useState('student');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeRoleTab, setActiveRoleTab] = useState('student')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [mode, setMode] = useState('signin')
+  const [notice, setNotice] = useState('')
 
   const rolePresets = {
     student: {
       defaultEmail: 'student1@campusnex.edu',
-      defaultName: 'Alice Smith (CS22B101)',
       title: 'Student Portal',
-      description: 'Access attendance, published IA marks, submit assignments & view schedules.',
-      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      description:
+        'Access attendance, published IA marks, submit assignments & view schedules.',
+      badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     },
     faculty: {
       defaultEmail: 'faculty1@campusnex.edu',
-      defaultName: 'Dr. Alan Turing (Prof & HOD)',
       title: 'Faculty Workspace',
-      description: 'Mark session attendance, publish IA marks, manage assignments & grade submissions.',
-      badgeColor: 'bg-brand-50 text-brand-700 border-brand-200'
+      description:
+        'Mark session attendance, publish IA marks, manage assignments & grade submissions.',
+      badgeClass: 'border-brand-200 bg-brand-50 text-brand-700',
     },
     admin: {
       defaultEmail: 'admin@campusnex.edu',
-      defaultName: 'Dr. Sarah Connor (Dean & Registrar)',
       title: 'Administrative Console',
-      description: 'Manage users, assign course faculty, configure timetables & post campus broadcasts.',
-      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
-    }
-  };
+      description:
+        'Manage users, assign course faculty, configure timetables & post campus broadcasts.',
+      badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
+    },
+  }
 
   const handleRoleTabChange = (role) => {
-    setActiveRoleTab(role);
-    setEmail(rolePresets[role].defaultEmail);
-    setPassword('password123');
-    setError('');
-  };
+    setActiveRoleTab(role)
+    if (isDemo) {
+      setEmail(rolePresets[role].defaultEmail)
+      setPassword(DEMO_PASSWORD)
+    }
+    setError('')
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    e.preventDefault()
+    setError('')
+    setNotice('')
+    setIsLoading(true)
 
     try {
       if (!email.trim()) {
-        throw new Error('Please enter your institutional email address.');
+        throw new Error('Please enter your institutional email address.')
       }
-      await login(email, password);
+      if (mode === 'activate') {
+        if (password.length < 8) {
+          throw new Error('Choose a password with at least 8 characters.')
+        }
+        const result = await activateAccount(email, password)
+        if (result === 'confirm_email') {
+          setNotice('Account activated. Check your email to confirm it, then sign in.')
+          setMode('signin')
+        }
+      } else {
+        await login(email, password)
+      }
     } catch (err) {
-      setError(err.message || 'Login failed. Please verify credentials.');
+      setError(err.message || 'Login failed. Please verify credentials.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
+
+  const handleDemoLogin = async (userId) => {
+    setError('')
+    try {
+      await switchUser(userId)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   const quickDemoAccounts = [
-    { id: 'admin_1', name: 'Dr. Sarah Connor', role: 'admin', desc: 'Dean / Registrar' },
-    { id: 'faculty_1', name: 'Dr. Alan Turing', role: 'faculty', desc: 'Faculty (CS301/302)' },
-    { id: 'faculty_2', name: 'Dr. Ada Lovelace', role: 'faculty', desc: 'Faculty (CS303 DBMS)' },
-    { id: 'student_1', name: 'Alice Smith', role: 'student', desc: 'Student Sec A' },
-    { id: 'student_2', name: 'Bob Johnson', role: 'student', desc: 'Student Sec A' },
-    { id: 'student_4', name: 'David Lee', role: 'student', desc: 'Student Sec B' },
-  ];
+    { id: 'admin_1', name: 'Dr. Sarah Connor', desc: 'Dean / Registrar' },
+    { id: 'faculty_1', name: 'Dr. Alan Turing', desc: 'Faculty (CS301/302)' },
+    { id: 'faculty_2', name: 'Dr. Ada Lovelace', desc: 'Faculty (CS303 DBMS)' },
+    { id: 'student_1', name: 'Alice Smith', desc: 'Student Sec A' },
+    { id: 'student_2', name: 'Bob Johnson', desc: 'Student Sec A' },
+    { id: 'student_4', name: 'David Lee', desc: 'Student Sec B' },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-850 to-indigo-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Subtle background glow effect */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-muted/40 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,_rgba(255,92,0,0.12),_transparent_65%)]" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        {/* Brand Icon & Heading */}
+      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="mb-4 gap-1.5 text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Campusnex
+          </Button>
+        )}
+
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white shadow-glow mb-4">
-            <GraduationCap className="w-8 h-8" />
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-glow">
+            <GraduationCap className="h-8 w-8" />
           </div>
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
             Campusnex
           </h2>
-          <p className="mt-2 text-sm text-slate-400 font-medium">
-            Next-Generation Academic Management & ERP
+          <p className="mt-2 text-sm font-medium text-muted-foreground">
+            Sign in to your institutional workspace
           </p>
         </div>
 
-        {/* Card Container */}
-        <div className="mt-8 bg-white rounded-3xl shadow-2xl border border-slate-100/90 overflow-hidden">
-          {/* Role Switcher Tabs */}
-          <div className="grid grid-cols-3 p-2 bg-slate-100/80 border-b border-slate-200/80 gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleRoleTabChange('student')}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
-                activeRoleTab === 'student'
-                  ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Student</span>
-            </button>
+        <Card className="mt-8 overflow-hidden rounded-3xl border-border shadow-card-hover py-0 gap-0">
+          <Tabs
+            value={activeRoleTab}
+            onValueChange={handleRoleTabChange}
+            className="gap-0"
+          >
+            <div className="border-b border-border bg-muted/60 p-2">
+              <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 bg-transparent p-0">
+                <TabsTrigger
+                  value="student"
+                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-emerald-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  Student
+                </TabsTrigger>
+                <TabsTrigger
+                  value="faculty"
+                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-brand-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Faculty
+                </TabsTrigger>
+                <TabsTrigger
+                  value="admin"
+                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-amber-800 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  Admin
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => handleRoleTabChange('faculty')}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
-                activeRoleTab === 'faculty'
-                  ? 'bg-white text-brand-700 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>Faculty</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleTabChange('admin')}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
-                activeRoleTab === 'admin'
-                  ? 'bg-white text-purple-700 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Admin</span>
-            </button>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            {/* Header info for selected role */}
-            <div className="border-b border-slate-100 pb-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-slate-900">
+            <CardHeader className="space-y-2 border-b border-border px-6 pt-6 pb-4 sm:px-8">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base font-bold">
                   {rolePresets[activeRoleTab].title}
-                </h3>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${rolePresets[activeRoleTab].badgeColor}`}>
+                </CardTitle>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'rounded-md text-[11px] font-bold capitalize',
+                    rolePresets[activeRoleTab].badgeClass
+                  )}
+                >
                   Role: {activeRoleTab}
-                </span>
+                </Badge>
               </div>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <CardDescription className="text-xs leading-relaxed">
                 {rolePresets[activeRoleTab].description}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-6 px-6 py-6 sm:px-8 sm:pb-8">
+              {error && (
+                <Alert
+                  variant="destructive"
+                  className="border-rose-200 bg-rose-50 text-rose-700"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {notice && (
+                <Alert className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>{notice}</AlertDescription>
+                </Alert>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs font-bold">
+                    Institutional Email
+                  </Label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={rolePresets[activeRoleTab].defaultEmail}
+                      className="h-10 rounded-xl pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-xs font-bold">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="h-10 rounded-xl pl-9"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  size="lg"
+                  className="h-11 w-full rounded-xl bg-brand-500 text-sm font-bold hover:bg-brand-600"
+                >
+                  {isLoading ? (
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>
+                      <span>
+                        {mode === 'activate'
+                          ? 'Activate Account'
+                          : `Enter ${rolePresets[activeRoleTab].title}`}
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <p className="text-center text-xs text-muted-foreground">
+                {mode === 'activate' ? 'Already activated?' : 'First time signing in?'}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(mode === 'activate' ? 'signin' : 'activate')
+                    setError('')
+                    setNotice('')
+                  }}
+                  className="font-bold text-brand-700 hover:underline"
+                >
+                  {mode === 'activate' ? 'Sign in' : 'Activate your account'}
+                </button>
               </p>
-            </div>
 
-            {/* Error banner */}
-            {error && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+              <Alert className="border-border bg-muted/50">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <AlertDescription className="text-[11px] text-muted-foreground">
+                  <strong>Institutional Security Policy:</strong> No public signup.
+                  Accounts are created by the Central Registrar. Activate yours with
+                  your registered institutional email.
+                </AlertDescription>
+              </Alert>
 
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Institutional Email
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={rolePresets[activeRoleTab].defaultEmail}
-                    className="block w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="block w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-md shadow-brand-600/20 transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {isLoading ? (
-                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Enter {rolePresets[activeRoleTab].title}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Public Signup Restriction Notice */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 flex items-start gap-2">
-              <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>Institutional Security Policy:</strong> No public signup available. Faculty and Administrator credentials are strictly provisioned by the Central Registrar.
-              </span>
-            </div>
-
-            {/* Quick 1-Click Evaluation Switcher */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+              {isDemo && (
+              <div className="space-y-3 pt-1">
+                <Separator />
+                <div className="flex items-center gap-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                  <Sparkles className="h-3.5 w-3.5 text-brand-600" />
                   Instant 1-Click Demo Logins:
-                </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {quickDemoAccounts.map((acc) => (
+                    <Button
+                      key={acc.id}
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleDemoLogin(acc.id)}
+                      className="h-auto flex-col items-start gap-0.5 rounded-xl p-2 text-left text-xs whitespace-normal"
+                    >
+                      <span className="truncate font-bold text-foreground">
+                        {acc.name}
+                      </span>
+                      <span className="truncate text-[10px] font-normal text-muted-foreground">
+                        {acc.desc}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {quickDemoAccounts.map((acc) => (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => switchUser(acc.id)}
-                    className="p-2 rounded-xl text-left border border-slate-200 hover:border-brand-400 hover:bg-brand-50/50 transition-all text-xs group"
-                  >
-                    <div className="font-bold text-slate-800 group-hover:text-brand-700 truncate">
-                      {acc.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {acc.desc}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer info */}
-        <p className="mt-6 text-center text-xs text-slate-500">
-          Campusnex Academic Cloud • Protected by Firestore Security Hierarchy
-        </p>
+              )}
+            </CardContent>
+          </Tabs>
+        </Card>
       </div>
     </div>
-  );
+  )
 }

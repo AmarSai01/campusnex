@@ -1,29 +1,47 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
-import LoginView from './views/auth/LoginView';
-import AdminDashboard from './views/admin/AdminDashboard';
-import FacultyDashboard from './views/faculty/FacultyDashboard';
-import StudentDashboard from './views/student/StudentDashboard';
-import Header from './components/layout/Header';
-import Sidebar from './components/layout/Sidebar';
-import MobileNav from './components/layout/MobileNav';
-import NotificationDrawer from './components/notifications/NotificationDrawer';
+import React, { useState } from 'react'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { DataProvider, useData } from './context/DataContext'
+import LandingPage from './views/landing/LandingPage'
+import LoginView from './views/auth/LoginView'
+import AdminDashboard from './views/admin/AdminDashboard'
+import FacultyDashboard from './views/faculty/FacultyDashboard'
+import StudentDashboard from './views/student/StudentDashboard'
+import Header from './components/layout/Header'
+import Sidebar from './components/layout/Sidebar'
+import MobileNav from './components/layout/MobileNav'
+import NotificationDrawer from './components/notifications/NotificationDrawer'
 
 function AppContent() {
-  const { currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const { currentUser, isAuthenticated, authLoading } = useAuth()
+  const { syncError, clearSyncError } = useData()
+  const [authScreen, setAuthScreen] = useState('landing')
+  const [activeTab, setActiveTab] = useState('overview')
+  const [isNotifOpen, setIsNotifOpen] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
-  // If not authenticated, render Login View
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40">
+        <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+      </div>
+    )
+  }
+
   if (!isAuthenticated || !currentUser) {
-    return <LoginView />;
+    if (authScreen === 'login') {
+      return <LoginView onBack={() => setAuthScreen('landing')} />
+    }
+    return <LandingPage onSignIn={() => setAuthScreen('login')} />
   }
 
   const getTabTitle = () => {
     const titles = {
-      overview: currentUser.role === 'admin' ? 'Institution Analytics' : currentUser.role === 'faculty' ? 'Instructor Workspace' : 'Student Hub',
+      overview:
+        currentUser.role === 'admin'
+          ? 'Institution Analytics'
+          : currentUser.role === 'faculty'
+            ? 'Instructor Workspace'
+            : 'Student Hub',
       students: 'Student Roster & USN Directory',
       departments: 'Academic Departments Directory',
       users: 'Institutional User Directory',
@@ -35,33 +53,43 @@ function AppContent() {
       attendance: 'Attendance Management',
       iamarks: 'Internal Assessment (IA) Marks',
       assignments: 'Coursework & Assignments',
-      directory: 'Faculty Advisory Directory'
-    };
-    return titles[activeTab] || 'Workspace';
-  };
+      directory: 'Faculty Advisory Directory',
+    }
+    return titles[activeTab] || 'Workspace'
+  }
 
   const handleNotificationNavigate = (notif) => {
-    setIsNotifOpen(false);
+    setIsNotifOpen(false)
     if (notif.type === 'attendance_absent') {
-      setActiveTab('attendance');
+      setActiveTab('attendance')
     } else if (notif.type === 'ia_published') {
-      setActiveTab('iamarks');
-    } else if (notif.type === 'assignment_due' || notif.type === 'assignment_graded' || notif.type === 'assignment_created' || notif.type === 'assignment_submitted') {
-      setActiveTab('assignments');
-    } else if (notif.type === 'new_announcement' || notif.type === 'admin_broadcast') {
-      setActiveTab('announcements');
+      setActiveTab('iamarks')
+    } else if (
+      notif.type === 'assignment_due' ||
+      notif.type === 'assignment_graded' ||
+      notif.type === 'assignment_created' ||
+      notif.type === 'assignment_submitted'
+    ) {
+      setActiveTab('assignments')
+    } else if (
+      notif.type === 'new_announcement' ||
+      notif.type === 'admin_broadcast'
+    ) {
+      setActiveTab('announcements')
     } else if (notif.type === 'timetable_changed') {
-      setActiveTab('timetable');
+      setActiveTab('timetable')
     } else if (notif.type === 'calendar_event_added') {
-      setActiveTab('calendar');
-    } else if (notif.type === 'exam_scheduled' || notif.type === 'seating_allocated') {
-      setActiveTab('exam_seating');
+      setActiveTab('calendar')
+    } else if (
+      notif.type === 'exam_scheduled' ||
+      notif.type === 'seating_allocated'
+    ) {
+      setActiveTab('exam_seating')
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-      {/* Sidebar Navigation */}
+    <div className="flex min-h-screen bg-muted/40 text-foreground">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -69,46 +97,65 @@ function AppContent() {
         setMobileOpen={setIsMobileSidebarOpen}
       />
 
-      {/* Main App Content Layout */}
-      <div className="flex-1 flex flex-col lg:pl-64 min-w-0 pb-16 lg:pb-6">
-        {/* Top Header */}
+      <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-6 lg:pl-64">
         <Header
           currentTabTitle={getTabTitle()}
           onOpenNotifications={() => setIsNotifOpen(true)}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          onToggleMobileSidebar={() =>
+            setIsMobileSidebarOpen(!isMobileSidebarOpen)
+          }
         />
 
-        {/* Dynamic Dashboard View according to Role Hierarchy */}
         <main className="flex-1">
+          {syncError && (
+            <div
+              role="alert"
+              className="mx-4 mt-4 flex items-start justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:mx-6"
+            >
+              <span>
+                <strong>Changes not saved:</strong> {syncError} Your view has been
+                reloaded from the server.
+              </span>
+              <button
+                type="button"
+                onClick={clearSyncError}
+                className="shrink-0 font-bold hover:underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {currentUser.role === 'admin' && (
             <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
           )}
-
           {currentUser.role === 'faculty' && (
-            <FacultyDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+            <FacultyDashboard
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
           )}
-
           {currentUser.role === 'student' && (
-            <StudentDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+            <StudentDashboard
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
           )}
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
       <MobileNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenDrawer={() => setIsMobileSidebarOpen(true)}
       />
 
-      {/* Slide-out Notification Drawer */}
       <NotificationDrawer
         isOpen={isNotifOpen}
         onClose={() => setIsNotifOpen(false)}
         onNavigate={handleNotificationNavigate}
       />
     </div>
-  );
+  )
 }
 
 export default function App() {
@@ -118,5 +165,5 @@ export default function App() {
         <AppContent />
       </AuthProvider>
     </DataProvider>
-  );
+  )
 }

@@ -1,5 +1,14 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React from 'react'
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 export default function StatCard({
   title,
@@ -9,62 +18,65 @@ export default function StatCard({
   iconBg = 'bg-brand-50 text-brand-600 border-brand-100',
   trend,
   trendLabel,
-  trendType = 'up', // 'up' | 'down' | 'neutral'
+  trendType = 'up',
   badgeText,
   badgeVariant = 'primary',
   onClick,
-  className = ''
+  className = '',
 }) {
   return (
-    <div
+    <Card
       onClick={onClick}
-      className={`bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-card transition-all duration-200 ${
-        onClick ? 'cursor-pointer hover:border-brand-300 group' : ''
-      } ${className}`}
+      className={cn(
+        'shadow-xs transition-all duration-200 hover:shadow-card',
+        onClick && 'cursor-pointer hover:border-brand-300 group',
+        className
+      )}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-0">
+        <CardDescription className="text-xs font-bold uppercase tracking-wider text-slate-500">
           {title}
-        </span>
+        </CardDescription>
         {Icon && (
-          <div className={`p-2.5 rounded-xl border ${iconBg}`}>
-            <Icon className="w-5 h-5" />
+          <div className={cn('rounded-xl border p-2.5', iconBg)}>
+            <Icon className="h-5 w-5" />
           </div>
         )}
-      </div>
+      </CardHeader>
 
-      <div className="mt-3 flex items-baseline gap-2">
-        <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          {value}
-        </div>
-        {badgeText && (
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-            {badgeText}
-          </span>
-        )}
-      </div>
-
-      {(subtitle || trend) && (
-        <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          {trend && (
-            <span
-              className={`inline-flex items-center gap-0.5 font-bold ${
-                trendType === 'up'
-                  ? 'text-emerald-600'
-                  : trendType === 'down'
-                  ? 'text-rose-600'
-                  : 'text-slate-600'
-              }`}
-            >
-              {trendType === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
-              {trendType === 'down' && <ArrowDownRight className="w-3.5 h-3.5" />}
-              {trend}
-            </span>
+      <CardContent className="pt-3">
+        <div className="flex items-baseline gap-2">
+          <CardTitle className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            {value}
+          </CardTitle>
+          {badgeText && (
+            <Badge variant="secondary" className="rounded-full text-xs font-semibold">
+              {badgeText}
+            </Badge>
           )}
-          {trendLabel && <span>{trendLabel}</span>}
-          {subtitle && !trend && <span>{subtitle}</span>}
         </div>
-      )}
-    </div>
-  );
+
+        {(subtitle || trend) && (
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            {trend && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-0.5 font-bold',
+                  trendType === 'up' && 'text-emerald-600',
+                  trendType === 'down' && 'text-rose-600',
+                  trendType === 'neutral' && 'text-slate-600'
+                )}
+              >
+                {trendType === 'up' && <ArrowUpRight className="h-3.5 w-3.5" />}
+                {trendType === 'down' && <ArrowDownRight className="h-3.5 w-3.5" />}
+                {trend}
+              </span>
+            )}
+            {trendLabel && <span>{trendLabel}</span>}
+            {subtitle && !trend && <span>{subtitle}</span>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }

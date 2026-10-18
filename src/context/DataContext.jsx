@@ -1,113 +1,162 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  SEED_DEPARTMENTS,
-  SEED_USERS,
-  SEED_COURSES,
-  SEED_ENROLLMENTS,
-  SEED_ATTENDANCE,
-  SEED_IA_MARKS,
-  SEED_ASSIGNMENTS,
-  SEED_SUBMISSIONS,
-  SEED_TIMETABLE,
-  SEED_ANNOUNCEMENTS,
-  SEED_CALENDAR_EVENTS,
-  SEED_NOTIFICATIONS,
-  SEED_EXAM_ROOMS,
-  SEED_EXAM_TIMETABLE,
-  SEED_EXAM_SEATING_PLANS,
-  SEED_EXAM_SEATINGS
-} from '../data/seedData';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import { TABLES, toRow } from '../lib/db-schema';
 
 const DataContext = createContext(null);
 
-const STORAGE_KEY = 'campusnex_data_v1';
+const PAGE_SIZE = 1000;
+
+const emptyData = () => Object.fromEntries(TABLES.map((t) => [t.key, []]));
+
+async function fetchTable(table) {
+  const rows = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase.from(table).select('*').range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`Could not load ${table}: ${error.message}`);
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) return rows;
+  }
+}
+
+async function fetchAll() {
+  const tables = await Promise.all(TABLES.map((t) => fetchTable(t.table)));
+  return Object.fromEntries(TABLES.map((t, i) => [t.key, tables[i]]));
+}
+
+const sameRow = (columns, a, b) =>
+  JSON.stringify(toRow(columns, a)) === JSON.stringify(toRow(columns, b));
+
+const assertWrite = (table, action, error, count, expected) => {
+  if (error) throw new Error(`Could not ${action} ${table}: ${error.message}`);
+  if (count !== null && count < expected) {
+    throw new Error(`You don't have permission to ${action} some ${table} records.`);
+  }
+};
+
+// Writes the difference between two data snapshots to Supabase.
+// Deletes run children-first, inserts/updates parents-first, so foreign keys hold.
+async function persistChanges(prev, next) {
+  for (const { key, table } of [...TABLES].reverse()) {
+    if (prev[key] === next[key]) continue;
+    const nextIds = new Set(next[key].map((r) => r.id));
+    const removed = prev[key].filter((r) => !nextIds.has(r.id)).map((r) => r.id);
+    if (!removed.length) continue;
+    const { error, count } = await supabase.from(table).delete({ count: 'exact' }).in('id', removed);
+    assertWrite(table, 'delete', error, count, removed.length);
+  }
+
+  for (const { key, table, columns } of TABLES) {
+    if (prev[key] === next[key]) continue;
+    const prevById = new Map(prev[key].map((r) => [r.id, r]));
+    const inserts = [];
+    const updates = [];
+    for (const record of next[key]) {
+      const old = prevById.get(record.id);
+      if (!old) inserts.push(toRow(columns, record));
+      else if (!sameRow(columns, old, record)) updates.push(toRow(columns, record));
+    }
+
+    if (inserts.length) {
+      const { error } = await supabase.from(table).insert(inserts, { defaultToNull: false });
+      assertWrite(table, 'create', error, null, 0);
+    }
+    for (const { id, ...fields } of updates) {
+      const { error, count } = await supabase.from(table).update(fields, { count: 'exact' }).eq('id', id);
+      assertWrite(table, 'update', error, count, 1);
+    }
+  }
+}
 
 export function DataProvider({ children }) {
-  // Load state from localStorage or initialize from seed data
-  const [data, setData] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Ensure all default pre-seeded departments exist even if an older state was saved in localStorage
-        const existingDeptIds = new Set((parsed.departments || []).map(d => d.id));
-        const mergedDepartments = [
-          ...(parsed.departments || []),
-          ...SEED_DEPARTMENTS.filter(d => !existingDeptIds.has(d.id))
-        ];
+  const [data, setData] = useState(emptyData);
+  const [auth, setAuth] = useState({ session: null, loading: true });
+  const [syncError, setSyncError] = useState(null);
 
-        // Ensure all default seed users exist
-        const existingUserIds = new Set((parsed.users || []).map(u => u.id));
-        const mergedUsers = [
-          ...(parsed.users || []),
-          ...SEED_USERS.filter(u => !existingUserIds.has(u.id))
-        ];
+  // Last snapshot known to match the server; local edits are diffed against it.
+  const snapshot = useRef(null);
+  // Serialises writes and reloads so they reach Supabase in order.
+  const queue = useRef(Promise.resolve());
+  const userIdRef = useRef(null);
 
-        return {
-          ...parsed,
-          departments: mergedDepartments,
-          users: mergedUsers,
-          exam_rooms: (parsed.exam_rooms && parsed.exam_rooms.length > 0) ? parsed.exam_rooms : SEED_EXAM_ROOMS,
-          exam_timetables: (parsed.exam_timetables && parsed.exam_timetables.length > 0) ? parsed.exam_timetables : SEED_EXAM_TIMETABLE,
-          exam_seating_plans: (parsed.exam_seating_plans && parsed.exam_seating_plans.length > 0) ? parsed.exam_seating_plans : SEED_EXAM_SEATING_PLANS,
-          exam_seatings: (parsed.exam_seatings && parsed.exam_seatings.length > 0) ? parsed.exam_seatings : SEED_EXAM_SEATINGS
-        };
-      }
-    } catch (e) {
-      console.error('Failed to load Campusnex local data:', e);
-    }
-    return {
-      departments: SEED_DEPARTMENTS,
-      users: SEED_USERS,
-      courses: SEED_COURSES,
-      enrollments: SEED_ENROLLMENTS,
-      attendance: SEED_ATTENDANCE,
-      ia_marks: SEED_IA_MARKS,
-      assignments: SEED_ASSIGNMENTS,
-      submissions: SEED_SUBMISSIONS,
-      timetable: SEED_TIMETABLE,
-      announcements: SEED_ANNOUNCEMENTS,
-      calendar_events: SEED_CALENDAR_EVENTS,
-      notifications: SEED_NOTIFICATIONS,
-      exam_rooms: SEED_EXAM_ROOMS,
-      exam_timetables: SEED_EXAM_TIMETABLE,
-      exam_seating_plans: SEED_EXAM_SEATING_PLANS,
-      exam_seatings: SEED_EXAM_SEATINGS
-    };
-  });
+  // Which signed-in user the snapshot belongs to. Writes only ever run for that user.
+  const snapshotOwner = useRef(null);
 
-  // Persist state to localStorage on update
+  const loadAll = useCallback(async () => {
+    const uid = userIdRef.current;
+    const fresh = await fetchAll();
+    if (uid !== userIdRef.current) return; // user changed mid-load; discard
+    snapshot.current = fresh;
+    snapshotOwner.current = uid;
+    setData(fresh);
+  }, []);
+
+  const refreshData = useCallback(() => {
+    queue.current = queue.current
+      .then(loadAll)
+      .catch((e) => setSyncError(e.message));
+    return queue.current;
+  }, [loadAll]);
+
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.error('Failed to persist Campusnex data:', e);
-    }
-  }, [data]);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user?.id || null;
 
-  // Reset to original seed data
-  const resetToSeedData = () => {
-    const initial = {
-      departments: SEED_DEPARTMENTS,
-      users: SEED_USERS,
-      courses: SEED_COURSES,
-      enrollments: SEED_ENROLLMENTS,
-      attendance: SEED_ATTENDANCE,
-      ia_marks: SEED_IA_MARKS,
-      assignments: SEED_ASSIGNMENTS,
-      submissions: SEED_SUBMISSIONS,
-      timetable: SEED_TIMETABLE,
-      announcements: SEED_ANNOUNCEMENTS,
-      calendar_events: SEED_CALENDAR_EVENTS,
-      notifications: SEED_NOTIFICATIONS,
-      exam_rooms: SEED_EXAM_ROOMS,
-      exam_timetables: SEED_EXAM_TIMETABLE,
-      exam_seating_plans: SEED_EXAM_SEATING_PLANS,
-      exam_seatings: SEED_EXAM_SEATINGS
+      if (!uid) {
+        userIdRef.current = null;
+        snapshot.current = null;
+        snapshotOwner.current = null;
+        setData(emptyData());
+        setAuth({ session: null, loading: false });
+        return;
+      }
+
+      const isNewUser = uid !== userIdRef.current;
+      userIdRef.current = uid;
+      setAuth((prev) => ({ session, loading: isNewUser ? true : prev.loading }));
+      if (!isNewUser) return;
+
+      // Drop the previous user's snapshot first: clearing local data must never be
+      // diffed into deletes that would run under the new session.
+      snapshot.current = null;
+      snapshotOwner.current = null;
+      setData(emptyData());
+
+      // Defer Supabase calls out of the auth callback to avoid a client deadlock.
+      setTimeout(() => {
+        if (userIdRef.current !== uid) return;
+        refreshData().finally(() => setAuth((prev) => ({ ...prev, loading: false })));
+      }, 0);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [refreshData]);
+
+  // Pick up changes made by other users when the tab regains focus.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && userIdRef.current) refreshData();
     };
-    setData(initial);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-  };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refreshData]);
+
+  // Persist local edits. On failure, reload so the UI matches what the server accepted.
+  useEffect(() => {
+    const prev = snapshot.current;
+    const owner = snapshotOwner.current;
+    if (!prev || prev === data || !owner || owner !== userIdRef.current) return;
+    snapshot.current = data;
+    queue.current = queue.current
+      .then(() => {
+        // Never apply one user's edits under another user's session.
+        if (owner !== userIdRef.current) return;
+        return persistChanges(prev, data);
+      })
+      .catch(async (e) => {
+        console.error('Campusnex sync failed:', e);
+        setSyncError(e.message);
+        await loadAll().catch(() => {});
+      });
+  }, [data, loadAll]);
 
   // Helper to add internal notification
   const addNotification = (notif) => {
@@ -1283,7 +1332,11 @@ export function DataProvider({ children }) {
     <DataContext.Provider
       value={{
         ...data,
-        resetToSeedData,
+        session: auth.session,
+        loading: auth.loading,
+        syncError,
+        clearSyncError: () => setSyncError(null),
+        refreshData,
         markBulkAttendance,
         saveIAMarks,
         createAssignment,

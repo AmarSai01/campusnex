@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python cache (UI UX Pro Max skill scripts)
+__pycache__/

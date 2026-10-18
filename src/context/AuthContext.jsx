@@ -1,85 +1,84 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useData } from './DataContext';
+import { supabase, DEMO_PASSWORD } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-const AUTH_STORAGE_KEY = 'campusnex_current_user_v1';
+// Seeded demo accounts, used by the one-click demo logins before any data is loaded.
+const DEMO_ACCOUNTS = {
+  admin_1: 'admin@campusnex.edu',
+  faculty_1: 'faculty1@campusnex.edu',
+  faculty_2: 'faculty2@campusnex.edu',
+  student_1: 'student1@campusnex.edu',
+  student_2: 'student2@campusnex.edu',
+  student_4: 'student4@campusnex.edu'
+};
+
+const friendlyAuthError = (error) => {
+  if (!error) return null;
+  if (error.message === 'Invalid login credentials') return 'Incorrect email or password.';
+  if (error.message === 'Email not confirmed') return 'Please confirm your email address first. Check your inbox.';
+  if (/database error/i.test(error.message)) {
+    return 'No Campusnex account is registered for this email. Contact your administrator.';
+  }
+  return error.message;
+};
 
 export function AuthProvider({ children }) {
-  const { users } = useData();
+  const { users, session, loading } = useData();
 
-  // Initialize with saved user or default to Admin (Dr. Sarah Connor) or null
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Error loading auth state:', e);
-    }
-    // Default initial user for instant showcase: Admin
-    return null;
-  });
+  const currentUser = session ? users.find((u) => u.auth_id === session.user.id) || null : null;
 
-  // Keep currentUser in sync if updated in DataContext (e.g. user details edited)
+  // Signed in but no active profile (deactivated or removed): end the session.
+  const profileMissing = !!session && !loading && !currentUser;
   useEffect(() => {
-    if (currentUser) {
-      const freshUser = users.find(u => u.id === currentUser.id);
-      if (freshUser) {
-        setCurrentUser(freshUser);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(freshUser));
-      }
-    }
-  }, [users]);
+    if (profileMissing) supabase.auth.signOut();
+  }, [profileMissing]);
 
-  // Login handler
   const login = async (email, password) => {
-    const matchedUser = users.find(
-      u => u.email.toLowerCase() === email.trim().toLowerCase() && u.status !== 'inactive'
-    );
-
-    if (!matchedUser) {
-      throw new Error('Invalid email address or account has been deactivated.');
-    }
-
-    // In demo / client auth, accept any standard password for seed accounts
-    setCurrentUser(matchedUser);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(matchedUser));
-    return matchedUser;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password
+    });
+    if (error) throw new Error(friendlyAuthError(error));
   };
 
-  // Quick switch user for testing and evaluator convenience
-  const switchUser = (userId) => {
-    const matchedUser = users.find(u => u.id === userId);
-    if (matchedUser) {
-      setCurrentUser(matchedUser);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(matchedUser));
-    }
+  // First sign-in for a profile an admin created: sets the password and links the account.
+  const activateAccount = async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password
+    });
+    if (error) throw new Error(friendlyAuthError(error));
+    return data.session ? 'signed_in' : 'confirm_email';
   };
 
-  // Quick switch by role
+  // One-click demo login; only available when VITE_DEMO_PASSWORD is set.
+  const switchUser = async (userId) => {
+    const email = users.find((u) => u.id === userId)?.email || DEMO_ACCOUNTS[userId];
+    if (!email || !DEMO_PASSWORD) return;
+    await login(email, DEMO_PASSWORD);
+  };
+
   const switchRole = (role) => {
-    const candidate = users.find(u => u.role === role && u.status !== 'inactive');
-    if (candidate) {
-      switchUser(candidate.id);
-    }
+    const candidate = users.find((u) => u.role === role && u.status !== 'inactive');
+    if (candidate) switchUser(candidate.id);
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-  };
+  const logout = () => supabase.auth.signOut();
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
         login,
+        activateAccount,
         logout,
         switchUser,
         switchRole,
+        isDemo: !!DEMO_PASSWORD,
         isAuthenticated: !!currentUser,
+        authLoading: loading,
         role: currentUser?.role || null
       }}
     >
