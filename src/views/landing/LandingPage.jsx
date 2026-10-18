@@ -25,7 +25,7 @@ const STRIP = [
   'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', '75% attendance rule', 'Exam hall LH-102',
 ]
 
-const HEADLINE = ['Catch', 'the', '74%', 'before', 'the', 'semester', 'does.']
+const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
 
 function Page({ onSignIn }) {
   const heroRef = useRef(null)
@@ -60,13 +60,13 @@ function Page({ onSignIn }) {
       <main>
         <section ref={heroRef} className="relative px-4 pt-20 pb-24 sm:px-6">
           <div className="relative mx-auto max-w-4xl text-center">
-            <h1 className="font-display text-[2.7rem] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-7xl">
+            <h1 className="font-display text-[2.3rem] leading-[1.04] font-semibold tracking-[-0.03em] sm:text-6xl">
               {HEADLINE.map((word, i) => (
                 <motion.span
                   key={i}
                   initial={{ opacity: 0, filter: 'blur(8px)', y: 10 }}
                   animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.08, duration: 0.5 }}
+                  transition={{ delay: 0.1 + i * 0.05, duration: 0.5 }}
                   className="inline-block bg-gradient-to-b from-white to-slate-400 bg-clip-text pr-[0.22em] text-transparent"
                 >
                   {word}
@@ -143,8 +143,9 @@ function Page({ onSignIn }) {
         </div>
 
         <Section id="features" theme="night">
-          <SectionHeading title="Everything a college office runs on">
-            Try the pieces yourself. Every card below works the way it does inside Campusnex.
+          <SectionHeading title="Built for IA week, exam week and results day.">
+            Close the registers and the Excel sheets. Try it right here: every card below works the way it does inside
+            Campusnex.
           </SectionHeading>
           <div className="mt-12">
             <FeatureBento />

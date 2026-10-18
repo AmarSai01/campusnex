@@ -35,8 +35,9 @@ const ACCESS = [
 export function SecuritySection() {
   return (
     <>
-      <SectionHeading title="Every role sees only what it should">
-        These rules run inside the database, not just on screen, so they hold even if someone tampers with the browser.
+      <SectionHeading title="Four roles. Four sets of keys.">
+        Admin, HOD, teacher, student: each sees only what's theirs, and marks stay locked until they're published. These
+        rules run inside the database, so they hold even if someone tampers with the browser.
       </SectionHeading>
       <div className="mt-12 overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm">
         <table className="w-full min-w-[760px] text-left text-sm">
@@ -87,7 +88,7 @@ const STEPS = [
 export function SetupSteps() {
   return (
     <>
-      <SectionHeading title="Up and running in four steps" />
+      <SectionHeading title="Bring your student list. Campusnex does the rest." />
       <ol className="relative mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
         <div aria-hidden="true" className="absolute top-5 right-0 left-0 hidden h-px bg-gradient-to-r from-brand-500/0 via-brand-500/60 to-brand-500/0 lg:block" />
         {STEPS.map(([title, body], i) => (
@@ -114,7 +115,7 @@ export function SetupSteps() {
 export function Plans() {
   return (
     <>
-      <SectionHeading title="Start with one department" center>
+      <SectionHeading title="Pilot it in one department. Roll it out when you're convinced." center>
         Try Campusnex with a single department first, then bring in the rest of the institution.
       </SectionHeading>
       <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
@@ -161,7 +162,7 @@ const FAQS = [
 export function Faq() {
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <SectionHeading title="Questions colleges ask" />
+      <SectionHeading title="What your principal will ask" />
       <Accordion type="single" collapsible className="rounded-2xl border border-white/10 bg-night-2/60 px-5 backdrop-blur-sm">
         {FAQS.map(([q, a], i) => (
           <AccordionItem key={q} value={`faq-${i}`} className="border-white/10">
