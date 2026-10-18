@@ -2,8 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '../lib/supabase';
 import { TABLES, toRow } from '../lib/db-schema';
 import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } from '../utils/enrollment';
+import { gpa } from '../utils/results';
 
-const DataContext = createContext(null);
+export const DataContext = createContext(null);
 
 const PAGE_SIZE = 1000;
 
@@ -656,6 +657,68 @@ export function DataProvider({ children }) {
       };
     });
     return newStudents.length;
+  };
+
+  // Semester results from a validated CSV (see utils/results.js). A row for the same student,
+  // semester and course replaces the old marks but keeps its published state.
+  const importResults = (list) => {
+    const now = new Date().toISOString();
+    setData(prev => {
+      const results = [...(prev.results || [])];
+      const indexByKey = new Map(results.map((r, i) => [`${r.student_id}|${r.semester}|${r.course_code}`, i]));
+      for (const r of list) {
+        const key = `${r.student_id}|${r.semester}|${r.course_code}`;
+        if (indexByKey.has(key)) {
+          const i = indexByKey.get(key);
+          results[i] = { ...results[i], ...r, updated_by: currentProfileId, updated_at: now };
+        } else {
+          indexByKey.set(key, results.length);
+          results.push({
+            id: `res_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
+            ...r,
+            published: false,
+            created_by: currentProfileId,
+            updated_by: currentProfileId,
+            created_at: now,
+            updated_at: now
+          });
+        }
+      }
+      return { ...prev, results };
+    });
+    return list.length;
+  };
+
+  // Publish or hide one semester's results, optionally for one department only.
+  // Publishing notifies each student with their SGPA for that semester.
+  const setResultsPublished = (semester, departmentId, published) => {
+    const now = new Date().toISOString();
+    setData(prev => {
+      const deptOf = new Map(prev.users.map(u => [u.id, u.department_id]));
+      const inScope = (r) => r.semester === semester && (!departmentId || deptOf.get(r.student_id) === departmentId);
+      const changed = (prev.results || []).filter(r => inScope(r) && r.published !== published);
+      if (!changed.length) return prev;
+
+      const results = prev.results.map(r =>
+        inScope(r) && r.published !== published ? { ...r, published, updated_by: currentProfileId, updated_at: now } : r
+      );
+
+      const notifications = [...prev.notifications];
+      if (published) {
+        const students = [...new Set(changed.map(r => r.student_id))];
+        for (const studentId of students) {
+          const sgpa = gpa(results.filter(r => r.student_id === studentId && r.semester === semester));
+          notifications.unshift(addNotification({
+            user_id: studentId,
+            type: 'result_published',
+            reference_id: `sem-${semester}`,
+            title: `Semester ${semester} results published`,
+            message: `Your SGPA for semester ${semester} is ${sgpa?.toFixed(2)}. Open Results to see your CGPA.`
+          }));
+        }
+      }
+      return { ...prev, results, notifications };
+    });
   };
 
   const updateStudent = (studentId, updateFields, editorId) => {
@@ -1438,6 +1501,8 @@ export function DataProvider({ children }) {
         updateUser,
         createStudent,
         createStudentsBulk,
+        importResults,
+        setResultsPublished,
         updateStudent,
         deleteStudent,
         createDepartment,

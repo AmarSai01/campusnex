@@ -113,6 +113,16 @@ export const TABLES = [
 ];
 
 // Keep only known columns; empty strings become null so date/number columns accept them.
+// Appended after the original list: results reference profiles only.
+TABLES.push({
+  key: 'results',
+  table: 'results',
+  columns: [
+    'id', 'student_id', 'semester', 'course_code', 'course_name', 'credits', 'cie', 'see', 'total',
+    'grade', 'grade_point', 'published', 'created_by', 'updated_by', 'created_at', 'updated_at'
+  ]
+});
+
 export function toRow(columns, record) {
   const row = {};
   for (const col of columns) {

@@ -8,6 +8,7 @@ import TimetableBuilder from '../../components/admin/TimetableBuilder';
 import CalendarManager from '../../components/admin/CalendarManager';
 import BroadcastModal from '../../components/admin/BroadcastModal';
 import ExamManagement from '../../components/exams/ExamManagement';
+import ResultsManager from '../../components/admin/ResultsManager';
 
 export default function AdminDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -26,6 +27,8 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
         return <TimetableBuilder />;
       case 'exam_seating':
         return <ExamManagement />;
+      case 'results':
+        return <ResultsManager />;
       case 'calendar':
         return <CalendarManager />;
       case 'announcements':

@@ -16,6 +16,7 @@ import {
   Building2,
   ShieldCheck,
   ClipboardCheck,
+  Trophy,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -41,6 +42,7 @@ export default function Sidebar({
       { id: 'courses', label: 'Curriculum & Courses', icon: BookOpen },
       { id: 'timetable', label: 'Timetable Builder', icon: Clock, badge: 'Conflicts' },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers, badge: 'Halls' },
+      { id: 'results', label: 'Semester Results', icon: Trophy, badge: 'Publish' },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
     ],
@@ -57,6 +59,7 @@ export default function Sidebar({
       { id: 'overview', label: 'Student Hub', icon: LayoutDashboard },
       { id: 'attendance', label: 'My Attendance', icon: CheckSquare },
       { id: 'iamarks', label: 'IA Marks & Trends', icon: Award },
+      { id: 'results', label: 'Results', icon: Trophy, badge: 'SGPA' },
       { id: 'assignments', label: 'Assignments & Submissions', icon: FileText },
       { id: 'timetable', label: 'Class Timetable', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },

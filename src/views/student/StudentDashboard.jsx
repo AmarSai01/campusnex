@@ -8,6 +8,7 @@ import StudentCalendar from '../../components/student/StudentCalendar';
 import FacultyDirectory from '../../components/student/FacultyDirectory';
 import StudentAnnouncements from '../../components/student/StudentAnnouncements';
 import ExamManagement from '../../components/exams/ExamManagement';
+import StudentResults from '../../components/student/StudentResults';
 
 export default function StudentDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -18,6 +19,8 @@ export default function StudentDashboard({ activeTab = 'overview', setActiveTab 
         return <AttendanceOverview />;
       case 'iamarks':
         return <IAMarksView />;
+      case 'results':
+        return <StudentResults />;
       case 'assignments':
         return <AssignmentSubmissionList />;
       case 'timetable':

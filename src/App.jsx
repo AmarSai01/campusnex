@@ -2,6 +2,15 @@ import React, { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider, useData } from './context/DataContext'
 import LandingPage from './views/landing/LandingPage'
+import SmoothScroll from './lib/smooth-scroll'
+import LandingV2 from './views/landing-v2/LandingV2'
+import ResultsPreview from './views/preview/ResultsPreview'
+
+// Private design preview on the dev server only: http://localhost:5173/?preview=v2
+const SHOW_V2_PREVIEW =
+  import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'v2'
+const SHOW_RESULTS_PREVIEW =
+  import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'results'
 import LoginView from './views/auth/LoginView'
 import ResetPasswordView from './views/auth/ResetPasswordView'
 import AdminDashboard from './views/admin/AdminDashboard'
@@ -28,6 +37,16 @@ function AppContent() {
     )
   }
 
+  if (SHOW_RESULTS_PREVIEW) return <ResultsPreview />
+
+  if (SHOW_V2_PREVIEW && !isAuthenticated && authScreen !== 'login') {
+    return (
+      <SmoothScroll>
+        <LandingV2 onSignIn={() => setAuthScreen('login')} />
+      </SmoothScroll>
+    )
+  }
+
   if (passwordRecovery) {
     return <ResetPasswordView />
   }
@@ -36,7 +55,11 @@ function AppContent() {
     if (authScreen === 'login') {
       return <LoginView onBack={() => setAuthScreen('landing')} />
     }
-    return <LandingPage onSignIn={() => setAuthScreen('login')} />
+    return (
+      <SmoothScroll>
+        <LandingPage onSignIn={() => setAuthScreen('login')} />
+      </SmoothScroll>
+    )
   }
 
   const getTabTitle = () => {
@@ -60,6 +83,7 @@ function AppContent() {
       assignments: 'Coursework & Assignments',
       directory: 'Faculty Advisory Directory',
       hod_overview: 'Department Overview',
+      results: currentUser.role === 'admin' ? 'Semester Results' : 'Results: SGPA and CGPA',
       hod_compliance: 'Faculty Compliance',
     }
     return titles[activeTab] || 'Workspace'
@@ -67,7 +91,9 @@ function AppContent() {
 
   const handleNotificationNavigate = (notif) => {
     setIsNotifOpen(false)
-    if (notif.type === 'attendance_risk' || notif.type === 'marks_risk') {
+    if (notif.type === 'result_published') {
+      setActiveTab('results')
+    } else if (notif.type === 'attendance_risk' || notif.type === 'marks_risk') {
       if (isHod) setActiveTab('hod_overview')
       else setActiveTab(notif.type === 'attendance_risk' ? 'attendance' : 'iamarks')
     } else if (notif.type === 'attendance_absent') {

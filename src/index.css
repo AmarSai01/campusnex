@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/bricolage-grotesque";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -17,6 +18,24 @@
   --color-brand-800: #983500;
   --color-brand-900: #7a2e0a;
   --color-brand-950: #421405;
+
+  /* Landing page: attendance-register palette */
+  --color-ink: #16233f;
+  --color-ink-soft: #4a5876;
+  --color-paper: #f6f8fb;
+  --color-rule: #d5deec;
+  --color-present: #1f9d55;
+  --color-absent: #e5484d;
+  --color-late: #e8a317;
+  /* Darker text shades of the status colours (4.5:1 on white and paper) */
+  --color-present-strong: #157a41;
+  --color-absent-strong: #b42328;
+  /* Landing v2: night ink theme */
+  --color-night: #0a1022;
+  --color-night-2: #0f1830;
+  --color-night-line: #1f2b4d;
+  --color-mist: #a9b4cc;
+  --font-display: "Bricolage Grotesque Variable", "Geist Variable", system-ui, sans-serif;
 
   --color-slate-850: #151f32;
   --color-slate-925: #0b1120;

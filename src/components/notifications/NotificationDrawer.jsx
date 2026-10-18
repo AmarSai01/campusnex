@@ -42,6 +42,7 @@ export default function NotificationDrawer({ isOpen, onClose, onNavigate }) {
   const getIcon = (type) => {
     switch (type) {
       case 'ia_published':
+      case 'result_published':
         return <Award className="h-4 w-4 text-purple-600" />
       case 'attendance_absent':
       case 'attendance_risk':
@@ -68,6 +69,7 @@ export default function NotificationDrawer({ isOpen, onClose, onNavigate }) {
   const getIconBg = (type) => {
     switch (type) {
       case 'ia_published':
+      case 'result_published':
         return 'bg-purple-50 border-purple-100'
       case 'attendance_absent':
       case 'attendance_risk':

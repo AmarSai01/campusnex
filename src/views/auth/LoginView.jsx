@@ -160,28 +160,28 @@ export default function LoginView({ onBack }) {
               <TabsList className="grid h-auto w-full grid-cols-4 gap-1 bg-transparent p-0">
                 <TabsTrigger
                   value="student"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-emerald-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
                 >
                   <GraduationCap className="h-4 w-4" />
                   Student
                 </TabsTrigger>
                 <TabsTrigger
                   value="faculty"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-brand-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-brand-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
                 >
                   <Briefcase className="h-4 w-4" />
                   Faculty
                 </TabsTrigger>
                 <TabsTrigger
                   value="hod"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-sky-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-sky-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
                 >
                   <ShieldCheck className="h-4 w-4" />
                   HOD
                 </TabsTrigger>
                 <TabsTrigger
                   value="admin"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-amber-800 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
                 >
                   <ShieldAlert className="h-4 w-4" />
                   Admin

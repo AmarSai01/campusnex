@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useData } from './DataContext';
 import { supabase } from '../lib/supabase';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 const friendlyAuthError = (error) => {
   if (!error) return null;

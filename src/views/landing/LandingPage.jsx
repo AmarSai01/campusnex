@@ -1,621 +1,371 @@
-import React, { useState } from 'react'
+import React from 'react'
+import { MotionConfig } from 'framer-motion'
 import {
-  ArrowRight,
-  Award,
-  BarChart3,
-  BookOpen,
-  CalendarDays,
-  CheckCircle2,
-  CheckSquare,
-  Clock,
+  BellRing,
+  BookOpenCheck,
+  CalendarClock,
+  ClipboardList,
+  FileSpreadsheet,
   GraduationCap,
-  Layers,
+  LayoutGrid,
   Megaphone,
   ShieldCheck,
-  Sparkles,
-  Users,
+  UserCheck,
 } from 'lucide-react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
-
-const chartData = [
-  { day: 'Mon', present: 92, absent: 8 },
-  { day: 'Tue', present: 88, absent: 12 },
-  { day: 'Wed', present: 95, absent: 5 },
-  { day: 'Thu', present: 90, absent: 10 },
-  { day: 'Fri', present: 86, absent: 14 },
-]
-
-const features = [
-  {
-    icon: CheckSquare,
-    title: 'Attendance that stays current',
-    description:
-      'Bulk mark sessions, flag shortages early, and give students a live view of their standing.',
-  },
-  {
-    icon: Award,
-    title: 'IA marks with clear publish flow',
-    description:
-      'Faculty enter assessments, publish when ready, and students see trends without spreadsheet chaos.',
-  },
-  {
-    icon: Clock,
-    title: 'Conflict-aware timetables',
-    description:
-      'Build department schedules with overlap checks so rooms, faculty, and sections stay aligned.',
-  },
-  {
-    icon: Layers,
-    title: 'Exam seating in one workspace',
-    description:
-      'Plan exam slots, allocate halls, and publish seating maps students can actually find.',
-  },
-]
-
-const steps = [
-  {
-    icon: Users,
-    title: 'Onboard your campus roles',
-    description:
-      'Provision admins, faculty, and students with department, section, and USN context.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Wire courses and calendars',
-    description:
-      'Allocate faculty, publish the academic calendar, and keep broadcasts in one channel.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Operate day-to-day academics',
-    description:
-      'Attendance, IA, assignments, and exams run in role-aware workspaces with live insight.',
-  },
-]
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import AttendanceRegisterDemo from './AttendanceRegisterDemo'
+import RoleDesks from './RoleDesks'
+import SeatingDemo from './SeatingDemo'
+import ImportDemo from './ImportDemo'
 
 const CONTACT_EMAIL = '__CONTACT_EMAIL__'
-const contactHref = (subject) =>
-  `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
+const contactHref = (subject) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
 
-const plans = [
-  {
-    name: 'Department',
-    price: 'Pilot',
-    description: 'Ideal for a single department proving the workflow.',
-    features: [
-      'Up to 500 students',
-      'Attendance & IA workspace',
-      'Timetable builder',
-      'Campus broadcasts',
-      'Role-based access for admin, HOD, faculty & students',
-    ],
-    cta: 'Request a pilot',
-    highlighted: false,
-  },
-  {
-    name: 'Institution',
-    price: 'Scale',
-    description: 'Multi-department ERP with exams, seating, and analytics.',
-    features: [
-      'Unlimited departments',
-      'Exam timetable & seating',
-      'Institution analytics',
-      'User & course directory',
-      'Priority onboarding support',
-    ],
-    cta: 'Contact us',
-    highlighted: true,
-  },
+const MODULES = [
+  { icon: UserCheck, label: 'Attendance' },
+  { icon: BookOpenCheck, label: 'IA marks' },
+  { icon: ClipboardList, label: 'Assignments' },
+  { icon: CalendarClock, label: 'Timetables' },
+  { icon: LayoutGrid, label: 'Exam seating' },
+  { icon: Megaphone, label: 'Circulars' },
+  { icon: BellRing, label: 'Risk alerts' },
+  { icon: FileSpreadsheet, label: 'Reports' },
 ]
 
-const faqs = [
-  {
-    q: 'What is Campusnex?',
-    a: 'Campusnex is an academic management portal for institutions — covering attendance, IA marks, assignments, timetables, exam seating, calendars, and role-based dashboards for admin, faculty, and students.',
-  },
+const ACCESS = [
+  { item: 'Student records', admin: 'Add, edit, delete', hod: 'Add and edit in own department', faculty: 'View', student: 'Own profile' },
+  { item: 'Attendance', admin: 'Everything', hod: 'View whole department', faculty: 'Mark own classes', student: 'Own only' },
+  { item: 'IA marks', admin: 'Everything', hod: 'View department, including unpublished', faculty: 'Enter and publish for own classes', student: 'Own, once published' },
+  { item: 'Exams and seating', admin: 'Everything', hod: 'Own department', faculty: 'Own department', student: 'Own room and seat' },
+  { item: 'Circulars', admin: 'Everyone or any department', hod: 'Own department', faculty: 'Own classes', student: 'Read' },
+  { item: 'Deleting records', admin: 'Yes', hod: 'No', faculty: 'No', student: 'No' },
+]
+
+const SETUP_STEPS = [
+  { title: 'Add departments and courses', body: 'Create each department, its courses and the class timetable. Rooms and teachers are checked for clashes.' },
+  { title: 'Import your students', body: 'Upload a CSV with USN, name, semester, department, section and email. Every row is checked before it is saved.' },
+  { title: 'Add faculty and choose HODs', body: 'Add teachers, assign their courses and pick the head of each department.' },
+  { title: 'Everyone activates their account', body: 'Students and staff set their own password with the email you registered. The term can begin.' },
+]
+
+const FAQS = [
   {
     q: 'Who can sign in?',
-    a: 'Accounts are created by your institution\'s administrator — there is no public sign-up. Once your account exists, choose "Activate your account" on the login page and set your own password.',
+    a: 'Only people your administrator has added. There is no public sign-up. Each person chooses “Activate your account” on the login page and sets their own password using the email the college registered.',
   },
   {
-    q: 'Does it replace our LMS?',
-    a: 'Campusnex focuses on campus operations and academic ERP workflows. It complements — rather than replaces — content-heavy LMS tools.',
+    q: 'How does the 75% alert work?',
+    a: 'Attendance is calculated per subject, with a late counting as half a class. Once at least four classes are held, a student who drops below 75% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below 40%.',
+  },
+  {
+    q: 'Can we bring in our existing student list?',
+    a: 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. You see every row checked before anything is saved, and students are enrolled in their courses automatically.',
+  },
+  {
+    q: 'What does an HOD see that faculty don’t?',
+    a: 'A view-only overview of every student in their department, subject by subject, with at-risk students flagged, plus a check of which classes are behind on attendance, IA publishing or grading. HODs can also add and edit students and post department notices.',
   },
   {
     q: 'Is student data secure?',
-    a: 'Campusnex runs on Supabase (PostgreSQL) with row-level security, so every role only sees and changes the records it is allowed to. Institutions can host it on their own Supabase project.',
+    a: 'Access rules run inside the database, so every role only reads and changes what it is allowed to, even if someone tampers with the browser. Students never see other students’ records or unpublished marks.',
+  },
+  {
+    q: 'Does it replace our LMS?',
+    a: 'No. Campusnex runs academic operations: attendance, assessment, timetables, exams and communication. It sits alongside a learning management system used for course content.',
   },
 ]
 
-function ProductPreview() {
+const Logo = () => (
+  <span className="flex items-center gap-2.5">
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
+      <GraduationCap className="h-4.5 w-4.5" aria-hidden="true" />
+    </span>
+    <span className="font-display text-lg font-bold tracking-tight text-ink">Campusnex</span>
+  </span>
+)
+
+function SectionHeading({ title, children }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-card-hover ring-1 ring-black/5">
-      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <GraduationCap className="h-4 w-4" />
-          </div>
-          <span className="text-sm font-bold text-foreground">Campusnex · Analytics</span>
-        </div>
-        <Badge variant="secondary" className="rounded-full text-[10px] font-semibold">
-          Sample view
-        </Badge>
-      </div>
-
-      <div className="grid gap-4 p-4 md:grid-cols-[180px_1fr]">
-        <div className="hidden space-y-1 rounded-xl bg-muted/50 p-3 md:block">
-          {['Overview', 'Attendance', 'IA Marks', 'Timetable', 'Exams'].map((item, i) => (
-            <div
-              key={item}
-              className={cn(
-                'rounded-lg px-3 py-2 text-xs font-semibold',
-                i === 0
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-muted-foreground'
-              )}
-            >
-              {item}
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              { label: 'Avg attendance', value: '91%', tone: 'text-emerald-600' },
-              { label: 'Open assignments', value: '18', tone: 'text-brand-600' },
-              { label: 'IA published', value: '12', tone: 'text-sky-600' },
-              { label: 'Exam halls', value: '6', tone: 'text-amber-600' },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-border bg-background p-3"
-              >
-                <p className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
-                  {stat.label}
-                </p>
-                <p className={cn('mt-1 text-xl font-extrabold', stat.tone)}>
-                  {stat.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="h-44 rounded-xl border border-border bg-background p-3">
-            <p className="mb-2 text-xs font-bold text-foreground">Weekly presence</p>
-            <ResponsiveContainer width="100%" height="85%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: '1px solid #e7e5e4',
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="present" fill="#ff5c00" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-2xl">
+      <h2 className="font-display text-3xl font-semibold tracking-tight text-balance text-ink sm:text-4xl">{title}</h2>
+      {children && <p className="mt-3 text-base leading-relaxed text-ink-soft sm:text-lg">{children}</p>}
     </div>
   )
 }
 
+const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500'
+
 export default function LandingPage({ onSignIn }) {
-  const [activeStep, setActiveStep] = useState(0)
-
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white shadow-glow">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-extrabold tracking-tight">Campusnex</span>
-          </a>
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-screen bg-paper font-sans text-ink">
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm">
+          Skip to content
+        </a>
 
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#workflow" className="hover:text-foreground">Workflow</a>
-            <a href="#pricing" className="hover:text-foreground">Plans</a>
-            <a href="#faq" className="hover:text-foreground">FAQ</a>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
-              <a href={contactHref('Campusnex enquiry')}>Contact</a>
-            </Button>
-            <Button onClick={onSignIn} className="rounded-lg bg-brand-500 hover:bg-brand-600">
-              Sign in
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main id="top">
-        <section className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_rgba(255,92,0,0.12),_transparent_60%)]" />
-          <div className="relative mx-auto max-w-6xl px-4 pt-16 pb-10 text-center sm:px-6 sm:pt-24">
-            <p className="mb-5 text-sm font-semibold tracking-wide text-brand-600 uppercase">
-              Campusnex
-            </p>
-            <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-balance text-foreground sm:text-5xl lg:text-6xl">
-              Use Campusnex to turn campus operations into{' '}
-              <span className="relative inline-block">
-                clarity
-                <span className="absolute inset-x-0 -bottom-1 h-1 rounded-full bg-brand-500/80" />
-              </span>
-              .
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Attendance, IA marks, timetables, exam seating, and campus broadcasts —
-              one academic portal for admins, faculty, and students.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button
-                size="lg"
+        <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur-md">
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+            <a href="#top" className={`rounded-md ${focusRing}`} aria-label="Campusnex home">
+              <Logo />
+            </a>
+            <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-medium text-ink-soft md:flex">
+              <a href="#roles" className="hover:text-ink">Roles</a>
+              <a href="#exams" className="hover:text-ink">Exams</a>
+              <a href="#import" className="hover:text-ink">Import</a>
+              <a href="#security" className="hover:text-ink">Security</a>
+              <a href="#faq" className="hover:text-ink">FAQ</a>
+            </nav>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <a href={contactHref('Campusnex enquiry')} className={`hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-white sm:inline-block ${focusRing}`}>
+                Contact
+              </a>
+              <button
+                type="button"
                 onClick={onSignIn}
-                className="h-11 rounded-lg bg-brand-500 px-6 text-sm font-bold hover:bg-brand-600"
-              >
-                Sign in to your campus
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="lg" asChild className="h-11 text-sm font-semibold">
-                <a href="#features">
-                  See how it works
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
-            <ProductPreview />
-          </div>
-        </section>
-
-        <section id="features" className="border-t border-border bg-muted/40 py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                See the whole semester. Fix bottlenecks. Keep every role aligned.
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                Purpose-built modules for the academic workflows campuses actually run.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-5 sm:grid-cols-2">
-              {features.map((feature) => {
-                const Icon = feature.icon
-                return (
-                  <Card
-                    key={feature.title}
-                    className="rounded-2xl border-border bg-white shadow-subtle"
-                  >
-                    <CardHeader className="gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-brand-100">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-lg font-bold">{feature.title}</CardTitle>
-                      <CardDescription className="text-sm leading-relaxed">
-                        {feature.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex h-28 items-end gap-2 rounded-xl bg-muted/70 p-4">
-                        {[40, 65, 50, 80, 70, 90].map((h, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 rounded-t-md bg-brand-500/80"
-                            style={{ height: `${h}%`, opacity: 0.45 + i * 0.08 }}
-                          />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section id="workflow" className="py-20">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
-            <div>
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                A clear path to impact. Applied every term.
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                From provisioning users to publishing exam seating — Campusnex keeps the
-                academic loop closed.
-              </p>
-              <div className="mt-8 space-y-3">
-                {steps.map((step, index) => {
-                  const Icon = step.icon
-                  const active = activeStep === index
-                  return (
-                    <button
-                      key={step.title}
-                      type="button"
-                      onClick={() => setActiveStep(index)}
-                      className={cn(
-                        'flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all',
-                        active
-                          ? 'border-brand-200 bg-brand-50/60 shadow-subtle'
-                          : 'border-transparent hover:border-border hover:bg-muted/50'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                          active
-                            ? 'bg-brand-500 text-white'
-                            : 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground">{step.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {step.description}
-                        </p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <Card className="rounded-2xl border-border bg-muted/30 shadow-card">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-brand-600">
-                  <Sparkles className="h-4 w-4" />
-                  <span className="text-xs font-bold tracking-wide uppercase">
-                    Step {activeStep + 1}
-                  </span>
-                </div>
-                <CardTitle className="text-xl font-bold">
-                  {steps[activeStep].title}
-                </CardTitle>
-                <CardDescription>{steps[activeStep].description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { icon: ShieldCheck, label: 'Role-aware permissions' },
-                  { icon: CalendarDays, label: 'Academic calendar sync' },
-                  { icon: Megaphone, label: 'Campus-wide broadcasts' },
-                ].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3"
-                    >
-                      <Icon className="h-4 w-4 text-brand-600" />
-                      <span className="text-sm font-semibold">{item.label}</span>
-                      <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-500" />
-                    </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        <section id="pricing" className="py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Plans that grow with your campus
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                Start with a department pilot, then scale institution-wide.
-              </p>
-            </div>
-
-            <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
-              {plans.map((plan) => (
-                <Card
-                  key={plan.name}
-                  className={cn(
-                    'rounded-2xl shadow-subtle',
-                    plan.highlighted && 'border-brand-300 ring-2 ring-brand-500/20'
-                  )}
-                >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
-                      {plan.highlighted && (
-                        <Badge className="rounded-full bg-brand-500 text-white">
-                          Popular
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="pt-2">
-                      <span className="text-4xl font-extrabold">{plan.price}</span>
-                    </div>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2.5">
-                    {plan.features.map((f) => (
-                      <div key={f} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-brand-500" />
-                        <span>{f}</span>
-                      </div>
-                    ))}
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      asChild
-                      className={cn(
-                        'w-full rounded-lg',
-                        plan.highlighted
-                          ? 'bg-brand-500 hover:bg-brand-600'
-                          : 'bg-foreground text-background hover:bg-foreground/90'
-                      )}
-                    >
-                      <a href={contactHref(`Campusnex ${plan.name} plan`)}>{plan.cta}</a>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mx-auto mt-6 flex max-w-4xl flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-muted/50 px-6 py-5 sm:flex-row sm:items-center">
-              <div>
-                <p className="font-bold">Enterprise / multi-campus</p>
-                <p className="text-sm text-muted-foreground">
-                  Custom SSO, data residency, and registrar-led rollout.
-                </p>
-              </div>
-              <Button variant="outline" asChild className="rounded-lg">
-                <a href={contactHref('Campusnex enterprise / multi-campus')}>Contact us</a>
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section id="faq" className="border-t border-border bg-muted/40 py-20">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6">
-            <h2 className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Frequently asked questions
-            </h2>
-            <Accordion type="single" collapsible className="mt-10 rounded-2xl border border-border bg-white px-4">
-              {faqs.map((item, i) => (
-                <AccordionItem key={item.q} value={`item-${i}`}>
-                  <AccordionTrigger className="text-left text-sm font-bold sm:text-base">
-                    {item.q}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground">
-                    {item.a}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
-
-        <section className="py-20">
-          <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-            <div className="rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white px-6 py-14 shadow-subtle sm:px-12">
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Ready to run your campus with clarity?
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-                Admins, HODs, faculty and students each get a workspace built for their role.
-                Sign in with the account your institution created for you.
-              </p>
-              <Button
-                size="lg"
-                onClick={onSignIn}
-                className="mt-8 h-12 rounded-lg bg-brand-500 px-8 text-sm font-bold hover:bg-brand-600"
+                className={`rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/90 cursor-pointer ${focusRing}`}
               >
                 Sign in
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           </div>
-        </section>
-      </main>
+        </header>
 
-      <footer className="border-t border-border bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
-          <div className="md:col-span-1">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
-                <GraduationCap className="h-4 w-4" />
+        <main id="main">
+          {/* Hero: ruled like an attendance register, with its red margin line. */}
+          <section id="top" className="relative overflow-hidden border-b border-rule">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
+              style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 39px, #d5deec 39px 40px)' }}
+            />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-[max(1rem,calc(50%-40rem+1rem))] w-px bg-absent/40 sm:left-[max(1.5rem,calc(50%-40rem+1.5rem))]" />
+
+            <div className="relative mx-auto grid max-w-7xl gap-10 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] xl:items-center xl:gap-12 xl:pb-24">
+              <div className="max-w-2xl pl-6 sm:pl-8">
+                <h1 className="font-display text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.025em] text-balance text-ink sm:text-6xl xl:text-[3.6rem]">
+                  Know who is falling below 75% while there’s still time to help.
+                </h1>
+                <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
+                  Campusnex is the academic portal for colleges. Attendance, IA marks, assignments, timetables, exam
+                  seating and circulars, with a workspace for admins, HODs, faculty and students.
+                </p>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <a
+                    href={contactHref('Campusnex pilot request')}
+                    className={`rounded-lg bg-brand-500 px-5 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-8px_rgba(255,92,0,0.6)] hover:bg-brand-600 ${focusRing}`}
+                  >
+                    Request a pilot
+                  </a>
+                  <button
+                    type="button"
+                    onClick={onSignIn}
+                    className={`rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-bold text-ink hover:border-ink/30 cursor-pointer ${focusRing}`}
+                  >
+                    Sign in to your campus
+                  </button>
+                </div>
+                <p className="mt-6 max-w-md text-sm text-ink-soft">
+                  Built around how Indian colleges work: USNs, semesters and sections, IA marks and the 75% attendance rule.
+                </p>
               </div>
-              <span className="font-extrabold">Campusnex</span>
+
+              <AttendanceRegisterDemo />
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Next-generation academic management & ERP for modern campuses.
-            </p>
-          </div>
-          {[
-            {
-              title: 'Product',
-              links: [
-                { label: 'Features', href: '#features' },
-                { label: 'Workflow', href: '#workflow' },
-                { label: 'Plans', href: '#pricing' },
-                { label: 'FAQ', href: '#faq' },
-              ],
-            },
-            {
-              title: 'Campus',
-              links: [
-                { label: 'Sign in', onClick: onSignIn },
-                { label: 'Activate your account', onClick: onSignIn },
-              ],
-            },
-            {
-              title: 'Contact',
-              links: [{ label: 'Email us', href: contactHref('Campusnex enquiry') }],
-            },
-          ].map((col) => (
-            <div key={col.title}>
-              <p className="text-sm font-bold">{col.title}</p>
-              <ul className="mt-3 space-y-2">
-                {col.links.map((link) => (
-                  <li key={link.label}>
-                    {link.href ? (
-                      <a href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
-                        {link.label}
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={link.onClick}
-                        className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-                      >
-                        {link.label}
-                      </button>
-                    )}
-                  </li>
-                ))}
+          </section>
+
+          {/* What's included */}
+          <section aria-label="Modules included" className="border-b border-rule bg-white">
+            <ul className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-3 px-4 py-6 sm:px-6">
+              {MODULES.map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-2 text-sm font-medium text-ink">
+                  <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section id="roles" className="scroll-mt-20 border-b border-rule py-20 sm:py-24">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <SectionHeading title="A desk for every role">
+                Each person signs in to a workspace built around their job. Switch desks and try them.
+              </SectionHeading>
+              <div className="mt-10">
+                <RoleDesks />
+              </div>
+            </div>
+          </section>
+
+          <section id="exams" className="scroll-mt-20 border-b border-rule bg-white py-20 sm:py-24">
+            <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center lg:gap-14">
+              <SectionHeading title="Exam seating without the spreadsheet">
+                Schedule the exam, pick the halls and the branches sharing them. Campusnex seats students so nobody
+                sits beside or behind someone from their own branch, and each student sees their room and seat.
+              </SectionHeading>
+              <SeatingDemo />
+            </div>
+          </section>
+
+          <section id="import" className="scroll-mt-20 border-b border-rule py-20 sm:py-24">
+            <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-center lg:gap-14">
+              <div className="order-2 lg:order-1">
+                <ImportDemo />
+              </div>
+              <div className="order-1 lg:order-2">
+                <SectionHeading title="Your whole student list in one upload">
+                  Export from your current records, save as CSV and upload. Mistakes are caught row by row before
+                  anything is saved, and students are enrolled in their courses automatically.
+                </SectionHeading>
+              </div>
+            </div>
+          </section>
+
+          <section id="security" className="scroll-mt-20 border-b border-rule bg-white py-20 sm:py-24">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <SectionHeading title="Every role sees only what it should">
+                These rules run inside the database, not just on screen, so they hold even if someone tampers with the
+                browser.
+              </SectionHeading>
+
+              <div className="mt-10 overflow-x-auto rounded-xl border border-rule">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <caption className="sr-only">What each role can see and change</caption>
+                  <thead className="bg-paper">
+                    <tr>
+                      <td className="px-4 py-3" />
+                      {['Admin', 'HOD', 'Faculty', 'Student'].map((r) => (
+                        <th key={r} scope="col" className="px-4 py-3 font-display text-base font-semibold text-ink">{r}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ACCESS.map((row) => (
+                      <tr key={row.item} className="border-t border-rule">
+                        <th scope="row" className="px-4 py-3 font-semibold text-ink">{row.item}</th>
+                        {['admin', 'hod', 'faculty', 'student'].map((role) => (
+                          <td key={role} className="px-4 py-3 text-ink-soft">
+                            {row[role]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="mt-8 grid gap-4 text-sm text-ink-soft sm:grid-cols-3">
+                <li className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+                  No public sign-up. Only people your administrator adds can activate an account.
+                </li>
+                <li className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+                  Deactivating someone removes their access immediately.
+                </li>
+                <li className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+                  Marks stay hidden from students until their teacher publishes them.
+                </li>
               </ul>
             </div>
-          ))}
-        </div>
-        <Separator />
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:px-6">
-          <p>© {new Date().getFullYear()} Campusnex. Academic Cloud.</p>
-          <p>Built for registrars, faculty, and students.</p>
-        </div>
-      </footer>
-    </div>
+          </section>
+
+          <section id="setup" className="scroll-mt-20 border-b border-rule py-20 sm:py-24">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <SectionHeading title="Up and running in four steps" />
+              <ol className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+                {SETUP_STEPS.map((step, i) => (
+                  <li key={step.title} className="border-t-2 border-ink pt-4">
+                    <span className="font-display text-3xl font-semibold text-brand-600 tabular-nums">{i + 1}</span>
+                    <h3 className="mt-2 font-display text-lg font-semibold text-ink">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section id="plans" className="scroll-mt-20 border-b border-rule bg-white py-20 sm:py-24">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <SectionHeading title="Start with one department">
+                Try Campusnex with a single department first, then bring in the rest of the institution.
+              </SectionHeading>
+              <div className="mt-10 grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-rule p-6 sm:p-8">
+                  <h3 className="font-display text-2xl font-semibold text-ink">Department pilot</h3>
+                  <p className="mt-2 text-sm text-ink-soft">One department, one term, to prove it works for your college.</p>
+                  <ul className="mt-6 space-y-2 text-sm text-ink">
+                    <li>Attendance, IA marks and assignments</li>
+                    <li>Timetable with clash checks</li>
+                    <li>HOD overview and risk alerts</li>
+                    <li>CSV student import</li>
+                  </ul>
+                  <a href={contactHref('Campusnex department pilot')} className={`mt-8 inline-block rounded-lg bg-ink px-5 py-2.5 text-sm font-bold text-white hover:bg-ink/90 ${focusRing}`}>
+                    Request a pilot
+                  </a>
+                </div>
+                <div className="rounded-2xl border-2 border-brand-500 p-6 sm:p-8">
+                  <h3 className="font-display text-2xl font-semibold text-ink">Whole institution</h3>
+                  <p className="mt-2 text-sm text-ink-soft">Every department, with exams and institution-wide reporting.</p>
+                  <ul className="mt-6 space-y-2 text-sm text-ink">
+                    <li>Everything in the pilot, for all departments</li>
+                    <li>Exam timetable, halls and seating plans</li>
+                    <li>Institution analytics and circulars</li>
+                    <li>Help moving your existing records</li>
+                  </ul>
+                  <a href={contactHref('Campusnex for our institution')} className={`mt-8 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-600 ${focusRing}`}>
+                    Talk to us
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="faq" className="scroll-mt-20 py-20 sm:py-24">
+            <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <SectionHeading title="Questions colleges ask" />
+              <Accordion type="single" collapsible className="rounded-2xl border border-rule bg-white px-5">
+                {FAQS.map((item, i) => (
+                  <AccordionItem key={item.q} value={`faq-${i}`} className="border-rule">
+                    <AccordionTrigger className="text-left font-display text-base font-semibold text-ink cursor-pointer">
+                      {item.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm leading-relaxed text-ink-soft">{item.a}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </section>
+        </main>
+
+        <footer className="bg-ink text-white">
+          <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-sm">
+              <span className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
+                  <GraduationCap className="h-4.5 w-4.5" aria-hidden="true" />
+                </span>
+                <span className="font-display text-lg font-bold">Campusnex</span>
+              </span>
+              <p className="mt-3 text-sm text-white/70">Academic operations for colleges, from attendance to exam seating.</p>
+            </div>
+            <nav aria-label="Footer" className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+              <a href="#roles" className="text-white/75 hover:text-white">Roles</a>
+              <a href="#security" className="text-white/75 hover:text-white">Security</a>
+              <a href="#exams" className="text-white/75 hover:text-white">Exam seating</a>
+              <a href="#faq" className="text-white/75 hover:text-white">FAQ</a>
+              <a href="#import" className="text-white/75 hover:text-white">Student import</a>
+              <a href={contactHref('Campusnex enquiry')} className="text-white/75 hover:text-white">Contact</a>
+              <button type="button" onClick={onSignIn} className="text-left text-white/75 hover:text-white cursor-pointer">
+                Sign in
+              </button>
+            </nav>
+          </div>
+          <div className="border-t border-white/10">
+            <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-white/60 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
+          </div>
+        </footer>
+      </div>
+    </MotionConfig>
   )
 }
