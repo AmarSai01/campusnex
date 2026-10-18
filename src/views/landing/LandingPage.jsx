@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
@@ -30,6 +30,16 @@ const HEADLINE = 'No student should find out about an attendance or marks shorta
 function Page({ onSignIn }) {
   const heroRef = useRef(null)
   useSectionBackdrop(heroRef, 'night')
+
+  // The page itself is night-coloured while the landing page is open, so nothing flashes white
+  // and readers and audit tools see the real dark background behind the text.
+  useEffect(() => {
+    const previous = document.body.style.backgroundColor
+    document.body.style.backgroundColor = 'var(--color-night)'
+    return () => {
+      document.body.style.backgroundColor = previous
+    }
+  }, [])
 
   return (
     <div className="relative min-h-screen overflow-x-clip font-sans text-white">
@@ -99,13 +109,19 @@ function Page({ onSignIn }) {
               >
                 Request a pilot
               </MovingBorderButton>
-              <button
+              <MovingBorderButton
+                as="button"
                 type="button"
                 onClick={onSignIn}
-                className="h-12 rounded-xl px-5 text-sm font-semibold text-mist hover:text-white cursor-pointer"
+                borderRadius="0.75rem"
+                duration={3200}
+                reverse
+                containerClassName="h-12 w-52 cursor-pointer"
+                borderClassName="bg-[radial-gradient(#93c5fd_40%,transparent_60%)]"
+                className="border-night-line bg-night-2 text-sm font-semibold text-white"
               >
                 Sign in to your campus
-              </button>
+              </MovingBorderButton>
             </motion.div>
           </div>
 

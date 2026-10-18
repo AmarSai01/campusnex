@@ -17,6 +17,7 @@ export function Button({
   containerClassName,
   borderClassName,
   duration,
+  reverse = false,
   className,
   ...otherProps
 }) {
@@ -35,7 +36,7 @@ export function Button({
         className="absolute inset-0"
         style={{ borderRadius: `calc(${borderRadius} * 0.96)` }}
       >
-        <MovingBorder duration={duration} rx="30%" ry="30%">
+        <MovingBorder duration={duration} reverse={reverse} rx="30%" ry="30%">
           <div
             className={cn(
               "h-20 w-20 bg-[radial-gradient(#0ea5e9_40%,transparent_60%)] opacity-[0.8]",
@@ -63,6 +64,7 @@ export function Button({
 export const MovingBorder = ({
   children,
   duration = 3000,
+  reverse = false,
   rx,
   ry,
   ...otherProps
@@ -74,7 +76,9 @@ export const MovingBorder = ({
     const length = pathRef.current?.getTotalLength();
     if (length) {
       const pxPerMillisecond = length / duration;
-      progress.set((time * pxPerMillisecond) % length);
+      const travelled = (time * pxPerMillisecond) % length;
+      // reverse runs the light the other way round the border.
+      progress.set(reverse ? length - travelled : travelled);
     }
   });
 

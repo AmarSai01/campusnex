@@ -200,6 +200,7 @@ export default function CollegeDay() {
     return (
       <section className="px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-2xl space-y-24">
+          <h2 className="font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">A day at your college</h2>
           {STEPS.map((s) => <StepBlock key={s.time} step={s} />)}
         </div>
       </section>
@@ -211,7 +212,7 @@ export default function CollegeDay() {
     <section ref={sectionRef} className="flex h-screen items-center">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-center gap-16 px-6">
         <div>
-          <p className="font-display text-4xl font-semibold tracking-tight text-white">A day at your college</p>
+          <h2 className="font-display text-4xl font-semibold tracking-tight text-white">A day at your college</h2>
           <ol className="relative mt-8 space-y-1 pl-6">
             <div className="absolute top-2 bottom-2 left-0 w-px bg-night-line" aria-hidden="true">
               <motion.div className="w-px origin-top bg-brand-500 shadow-[0_0_10px_2px_rgba(255,92,0,0.5)]" style={{ height: '100%', scaleY: progress }} />

@@ -1,22 +1,43 @@
-import React, { useState } from 'react'
+import React, { lazy, Suspense, useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider, useData } from './context/DataContext'
 import SmoothScroll from './lib/smooth-scroll'
 import LandingPage from './views/landing/LandingPage'
-import ResultsPreview from './views/preview/ResultsPreview'
 
 // Dev-only preview of the results screens with sample data: http://localhost:5173/?preview=results
 const SHOW_RESULTS_PREVIEW =
   import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'results'
-import LoginView from './views/auth/LoginView'
-import ResetPasswordView from './views/auth/ResetPasswordView'
-import AdminDashboard from './views/admin/AdminDashboard'
-import FacultyDashboard from './views/faculty/FacultyDashboard'
-import StudentDashboard from './views/student/StudentDashboard'
-import Header from './components/layout/Header'
-import Sidebar from './components/layout/Sidebar'
-import MobileNav from './components/layout/MobileNav'
-import NotificationDrawer from './components/notifications/NotificationDrawer'
+
+// Everything behind sign-in is downloaded only when it is needed, so the landing page stays light.
+const ResultsPreview = lazy(() => import('./views/preview/ResultsPreview'))
+const LoginView = lazy(() => import('./views/auth/LoginView'))
+const ResetPasswordView = lazy(() => import('./views/auth/ResetPasswordView'))
+const AdminDashboard = lazy(() => import('./views/admin/AdminDashboard'))
+const FacultyDashboard = lazy(() => import('./views/faculty/FacultyDashboard'))
+const StudentDashboard = lazy(() => import('./views/student/StudentDashboard'))
+const Header = lazy(() => import('./components/layout/Header'))
+const Sidebar = lazy(() => import('./components/layout/Sidebar'))
+const MobileNav = lazy(() => import('./components/layout/MobileNav'))
+const NotificationDrawer = lazy(() => import('./components/notifications/NotificationDrawer'))
+
+// A visitor with no saved session (and not arriving from an email link) cannot be signed in,
+// so the landing page can show at once instead of waiting for the sign-in check.
+const MAY_HAVE_SESSION = (() => {
+  try {
+    if (/access_token|type=recovery|code=/.test(window.location.hash + window.location.search)) return true
+    return Object.keys(window.localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+  } catch {
+    return true
+  }
+})()
+
+const Spinner = () => (
+  <div className="bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40">
+      <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+    </div>
+  </div>
+)
 
 function AppContent() {
   const { currentUser, isAuthenticated, authLoading, isHod, passwordRecovery } = useAuth()
@@ -26,12 +47,14 @@ function AppContent() {
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
+  const landing = (
+    <SmoothScroll>
+      <LandingPage onSignIn={() => setAuthScreen('login')} />
+    </SmoothScroll>
+  )
+
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/40">
-        <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
-      </div>
-    )
+    return MAY_HAVE_SESSION || authScreen !== 'landing' ? <Spinner /> : landing
   }
 
   if (SHOW_RESULTS_PREVIEW) return <ResultsPreview />
@@ -44,11 +67,7 @@ function AppContent() {
     if (authScreen === 'login') {
       return <LoginView onBack={() => setAuthScreen('landing')} />
     }
-    return (
-      <SmoothScroll>
-        <LandingPage onSignIn={() => setAuthScreen('login')} />
-      </SmoothScroll>
-    )
+    return landing
   }
 
   const getTabTitle = () => {
@@ -187,7 +206,9 @@ export default function App() {
   return (
     <DataProvider>
       <AuthProvider>
-        <AppContent />
+        <Suspense fallback={<Spinner />}>
+          <AppContent />
+        </Suspense>
       </AuthProvider>
     </DataProvider>
   )

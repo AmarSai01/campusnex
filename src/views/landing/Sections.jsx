@@ -58,7 +58,7 @@ export function SecuritySection() {
               <tr key={item} className="border-t border-white/5">
                 <th scope="row" className="px-5 py-3.5 font-medium text-white">{item}</th>
                 {cells.map((c, i) => (
-                  <td key={i} className={c === 'No' || c === 'No access' ? 'px-5 py-3.5 text-white/35' : 'px-5 py-3.5 text-mist'}>{c}</td>
+                  <td key={i} className={c === 'No' || c === 'No access' ? 'px-5 py-3.5 text-white/55' : 'px-5 py-3.5 text-mist'}>{c}</td>
                 ))}
               </tr>
             ))}
@@ -304,7 +304,7 @@ export function Footer({ onSignIn }) {
           Campusnex
         </span>
       </div>
-      <p className="relative mx-auto max-w-6xl border-t border-white/5 px-4 py-5 text-xs text-white/40 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
+      <p className="relative mx-auto max-w-6xl border-t border-white/5 px-4 py-5 text-xs text-white/55 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
     </footer>
   )
 }
