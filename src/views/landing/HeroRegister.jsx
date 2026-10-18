@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Inbox, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { REGISTER_STUDENTS, SESSION_COUNT } from '../landing/sampleData'
+import { REGISTER_STUDENTS, SESSION_COUNT } from './sampleData'
 
 // Fixed column widths so the 75% line can run straight through every row's bar.
 const NAME_W = 150

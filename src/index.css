@@ -19,17 +19,10 @@
   --color-brand-900: #7a2e0a;
   --color-brand-950: #421405;
 
-  /* Landing page: attendance-register palette */
-  --color-ink: #16233f;
-  --color-ink-soft: #4a5876;
-  --color-paper: #f6f8fb;
-  --color-rule: #d5deec;
+  /* Landing page */
   --color-present: #1f9d55;
   --color-absent: #e5484d;
   --color-late: #e8a317;
-  /* Darker text shades of the status colours (4.5:1 on white and paper) */
-  --color-present-strong: #157a41;
-  --color-absent-strong: #b42328;
   /* Landing v2: night ink theme */
   --color-night: #0a1022;
   --color-night-2: #0f1830;

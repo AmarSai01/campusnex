@@ -56,29 +56,48 @@ const SUBJECTS = {
 
 // Floating tokens from college life, the nearest (fastest) parallax layer.
 // Spread over three screens (band) so only six or seven show at once, kept near the edges.
-const TOKEN_BANDS = [
-  [
-    { t: 'P', x: '5%', y: '16%', r: -8 }, { t: 'A', x: '92%', y: '22%', r: 10 }, { t: '74%', x: '88%', y: '58%', r: -5 },
-    { t: 'USN', x: '7%', y: '52%', r: 6 }, { t: 'Sem 5', x: '12%', y: '84%', r: -4 }, { t: 'Sec A', x: '84%', y: '86%', r: 7 },
-    { t: 'Shortage', x: '70%', y: '6%', r: -3 },
-  ],
-  [
-    { t: 'IA-1', x: '6%', y: '14%', r: 6 }, { t: 'IA-2', x: '90%', y: '30%', r: -7 }, { t: 'CIE', x: '9%', y: '48%', r: -5 },
-    { t: '38/50', x: '86%', y: '66%', r: 4 }, { t: 'Viva', x: '14%', y: '80%', r: 9 }, { t: 'Period 3', x: '74%', y: '90%', r: -6 },
-  ],
-  [
-    { t: 'SEE', x: '8%', y: '20%', r: -6 }, { t: 'LH-101', x: '88%', y: '14%', r: 5 }, { t: 'Seat S-12', x: '6%', y: '58%', r: 7 },
-    { t: 'Invigilator', x: '82%', y: '50%', r: -4 }, { t: 'HOD', x: '16%', y: '88%', r: -9 }, { t: 'Circular', x: '86%', y: '84%', r: 6 },
-  ],
+// Real college terms (only things Campusnex actually handles).
+const VOCAB = [
+  'P', 'A', 'L', '74%', '85%', 'Shortage', 'USN', 'Sem 5', 'Sec A', 'Batch 2023',
+  'IA-1', 'IA-2', 'IA-3', 'CIE', 'SEE', 'Viva', 'Quiz', 'Assignment', '38/50', 'Period 3',
+  'Credits 4', 'Elective', 'Odd sem', 'Even sem', 'Sem 3', 'Sem 6', 'Sem 8', 'Sec B', 'Batch 2024', 'Exam hall',
+  'LH-101', 'LH-102', 'Seat S-12', 'Invigilator', 'HOD', 'Principal', 'Registrar', 'Circular', 'Notice', 'Timetable',
+  'SGPA 8.9', 'CGPA 8.4', 'Grade O', 'Grade A+', 'Results', 'Tutorial', 'Seminar', 'DBMS Lab', 'Mini project',
 ]
-// Four screens of tokens: the three bands, then the first again.
-const TOKENS = [0, 1, 2, 3].flatMap((screen) =>
-  TOKEN_BANDS[screen % TOKEN_BANDS.length].map((tok, i) => ({
-    ...tok,
-    key: `${screen}-${i}`,
-    top: `calc(${screen * 100}vh + ${tok.y})`,
-  }))
-)
+
+// Deterministic pseudo-random numbers, so the layout is the same on every visit.
+const seeded = (seed) => () => {
+  seed = (seed + 0x6d2b79f5) | 0
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+// One screen of tokens: a 5 x 4 grid with each word jittered inside its cell, so words
+// spread across the whole screen (and some always land between cards).
+const ROWS = 5
+const COLS = 4
+const PER_SCREEN = 18
+const makeTokens = (screens) => {
+  const rand = seeded(42)
+  const tokens = []
+  let word = 0
+  for (let screen = 0; screen < screens; screen++) {
+    const cells = Array.from({ length: ROWS * COLS }, (_, i) => i).sort(() => rand() - 0.5).slice(0, PER_SCREEN)
+    for (const cell of cells) {
+      const row = Math.floor(cell / COLS)
+      const col = cell % COLS
+      tokens.push({
+        key: `${screen}-${cell}`,
+        t: VOCAB[word++ % VOCAB.length],
+        left: `${3 + col * 24 + rand() * 16}%`,
+        top: `calc(${screen * 100}vh + ${3 + row * 19 + rand() * 11}vh)`,
+        r: Math.round((rand() - 0.5) * 20),
+      })
+    }
+  }
+  return tokens
+}
 
 const glow = (color, [x, y]) => `radial-gradient(60% 55% at ${x} ${y}, ${color}, transparent 70%)`
 
@@ -140,6 +159,25 @@ function Backdrop({ theme }) {
   const nearY = useTransform(scrollY, (v) => (reduce ? 0 : -(v * 0.22)))
   const transition = useMemo(() => ({ duration: 1.2, ease: [0.22, 1, 0.36, 1] }), [])
 
+  // Enough screens of floating words to cover the page at its current length.
+  const [screens, setScreens] = useState(4)
+  useEffect(() => {
+    const measure = () => {
+      const vh = window.innerHeight
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - vh)
+      setScreens(Math.ceil((0.22 * maxScroll + vh) / vh) + 1)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(document.body)
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [])
+  const tokens = useMemo(() => makeTokens(screens), [screens])
+
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <motion.div className="absolute inset-0" initial={false} animate={{ backgroundColor: theme.base }} transition={transition} />
@@ -193,12 +231,12 @@ function Backdrop({ theme }) {
       </motion.div>
 
       {/* Near layer: floating tokens drift faster than the page */}
-      <motion.div className="absolute inset-x-0 top-0 hidden h-[400vh] sm:block" style={{ y: nearY }}>
-        {TOKENS.map((tok) => (
+      <motion.div className="absolute inset-x-0 top-0 hidden sm:block" style={{ y: nearY, height: `${screens * 100}vh` }}>
+        {tokens.map((tok) => (
           <span
             key={tok.key}
-            className="absolute rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-semibold text-white/20 backdrop-blur-[2px]"
-            style={{ left: tok.x, top: tok.top, transform: `rotate(${tok.r}deg)` }}
+            className="absolute rounded-md border border-white/10 bg-white/[0.035] px-2 py-1 text-xs font-semibold whitespace-nowrap text-white/25 backdrop-blur-[2px]"
+            style={{ left: tok.left, top: tok.top, transform: `rotate(${tok.r}deg)` }}
           >
             {tok.t}
           </span>

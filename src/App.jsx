@@ -1,14 +1,11 @@
 import React, { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider, useData } from './context/DataContext'
-import LandingPage from './views/landing/LandingPage'
 import SmoothScroll from './lib/smooth-scroll'
-import LandingV2 from './views/landing-v2/LandingV2'
+import LandingPage from './views/landing/LandingPage'
 import ResultsPreview from './views/preview/ResultsPreview'
 
-// Private design preview on the dev server only: http://localhost:5173/?preview=v2
-const SHOW_V2_PREVIEW =
-  import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'v2'
+// Dev-only preview of the results screens with sample data: http://localhost:5173/?preview=results
 const SHOW_RESULTS_PREVIEW =
   import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'results'
 import LoginView from './views/auth/LoginView'
@@ -38,14 +35,6 @@ function AppContent() {
   }
 
   if (SHOW_RESULTS_PREVIEW) return <ResultsPreview />
-
-  if (SHOW_V2_PREVIEW && !isAuthenticated && authScreen !== 'login') {
-    return (
-      <SmoothScroll>
-        <LandingV2 onSignIn={() => setAuthScreen('login')} />
-      </SmoothScroll>
-    )
-  }
 
   if (passwordRecovery) {
     return <ResetPasswordView />
