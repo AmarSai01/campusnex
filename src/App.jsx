@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider, useData } from './context/DataContext'
 import LandingPage from './views/landing/LandingPage'
 import LoginView from './views/auth/LoginView'
+import ResetPasswordView from './views/auth/ResetPasswordView'
 import AdminDashboard from './views/admin/AdminDashboard'
 import FacultyDashboard from './views/faculty/FacultyDashboard'
 import StudentDashboard from './views/student/StudentDashboard'
@@ -12,7 +13,7 @@ import MobileNav from './components/layout/MobileNav'
 import NotificationDrawer from './components/notifications/NotificationDrawer'
 
 function AppContent() {
-  const { currentUser, isAuthenticated, authLoading } = useAuth()
+  const { currentUser, isAuthenticated, authLoading, isHod, passwordRecovery } = useAuth()
   const { syncError, clearSyncError } = useData()
   const [authScreen, setAuthScreen] = useState('landing')
   const [activeTab, setActiveTab] = useState('overview')
@@ -25,6 +26,10 @@ function AppContent() {
         <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
       </div>
     )
+  }
+
+  if (passwordRecovery) {
+    return <ResetPasswordView />
   }
 
   if (!isAuthenticated || !currentUser) {
@@ -54,13 +59,18 @@ function AppContent() {
       iamarks: 'Internal Assessment (IA) Marks',
       assignments: 'Coursework & Assignments',
       directory: 'Faculty Advisory Directory',
+      hod_overview: 'Department Overview',
+      hod_compliance: 'Faculty Compliance',
     }
     return titles[activeTab] || 'Workspace'
   }
 
   const handleNotificationNavigate = (notif) => {
     setIsNotifOpen(false)
-    if (notif.type === 'attendance_absent') {
+    if (notif.type === 'attendance_risk' || notif.type === 'marks_risk') {
+      if (isHod) setActiveTab('hod_overview')
+      else setActiveTab(notif.type === 'attendance_risk' ? 'attendance' : 'iamarks')
+    } else if (notif.type === 'attendance_absent') {
       setActiveTab('attendance')
     } else if (notif.type === 'ia_published') {
       setActiveTab('iamarks')

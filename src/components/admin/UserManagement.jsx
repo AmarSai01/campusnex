@@ -17,11 +17,14 @@ import {
   Phone
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
+import { hodLabel } from '../../utils/hod';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 
 export default function UserManagement() {
   const { users, departments, createUser, updateUser } = useData();
+  const { currentUser } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'faculty' | 'student'
@@ -36,17 +39,24 @@ export default function UserManagement() {
     name: '',
     email: '',
     role: 'student',
-    department_id: 'dept_cse',
+    department_id: departments[0]?.id || '',
     designation: '',
     office: '',
     roll_no: '',
-    semester: 5,
+    semester: 1,
     section: 'A',
     phone: '',
     status: 'active'
   });
 
   const [formError, setFormError] = useState('');
+  const [confirmAdmin, setConfirmAdmin] = useState(false);
+
+  // At least one active administrator must always remain.
+  const activeAdminCount = users.filter(u => u.role === 'admin' && u.status !== 'inactive').length;
+  const isLastActiveAdmin = (user) => user.role === 'admin' && user.status !== 'inactive' && activeAdminCount <= 1;
+  const isSelf = (user) => Boolean(user) && user.id === currentUser?.id;
+  const grantsAdmin = formData.role === 'admin' && (!editingUser || editingUser.role !== 'admin');
 
   // Filtered Users
   const filteredUsers = users.filter((u) => {
@@ -69,17 +79,18 @@ export default function UserManagement() {
       name: '',
       email: '',
       role: 'student',
-      department_id: departments[0]?.id || 'dept_cse',
-      designation: 'Assistant Professor',
-      office: 'Tech Tower Room 101',
-      usn: '1MS23CS001',
-      roll_no: '1MS23CS001',
-      semester: 5,
+      department_id: departments[0]?.id || '',
+      designation: '',
+      office: '',
+      usn: '',
+      roll_no: '',
+      semester: 1,
       section: 'A',
-      phone: '+1 (555) 012-0000',
+      phone: '',
       status: 'active'
     });
     setFormError('');
+    setConfirmAdmin(false);
     setIsModalOpen(true);
   };
 
@@ -89,7 +100,7 @@ export default function UserManagement() {
       name: user.name,
       email: user.email,
       role: user.role,
-      department_id: user.department_id || 'dept_cse',
+      department_id: user.department_id || '',
       designation: user.designation || '',
       office: user.office || '',
       usn: user.usn || user.roll_no || '',
@@ -100,12 +111,14 @@ export default function UserManagement() {
       status: user.status || 'active'
     });
     setFormError('');
+    setConfirmAdmin(false);
     setIsModalOpen(true);
   };
 
   const handleToggleStatus = (user) => {
+    if (isSelf(user) || isLastActiveAdmin(user)) return;
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
-    updateUser(user.id, { status: newStatus }, 'admin_1');
+    updateUser(user.id, { status: newStatus }, currentUser?.id);
   };
 
   const USN_REGEX = /^1[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
@@ -123,6 +136,23 @@ export default function UserManagement() {
       return;
     }
 
+    if (formData.role !== 'admin' && !formData.department_id) {
+      setFormError('Please choose a department.');
+      return;
+    }
+    if (grantsAdmin && !confirmAdmin) {
+      setFormError('Tick the box to confirm this person should get full administrator access.');
+      return;
+    }
+    if (isSelf(editingUser) && (formData.role !== editingUser.role || formData.status === 'inactive')) {
+      setFormError("You can't change your own role or deactivate your own account.");
+      return;
+    }
+    if (editingUser && isLastActiveAdmin(editingUser) && (formData.role !== 'admin' || formData.status === 'inactive')) {
+      setFormError('Campusnex needs at least one active administrator. Add another admin first.');
+      return;
+    }
+
     if (formData.role === 'student') {
       const formattedUSN = (formData.usn || formData.roll_no || '').trim().toUpperCase();
       if (!USN_REGEX.test(formattedUSN)) {
@@ -135,14 +165,14 @@ export default function UserManagement() {
 
     try {
       if (editingUser) {
-        updateUser(editingUser.id, formData, 'admin_1');
+        updateUser(editingUser.id, formData, currentUser?.id);
       } else {
         // Check duplicate email
         if (users.some(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
           setFormError('A user with this email address already exists.');
           return;
         }
-        createUser(formData, 'admin_1');
+        createUser(formData, currentUser?.id);
       }
 
       setIsModalOpen(false);
@@ -273,9 +303,16 @@ export default function UserManagement() {
                           Administrator
                         </Badge>
                       ) : user.role === 'faculty' ? (
-                        <Badge variant="primary" dot>
-                          Faculty Instructor
-                        </Badge>
+                        <div className="space-y-1">
+                          <Badge variant="primary" dot>
+                            Faculty Instructor
+                          </Badge>
+                          {hodLabel(departments, user.id) && (
+                            <Badge variant="warning" size="sm">
+                              {hodLabel(departments, user.id)}
+                            </Badge>
+                          )}
+                        </div>
                       ) : (
                         <div className="space-y-1">
                           <Badge variant="success" dot>
@@ -325,7 +362,7 @@ export default function UserManagement() {
                           <Edit2 className="w-4 h-4" />
                         </button>
 
-                        {user.role !== 'admin' && (
+                        {!isSelf(user) && !isLastActiveAdmin(user) && (
                           <button
                             onClick={() => handleToggleStatus(user)}
                             className={`p-1.5 rounded-lg transition-colors ${
@@ -386,7 +423,7 @@ export default function UserManagement() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="e.g. jdoe@campusnex.edu"
+                placeholder="e.g. name@yourcollege.edu"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
               />
             </div>
@@ -396,26 +433,48 @@ export default function UserManagement() {
                 Role Privilege *
               </label>
               <select
-                disabled={editingUser?.role === 'admin'}
+                disabled={isSelf(editingUser)}
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                onChange={(e) => {
+                  setFormData({ ...formData, role: e.target.value });
+                  setConfirmAdmin(false);
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100"
               >
                 <option value="student">Student</option>
                 <option value="faculty">Faculty Instructor</option>
-                {editingUser?.role === 'admin' && <option value="admin">Administrator</option>}
+                <option value="admin">Administrator</option>
               </select>
+              {isSelf(editingUser) && (
+                <p className="mt-1 text-[11px] text-slate-500">You can't change your own role.</p>
+              )}
             </div>
+
+            {grantsAdmin && (
+              <label className="sm:col-span-2 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmAdmin}
+                  onChange={(e) => setConfirmAdmin(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-amber-600"
+                />
+                <span>
+                  <strong>Full control.</strong> Administrators can add, edit and delete every user, department,
+                  course, mark and exam. I understand and want to give this person administrator access.
+                </span>
+              </label>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Department *
+                {formData.role === 'admin' ? 'Department' : 'Department *'}
               </label>
               <select
                 value={formData.department_id}
                 onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               >
+                {formData.role === 'admin' && <option value="">— None —</option>}
                 {departments.map(d => (
                   <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                 ))}
@@ -476,13 +535,13 @@ export default function UserManagement() {
               <>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Faculty Designation
+                    {formData.role === 'admin' ? 'Designation' : 'Faculty Designation'}
                   </label>
                   <input
                     type="text"
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    placeholder="e.g. Associate Professor"
+                    placeholder={formData.role === 'admin' ? 'e.g. Registrar' : 'e.g. Associate Professor'}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
                 </div>
@@ -510,7 +569,7 @@ export default function UserManagement() {
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 012-3456"
+                placeholder="e.g. +91 98450 12345"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
               />
             </div>

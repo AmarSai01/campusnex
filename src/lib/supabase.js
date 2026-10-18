@@ -10,6 +10,3 @@ if (!url || !key) {
 }
 
 export const supabase = createClient(url, key)
-
-// Shared password for the seeded demo accounts. Unset it to hide demo logins.
-export const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || ''

@@ -14,6 +14,8 @@ import {
   GraduationCap,
   LogOut,
   Building2,
+  ShieldCheck,
+  ClipboardCheck,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -27,7 +29,7 @@ export default function Sidebar({
   mobileOpen,
   setMobileOpen,
 }) {
-  const { currentUser, logout } = useAuth()
+  const { currentUser, logout, isHod, hodDepartments } = useAuth()
   const role = currentUser?.role || 'student'
 
   const navConfigs = {
@@ -44,7 +46,6 @@ export default function Sidebar({
     ],
     faculty: [
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },
-      { id: 'students', label: 'Manage Students', icon: GraduationCap, badge: 'Dept' },
       { id: 'attendance', label: 'Mark Attendance', icon: CheckSquare, badge: 'Bulk' },
       { id: 'iamarks', label: 'IA Marks Entry', icon: Award, badge: 'Publish' },
       { id: 'assignments', label: 'Assignments & Grading', icon: FileText },
@@ -65,7 +66,17 @@ export default function Sidebar({
     ],
   }
 
-  const navItems = navConfigs[role] || navConfigs.student
+  const hodItems = isHod
+    ? [
+        { id: 'hod_overview', label: 'Department Overview', icon: ShieldCheck, badge: 'HOD' },
+        { id: 'students', label: 'Manage Students', icon: GraduationCap, badge: 'HOD' },
+        { id: 'hod_compliance', label: 'Faculty Compliance', icon: ClipboardCheck, badge: 'HOD' },
+      ]
+    : []
+  const navItems = [...(navConfigs[role] || navConfigs.student), ...hodItems]
+  const workspaceLabel = isHod
+    ? `HOD · ${hodDepartments.map((d) => d.code).join(', ')}`
+    : `${role} Workspace`
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId)
@@ -99,7 +110,7 @@ export default function Sidebar({
               </span>
             </span>
             <p className="text-[10px] font-semibold text-muted-foreground capitalize">
-              {role} Workspace
+              {workspaceLabel}
             </p>
           </div>
         </div>

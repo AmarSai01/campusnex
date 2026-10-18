@@ -1,18 +1,8 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useData } from './DataContext';
-import { supabase, DEMO_PASSWORD } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
-
-// Seeded demo accounts, used by the one-click demo logins before any data is loaded.
-const DEMO_ACCOUNTS = {
-  admin_1: 'admin@campusnex.edu',
-  faculty_1: 'faculty1@campusnex.edu',
-  faculty_2: 'faculty2@campusnex.edu',
-  student_1: 'student1@campusnex.edu',
-  student_2: 'student2@campusnex.edu',
-  student_4: 'student4@campusnex.edu'
-};
 
 const friendlyAuthError = (error) => {
   if (!error) return null;
@@ -21,19 +11,40 @@ const friendlyAuthError = (error) => {
   if (/database error/i.test(error.message)) {
     return 'No Campusnex account is registered for this email. Contact your administrator.';
   }
+  if (/rate limit/i.test(error.message)) {
+    return 'Too many emails sent. Please wait a few minutes and try again.';
+  }
   return error.message;
 };
 
+// Email links (confirmation, password reset) return the user to this site.
+const redirectUrl = () => window.location.origin;
+
 export function AuthProvider({ children }) {
-  const { users, session, loading } = useData();
+  const { users, departments, session, loading } = useData();
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   const currentUser = session ? users.find((u) => u.auth_id === session.user.id) || null : null;
+
+  // A faculty member is HOD of every department an admin assigned them to head.
+  const hodDepartments =
+    currentUser?.role === 'faculty'
+      ? departments.filter((d) => d.head_faculty_id === currentUser.id)
+      : [];
 
   // Signed in but no active profile (deactivated or removed): end the session.
   const profileMissing = !!session && !loading && !currentUser;
   useEffect(() => {
     if (profileMissing) supabase.auth.signOut();
   }, [profileMissing]);
+
+  // Opening a password-reset link signs the user in and asks for a new password.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const login = async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -47,22 +58,24 @@ export function AuthProvider({ children }) {
   const activateAccount = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
-      password
+      password,
+      options: { emailRedirectTo: redirectUrl() }
     });
     if (error) throw new Error(friendlyAuthError(error));
     return data.session ? 'signed_in' : 'confirm_email';
   };
 
-  // One-click demo login; only available when VITE_DEMO_PASSWORD is set.
-  const switchUser = async (userId) => {
-    const email = users.find((u) => u.id === userId)?.email || DEMO_ACCOUNTS[userId];
-    if (!email || !DEMO_PASSWORD) return;
-    await login(email, DEMO_PASSWORD);
+  const requestPasswordReset = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: redirectUrl()
+    });
+    if (error) throw new Error(friendlyAuthError(error));
   };
 
-  const switchRole = (role) => {
-    const candidate = users.find((u) => u.role === role && u.status !== 'inactive');
-    if (candidate) switchUser(candidate.id);
+  const updatePassword = async (password) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw new Error(friendlyAuthError(error));
+    setPasswordRecovery(false);
   };
 
   const logout = () => supabase.auth.signOut();
@@ -73,10 +86,12 @@ export function AuthProvider({ children }) {
         currentUser,
         login,
         activateAccount,
+        requestPasswordReset,
+        updatePassword,
+        passwordRecovery,
         logout,
-        switchUser,
-        switchRole,
-        isDemo: !!DEMO_PASSWORD,
+        isHod: hodDepartments.length > 0,
+        hodDepartments,
         isAuthenticated: !!currentUser,
         authLoading: loading,
         role: currentUser?.role || null

@@ -120,8 +120,6 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
           subtitle="Across 2 Sections"
           icon={GraduationCap}
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
-          trend="+5%"
-          trendLabel="vs last semester"
           onClick={() => onNavigateTab('users')}
         />
 
@@ -141,9 +139,6 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
           subtitle="Institution-wide average"
           icon={CheckSquare}
           iconBg="bg-sky-50 text-sky-600 border-sky-100"
-          trend={overallAttendanceRate >= 75 ? '+3.2%' : '-4.1%'}
-          trendType={overallAttendanceRate >= 75 ? 'up' : 'down'}
-          trendLabel="vs baseline"
         />
 
         <StatCard
@@ -152,8 +147,6 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
           subtitle="Published IA assessments"
           icon={Award}
           iconBg="bg-purple-50 text-purple-600 border-purple-100"
-          trend="+8%"
-          trendLabel="improvement"
         />
       </div>
 
@@ -170,7 +163,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
                 Student performance across all published test cycles (IA-1 & IA-2)
               </p>
             </div>
-            <Badge variant="primary">Updated Real-Time</Badge>
+            <Badge variant="primary">Published marks</Badge>
           </div>
           <DistributionBarChart data={gradeDistributionData} height={240} />
         </div>

@@ -109,9 +109,6 @@ export default function ClassAnalytics({ onNavigateTab }) {
           subtitle="Average session presence"
           icon={CheckSquare}
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
-          trend="+2.4%"
-          trendType="up"
-          trendLabel="this month"
         />
 
         <StatCard

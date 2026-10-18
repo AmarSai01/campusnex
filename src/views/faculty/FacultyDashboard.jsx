@@ -7,14 +7,18 @@ import AssignmentManager from '../../components/faculty/AssignmentManager';
 import FacultyTimetable from '../../components/faculty/FacultyTimetable';
 import CourseAnnouncementModal from '../../components/faculty/CourseAnnouncementModal';
 import ExamManagement from '../../components/exams/ExamManagement';
+import HodDepartmentOverview from '../../components/hod/HodDepartmentOverview';
+import HodFacultyCompliance from '../../components/hod/HodFacultyCompliance';
+import { useAuth } from '../../context/AuthContext';
 
 export default function FacultyDashboard({ activeTab = 'overview', setActiveTab }) {
+  const { isHod } = useAuth();
   const renderActiveTabContent = () => {
     switch (activeTab) {
       case 'overview':
         return <ClassAnalytics onNavigateTab={setActiveTab} />;
       case 'students':
-        return <ManageStudents />;
+        return isHod ? <ManageStudents /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
       case 'attendance':
         return <BulkAttendanceMarker />;
       case 'iamarks':
@@ -27,6 +31,10 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
         return <ExamManagement />;
       case 'announcements':
         return <CourseAnnouncementModal />;
+      case 'hod_overview':
+        return isHod ? <HodDepartmentOverview /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
+      case 'hod_compliance':
+        return isHod ? <HodFacultyCompliance /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
       default:
         return <ClassAnalytics onNavigateTab={setActiveTab} />;
     }

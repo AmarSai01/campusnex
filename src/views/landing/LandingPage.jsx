@@ -30,7 +30,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -100,50 +99,9 @@ const steps = [
   },
 ]
 
-const testimonials = [
-  {
-    quote:
-      'Campusnex replaced three spreadsheets and a WhatsApp group for our CS department. Attendance shortfalls show up before the semester ends.',
-    name: 'Dr. Alan Turing',
-    role: 'Professor & HOD',
-    seed: 'Alan',
-  },
-  {
-    quote:
-      'Publishing IA marks used to mean emailing PDFs. Now students see results the moment we hit publish — and we get fewer “where are my marks?” messages.',
-    name: 'Dr. Ada Lovelace',
-    role: 'Faculty, DBMS',
-    seed: 'Ada',
-  },
-  {
-    quote:
-      'As a student, the hub is the only place I need: timetable, seating, assignments, and campus bulletins without hunting across portals.',
-    name: 'Alice Smith',
-    role: 'B.Tech CSE · Sec A',
-    seed: 'Alice',
-  },
-  {
-    quote:
-      'Exam seating used to take a full weekend. Hall allocation and conflict checks cut that to an afternoon.',
-    name: 'Dr. Sarah Connor',
-    role: 'Dean & Registrar',
-    seed: 'Sarah',
-  },
-  {
-    quote:
-      'The faculty directory and calendar finally live next to coursework. Advising hours are visible without a separate site.',
-    name: 'Bob Johnson',
-    role: 'B.Tech CSE · Sec A',
-    seed: 'Bob',
-  },
-  {
-    quote:
-      'Institution analytics give leadership a single pulse on attendance, assessments, and engagement — without waiting on monthly reports.',
-    name: 'David Lee',
-    role: 'B.Tech CSE · Sec B',
-    seed: 'David',
-  },
-]
+const CONTACT_EMAIL = '__CONTACT_EMAIL__'
+const contactHref = (subject) =>
+  `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
 
 const plans = [
   {
@@ -155,9 +113,9 @@ const plans = [
       'Attendance & IA workspace',
       'Timetable builder',
       'Campus broadcasts',
-      'Demo data & role switcher',
+      'Role-based access for admin, HOD, faculty & students',
     ],
-    cta: 'Start campus pilot',
+    cta: 'Request a pilot',
     highlighted: false,
   },
   {
@@ -171,7 +129,7 @@ const plans = [
       'User & course directory',
       'Priority onboarding support',
     ],
-    cta: 'Talk to registrar desk',
+    cta: 'Contact us',
     highlighted: true,
   },
 ]
@@ -183,7 +141,7 @@ const faqs = [
   },
   {
     q: 'Who can sign in?',
-    a: 'Accounts are institution-provisioned. There is no public self-signup. Use the demo switcher on the login screen to explore admin, faculty, and student workspaces.',
+    a: 'Accounts are created by your institution\'s administrator — there is no public sign-up. Once your account exists, choose "Activate your account" on the login page and set your own password.',
   },
   {
     q: 'Does it replace our LMS?',
@@ -206,7 +164,7 @@ function ProductPreview() {
           <span className="text-sm font-bold text-foreground">Campusnex · Analytics</span>
         </div>
         <Badge variant="secondary" className="rounded-full text-[10px] font-semibold">
-          Live preview
+          Sample view
         </Badge>
       </div>
 
@@ -295,11 +253,11 @@ export default function LandingPage({ onSignIn }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={onSignIn} className="hidden sm:inline-flex">
-              Log in
+            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+              <a href={contactHref('Campusnex enquiry')}>Contact</a>
             </Button>
             <Button onClick={onSignIn} className="rounded-lg bg-brand-500 hover:bg-brand-600">
-              Start free trial
+              Sign in
             </Button>
           </div>
         </div>
@@ -330,7 +288,7 @@ export default function LandingPage({ onSignIn }) {
                 onClick={onSignIn}
                 className="h-11 rounded-lg bg-brand-500 px-6 text-sm font-bold hover:bg-brand-600"
               >
-                Start free trial
+                Sign in to your campus
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="lg" asChild className="h-11 text-sm font-semibold">
@@ -339,21 +297,6 @@ export default function LandingPage({ onSignIn }) {
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
-            </div>
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <div className="flex -space-x-2">
-                {['Sarah', 'Alan', 'Ada', 'Alice'].map((seed) => (
-                  <Avatar key={seed} className="size-8 border-2 border-white">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
-                    />
-                    <AvatarFallback>{seed.slice(0, 1)}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Trusted by academic teams across departments
-              </p>
             </div>
           </div>
 
@@ -492,42 +435,6 @@ export default function LandingPage({ onSignIn }) {
           </div>
         </section>
 
-        <section className="border-y border-border bg-muted/40 py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                The teams who run campus on Campusnex
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                Voices from the same roles you will explore in the demo.
-              </p>
-            </div>
-            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {testimonials.map((item) => (
-                <Card key={item.name} className="rounded-2xl bg-white shadow-subtle">
-                  <CardContent className="pt-6">
-                    <p className="text-sm leading-relaxed text-foreground/90">
-                      “{item.quote}”
-                    </p>
-                    <div className="mt-5 flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.seed}`}
-                        />
-                        <AvatarFallback>{item.name.slice(0, 1)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-bold">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section id="pricing" className="py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mx-auto max-w-2xl text-center">
@@ -572,7 +479,7 @@ export default function LandingPage({ onSignIn }) {
                   </CardContent>
                   <CardFooter>
                     <Button
-                      onClick={onSignIn}
+                      asChild
                       className={cn(
                         'w-full rounded-lg',
                         plan.highlighted
@@ -580,7 +487,7 @@ export default function LandingPage({ onSignIn }) {
                           : 'bg-foreground text-background hover:bg-foreground/90'
                       )}
                     >
-                      {plan.cta}
+                      <a href={contactHref(`Campusnex ${plan.name} plan`)}>{plan.cta}</a>
                     </Button>
                   </CardFooter>
                 </Card>
@@ -594,8 +501,8 @@ export default function LandingPage({ onSignIn }) {
                   Custom SSO, data residency, and registrar-led rollout.
                 </p>
               </div>
-              <Button variant="outline" onClick={onSignIn} className="rounded-lg">
-                Contact us
+              <Button variant="outline" asChild className="rounded-lg">
+                <a href={contactHref('Campusnex enterprise / multi-campus')}>Contact us</a>
               </Button>
             </div>
           </div>
@@ -628,15 +535,15 @@ export default function LandingPage({ onSignIn }) {
                 Ready to run your campus with clarity?
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-                Jump into the demo workspace and switch between admin, faculty, and
-                student roles in seconds.
+                Admins, HODs, faculty and students each get a workspace built for their role.
+                Sign in with the account your institution created for you.
               </p>
               <Button
                 size="lg"
                 onClick={onSignIn}
                 className="mt-8 h-12 rounded-lg bg-brand-500 px-8 text-sm font-bold hover:bg-brand-600"
               >
-                Start free trial
+                Sign in
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -660,29 +567,43 @@ export default function LandingPage({ onSignIn }) {
           {[
             {
               title: 'Product',
-              links: ['Features', 'Workflow', 'Plans', 'Demo login'],
+              links: [
+                { label: 'Features', href: '#features' },
+                { label: 'Workflow', href: '#workflow' },
+                { label: 'Plans', href: '#pricing' },
+                { label: 'FAQ', href: '#faq' },
+              ],
             },
             {
               title: 'Campus',
-              links: ['Admin console', 'Faculty workspace', 'Student hub', 'Exam seating'],
+              links: [
+                { label: 'Sign in', onClick: onSignIn },
+                { label: 'Activate your account', onClick: onSignIn },
+              ],
             },
             {
-              title: 'Company',
-              links: ['About', 'Security', 'Contact', 'Status'],
+              title: 'Contact',
+              links: [{ label: 'Email us', href: contactHref('Campusnex enquiry') }],
             },
           ].map((col) => (
             <div key={col.title}>
               <p className="text-sm font-bold">{col.title}</p>
               <ul className="mt-3 space-y-2">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <button
-                      type="button"
-                      onClick={onSignIn}
-                      className="text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      {link}
-                    </button>
+                  <li key={link.label}>
+                    {link.href ? (
+                      <a href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                        {link.label}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={link.onClick}
+                        className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {link.label}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

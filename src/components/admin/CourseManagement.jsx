@@ -8,14 +8,17 @@ import {
   Layers,
   GraduationCap,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Search,
+  UserPlus
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import { studentMatchesCourse } from '../../utils/enrollment';
 
 export default function CourseManagement() {
-  const { courses, users, departments, enrollments, createCourse, updateCourse, assignFacultyToCourse } = useData();
+  const { courses, users, departments, enrollments, createCourse, updateCourse, assignFacultyToCourse, setCourseEnrollments } = useData();
 
   const facultyList = users.filter(u => u.role === 'faculty' && u.status === 'active');
 
@@ -25,9 +28,9 @@ export default function CourseManagement() {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    department_id: 'dept_cse',
-    faculty_id: facultyList[0]?.id || '',
-    semester: 5,
+    department_id: departments[0]?.id || '',
+    faculty_id: '',
+    semester: 1,
     section: 'A',
     credits: 4,
     color: '#4f46e5',
@@ -40,15 +43,15 @@ export default function CourseManagement() {
   const handleOpenCreateModal = () => {
     setEditingCourse(null);
     setFormData({
-      code: 'CS304',
-      name: 'Computer Networks & Security',
-      department_id: 'dept_cse',
-      faculty_id: facultyList[0]?.id || '',
-      semester: 5,
+      code: '',
+      name: '',
+      department_id: departments[0]?.id || '',
+      faculty_id: '',
+      semester: 1,
       section: 'A',
       credits: 4,
-      color: '#0284c7',
-      description: 'TCP/IP architecture, socket programming, routing algorithms, cryptographic primitives.'
+      color: '#4f46e5',
+      description: ''
     });
     setIsModalOpen(true);
   };
@@ -78,6 +81,49 @@ export default function CourseManagement() {
     }
     setIsModalOpen(false);
   };
+
+  const [enrolCourse, setEnrolCourse] = useState(null);
+  const [enrolSelection, setEnrolSelection] = useState(new Set());
+  const [enrolSearch, setEnrolSearch] = useState('');
+  const [enrolAllDepartments, setEnrolAllDepartments] = useState(false);
+
+  const handleOpenEnrolModal = (course) => {
+    setEnrolCourse(course);
+    setEnrolSelection(new Set(enrollments.filter(e => e.course_id === course.id).map(e => e.student_id)));
+    setEnrolSearch('');
+    setEnrolAllDepartments(false);
+  };
+
+  const toggleEnrolStudent = (studentId) => {
+    setEnrolSelection(prev => {
+      const next = new Set(prev);
+      if (next.has(studentId)) next.delete(studentId);
+      else next.add(studentId);
+      return next;
+    });
+  };
+
+  const handleSaveEnrolments = () => {
+    setCourseEnrollments(enrolCourse.id, [...enrolSelection]);
+    setEnrolCourse(null);
+  };
+
+  const enrolCandidates = enrolCourse
+    ? users
+        .filter(u => u.role === 'student' && u.status !== 'inactive')
+        .filter(u => enrolAllDepartments || u.department_id === enrolCourse.department_id || enrolSelection.has(u.id))
+        .filter(u => {
+          const q = enrolSearch.trim().toLowerCase();
+          return !q || u.name.toLowerCase().includes(q) || (u.usn || '').toLowerCase().includes(q);
+        })
+        .sort((a, b) =>
+          Number(studentMatchesCourse(b, enrolCourse)) - Number(studentMatchesCourse(a, enrolCourse)) ||
+          (a.usn || a.name).localeCompare(b.usn || b.name)
+        )
+    : [];
+  const matchingIds = enrolCourse
+    ? users.filter(u => studentMatchesCourse(u, enrolCourse)).map(u => u.id)
+    : [];
 
   const handleOpenReassignModal = (course) => {
     setReassignModalCourse(course);
@@ -191,9 +237,15 @@ export default function CourseManagement() {
               <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <button
                   onClick={() => handleOpenReassignModal(course)}
-                  className="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors text-center"
+                  className="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors text-center cursor-pointer"
                 >
                   Change Instructor
+                </button>
+                <button
+                  onClick={() => handleOpenEnrolModal(course)}
+                  className="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-center cursor-pointer"
+                >
+                  Enrol Students
                 </button>
                 <button
                   onClick={() => handleOpenEditModal(course)}
@@ -269,8 +321,9 @@ export default function CourseManagement() {
                 onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               >
+                <option value="">-- Unassigned --</option>
                 {facultyList.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                  <option key={f.id} value={f.id}>{f.name}{f.designation ? ` (${f.designation})` : ''}</option>
                 ))}
               </select>
             </div>
@@ -414,6 +467,107 @@ export default function CourseManagement() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Enrol Students Modal */}
+      <Modal
+        isOpen={Boolean(enrolCourse)}
+        onClose={() => setEnrolCourse(null)}
+        title={`Enrol Students: ${enrolCourse?.code || ''}`}
+        subtitle="Tick the students who take this course. Unticking removes the enrolment; past attendance and marks are kept."
+        maxWidth="max-w-lg"
+      >
+        {enrolCourse && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <span>
+                <strong className="text-slate-800">{enrolCourse.name}</strong> · Sem {enrolCourse.semester} · Sec {enrolCourse.section}
+              </span>
+              <span className="font-bold text-emerald-700">{enrolSelection.size} selected</span>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={enrolSearch}
+                  onChange={(e) => setEnrolSearch(e.target.value)}
+                  placeholder="Search name or USN"
+                  aria-label="Search students"
+                  className="w-full rounded-xl border border-slate-200 py-2 pr-3 pl-9 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnrolSelection(prev => new Set([...prev, ...matchingIds]))}
+                disabled={matchingIds.length === 0}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Select matching ({matchingIds.length})
+              </button>
+            </div>
+
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+              <input
+                type="checkbox"
+                checked={enrolAllDepartments}
+                onChange={(e) => setEnrolAllDepartments(e.target.checked)}
+                className="h-3.5 w-3.5 accent-brand-600"
+              />
+              Show students from all departments
+            </label>
+
+            <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+              {enrolCandidates.length === 0 && (
+                <li className="p-4 text-center text-xs text-slate-500">
+                  No students found. Add students in Manage Students first.
+                </li>
+              )}
+              {enrolCandidates.map((st) => (
+                <li key={st.id}>
+                  <label className="flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
+                    <input
+                      type="checkbox"
+                      checked={enrolSelection.has(st.id)}
+                      onChange={() => toggleEnrolStudent(st.id)}
+                      className="h-4 w-4 accent-brand-600"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-bold text-slate-900">{st.name}</span>
+                      <span className="block text-[11px] text-slate-500">
+                        {st.usn || '—'} · Sem {st.semester ?? '—'} · Sec {st.section ?? '—'}
+                        {st.department_id !== enrolCourse.department_id &&
+                          ` · ${departments.find(d => d.id === st.department_id)?.code || 'Other dept'}`}
+                      </span>
+                    </span>
+                    {studentMatchesCourse(st, enrolCourse) && (
+                      <span className="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                        Matches
+                      </span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+              <button
+                onClick={() => setEnrolCourse(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEnrolments}
+                className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Save Enrolments
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

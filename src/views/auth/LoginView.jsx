@@ -2,14 +2,15 @@ import React, { useState } from 'react'
 import {
   GraduationCap,
   ShieldAlert,
+  ShieldCheck,
   Briefcase,
   User,
   Lock,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   Info,
   AlertCircle,
+  CheckCircle2,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -24,53 +25,60 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { DEMO_PASSWORD } from '@/lib/supabase'
+
+const MIN_PASSWORD_LENGTH = 8
+
+const rolePresets = {
+  student: {
+    title: 'Student Portal',
+    description:
+      'Access attendance, published IA marks, submit assignments & view schedules.',
+    badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  },
+  faculty: {
+    title: 'Faculty Workspace',
+    description:
+      'Mark session attendance, publish IA marks, manage assignments & grade submissions.',
+    badgeClass: 'border-brand-200 bg-brand-50 text-brand-700',
+  },
+  hod: {
+    title: 'HOD Console',
+    description:
+      "Everything faculty can do, plus a view-only overview of your department's attendance, marks and at-risk students.",
+    badgeClass: 'border-sky-200 bg-sky-50 text-sky-700',
+  },
+  admin: {
+    title: 'Administrative Console',
+    description:
+      'Manage users, assign course faculty, configure timetables & post campus broadcasts.',
+    badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
+  },
+}
+
+const MODE_COPY = {
+  signin: { button: null, switchPrompt: 'First time signing in?', switchLabel: 'Activate your account' },
+  activate: { button: 'Activate Account', switchPrompt: 'Already activated?', switchLabel: 'Sign in' },
+  forgot: { button: 'Send Reset Link', switchPrompt: 'Remembered it?', switchLabel: 'Back to sign in' },
+}
 
 export default function LoginView({ onBack }) {
-  const { login, activateAccount, switchUser, isDemo } = useAuth()
+  const { login, activateAccount, requestPasswordReset } = useAuth()
 
   const [activeRoleTab, setActiveRoleTab] = useState('student')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [mode, setMode] = useState('signin')
-  const [notice, setNotice] = useState('')
 
-  const rolePresets = {
-    student: {
-      defaultEmail: 'student1@campusnex.edu',
-      title: 'Student Portal',
-      description:
-        'Access attendance, published IA marks, submit assignments & view schedules.',
-      badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    },
-    faculty: {
-      defaultEmail: 'faculty1@campusnex.edu',
-      title: 'Faculty Workspace',
-      description:
-        'Mark session attendance, publish IA marks, manage assignments & grade submissions.',
-      badgeClass: 'border-brand-200 bg-brand-50 text-brand-700',
-    },
-    admin: {
-      defaultEmail: 'admin@campusnex.edu',
-      title: 'Administrative Console',
-      description:
-        'Manage users, assign course faculty, configure timetables & post campus broadcasts.',
-      badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
-    },
-  }
-
-  const handleRoleTabChange = (role) => {
-    setActiveRoleTab(role)
-    if (isDemo) {
-      setEmail(rolePresets[role].defaultEmail)
-      setPassword(DEMO_PASSWORD)
-    }
+  const switchMode = (next) => {
+    setMode(next)
     setError('')
+    setNotice('')
+    setPassword('')
   }
 
   const handleSubmit = async (e) => {
@@ -83,42 +91,31 @@ export default function LoginView({ onBack }) {
       if (!email.trim()) {
         throw new Error('Please enter your institutional email address.')
       }
-      if (mode === 'activate') {
-        if (password.length < 8) {
-          throw new Error('Choose a password with at least 8 characters.')
+      if (mode === 'forgot') {
+        await requestPasswordReset(email)
+        setNotice('If this email has an account, a password reset link is on its way. Check your inbox.')
+      } else if (mode === 'activate') {
+        if (password.length < MIN_PASSWORD_LENGTH) {
+          throw new Error(`Choose a password with at least ${MIN_PASSWORD_LENGTH} characters.`)
         }
         const result = await activateAccount(email, password)
         if (result === 'confirm_email') {
-          setNotice('Account activated. Check your email to confirm it, then sign in.')
+          setNotice('Almost done. Check your email and click the confirmation link, then sign in.')
           setMode('signin')
+          setPassword('')
         }
       } else {
         await login(email, password)
       }
     } catch (err) {
-      setError(err.message || 'Login failed. Please verify credentials.')
+      setError(err.message || 'Sign in failed. Please check your details.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDemoLogin = async (userId) => {
-    setError('')
-    try {
-      await switchUser(userId)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  const quickDemoAccounts = [
-    { id: 'admin_1', name: 'Dr. Sarah Connor', desc: 'Dean / Registrar' },
-    { id: 'faculty_1', name: 'Dr. Alan Turing', desc: 'Faculty (CS301/302)' },
-    { id: 'faculty_2', name: 'Dr. Ada Lovelace', desc: 'Faculty (CS303 DBMS)' },
-    { id: 'student_1', name: 'Alice Smith', desc: 'Student Sec A' },
-    { id: 'student_2', name: 'Bob Johnson', desc: 'Student Sec A' },
-    { id: 'student_4', name: 'David Lee', desc: 'Student Sec B' },
-  ]
+  const preset = rolePresets[activeRoleTab]
+  const copy = MODE_COPY[mode]
 
   return (
     <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-muted/40 px-4 py-12 sm:px-6 lg:px-8">
@@ -145,35 +142,46 @@ export default function LoginView({ onBack }) {
             Campusnex
           </h2>
           <p className="mt-2 text-sm font-medium text-muted-foreground">
-            Sign in to your institutional workspace
+            {mode === 'forgot'
+              ? 'Reset your password'
+              : mode === 'activate'
+                ? 'Activate your institutional account'
+                : 'Sign in to your institutional workspace'}
           </p>
         </div>
 
         <Card className="mt-8 overflow-hidden rounded-3xl border-border shadow-card-hover py-0 gap-0">
           <Tabs
             value={activeRoleTab}
-            onValueChange={handleRoleTabChange}
+            onValueChange={setActiveRoleTab}
             className="gap-0"
           >
             <div className="border-b border-border bg-muted/60 p-2">
-              <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 bg-transparent p-0">
+              <TabsList className="grid h-auto w-full grid-cols-4 gap-1 bg-transparent p-0">
                 <TabsTrigger
                   value="student"
-                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-emerald-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-emerald-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
                 >
                   <GraduationCap className="h-4 w-4" />
                   Student
                 </TabsTrigger>
                 <TabsTrigger
                   value="faculty"
-                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-brand-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-brand-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
                 >
                   <Briefcase className="h-4 w-4" />
                   Faculty
                 </TabsTrigger>
                 <TabsTrigger
+                  value="hod"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-sky-700 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  HOD
+                </TabsTrigger>
+                <TabsTrigger
                   value="admin"
-                  className="gap-1.5 rounded-xl py-2.5 text-xs font-bold data-active:bg-white data-active:text-amber-800 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-active:bg-white data-active:text-amber-800 data-active:shadow-xs data-active:ring-1 data-active:ring-border"
                 >
                   <ShieldAlert className="h-4 w-4" />
                   Admin
@@ -183,30 +191,22 @@ export default function LoginView({ onBack }) {
 
             <CardHeader className="space-y-2 border-b border-border px-6 pt-6 pb-4 sm:px-8">
               <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base font-bold">
-                  {rolePresets[activeRoleTab].title}
-                </CardTitle>
+                <CardTitle className="text-base font-bold">{preset.title}</CardTitle>
                 <Badge
                   variant="outline"
-                  className={cn(
-                    'rounded-md text-[11px] font-bold capitalize',
-                    rolePresets[activeRoleTab].badgeClass
-                  )}
+                  className={cn('rounded-md text-[11px] font-bold capitalize', preset.badgeClass)}
                 >
-                  Role: {activeRoleTab}
+                  Role: {activeRoleTab === 'hod' ? 'HOD' : activeRoleTab}
                 </Badge>
               </div>
               <CardDescription className="text-xs leading-relaxed">
-                {rolePresets[activeRoleTab].description}
+                {preset.description}
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6 px-6 py-6 sm:px-8 sm:pb-8">
               {error && (
-                <Alert
-                  variant="destructive"
-                  className="border-rose-200 bg-rose-50 text-rose-700"
-                >
+                <Alert variant="destructive" className="border-rose-200 bg-rose-50 text-rose-700">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -214,7 +214,7 @@ export default function LoginView({ onBack }) {
 
               {notice && (
                 <Alert className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  <Info className="h-4 w-4" />
+                  <CheckCircle2 className="h-4 w-4" />
                   <AlertDescription>{notice}</AlertDescription>
                 </Alert>
               )}
@@ -230,31 +230,47 @@ export default function LoginView({ onBack }) {
                       id="email"
                       type="email"
                       required
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder={rolePresets[activeRoleTab].defaultEmail}
+                      placeholder="you@yourcollege.edu"
                       className="h-10 rounded-xl pl-9"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-xs font-bold">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="h-10 rounded-xl pl-9"
-                    />
+                {mode !== 'forgot' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-xs font-bold">
+                        {mode === 'activate' ? 'Choose a Password' : 'Password'}
+                      </Label>
+                      {mode === 'signin' && (
+                        <button
+                          type="button"
+                          onClick={() => switchMode('forgot')}
+                          className="text-xs font-semibold text-brand-700 hover:underline cursor-pointer"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        required
+                        minLength={mode === 'activate' ? MIN_PASSWORD_LENGTH : undefined}
+                        autoComplete={mode === 'activate' ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={mode === 'activate' ? `At least ${MIN_PASSWORD_LENGTH} characters` : '••••••••••••'}
+                        className="h-10 rounded-xl pl-9"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <Button
                   type="submit"
@@ -266,11 +282,7 @@ export default function LoginView({ onBack }) {
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   ) : (
                     <>
-                      <span>
-                        {mode === 'activate'
-                          ? 'Activate Account'
-                          : `Enter ${rolePresets[activeRoleTab].title}`}
-                      </span>
+                      <span>{copy.button || `Enter ${preset.title}`}</span>
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
@@ -278,56 +290,23 @@ export default function LoginView({ onBack }) {
               </form>
 
               <p className="text-center text-xs text-muted-foreground">
-                {mode === 'activate' ? 'Already activated?' : 'First time signing in?'}{' '}
+                {copy.switchPrompt}{' '}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode(mode === 'activate' ? 'signin' : 'activate')
-                    setError('')
-                    setNotice('')
-                  }}
-                  className="font-bold text-brand-700 hover:underline"
+                  onClick={() => switchMode(mode === 'signin' ? 'activate' : 'signin')}
+                  className="font-bold text-brand-700 hover:underline cursor-pointer"
                 >
-                  {mode === 'activate' ? 'Sign in' : 'Activate your account'}
+                  {copy.switchLabel}
                 </button>
               </p>
 
               <Alert className="border-border bg-muted/50">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <AlertDescription className="text-[11px] text-muted-foreground">
-                  <strong>Institutional Security Policy:</strong> No public signup.
-                  Accounts are created by the Central Registrar. Activate yours with
-                  your registered institutional email.
+                  <strong>No public signup.</strong> Accounts are created by your institution's
+                  administrator. Activate yours with the email they registered for you.
                 </AlertDescription>
               </Alert>
-
-              {isDemo && (
-              <div className="space-y-3 pt-1">
-                <Separator />
-                <div className="flex items-center gap-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  <Sparkles className="h-3.5 w-3.5 text-brand-600" />
-                  Instant 1-Click Demo Logins:
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {quickDemoAccounts.map((acc) => (
-                    <Button
-                      key={acc.id}
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleDemoLogin(acc.id)}
-                      className="h-auto flex-col items-start gap-0.5 rounded-xl p-2 text-left text-xs whitespace-normal"
-                    >
-                      <span className="truncate font-bold text-foreground">
-                        {acc.name}
-                      </span>
-                      <span className="truncate text-[10px] font-normal text-muted-foreground">
-                        {acc.desc}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              )}
             </CardContent>
           </Tabs>
         </Card>

@@ -15,27 +15,30 @@ import {
   Lock,
   Sparkles,
   Layers,
-  UserCheck
+  UserCheck,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import StudentImportModal from './StudentImportModal';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 
 export default function ManageStudents() {
-  const { currentUser } = useAuth();
+  const { currentUser, hodDepartments } = useAuth();
   const { users, departments, createStudent, updateStudent, deleteStudent } = useData();
 
   const isAdmin = currentUser?.role === 'admin';
-  const isFaculty = currentUser?.role === 'faculty';
-
-  // Determine scoped department for faculty
-  const facultyDeptId = currentUser?.department_id || 'dept_cse';
-  const facultyDept = departments.find(d => d.id === facultyDeptId);
+  // Non-admins reach this screen only as HOD, scoped to the departments they head.
+  const isHodView = !isAdmin && hodDepartments.length > 0;
+  const scopeDepartments = isAdmin ? departments : hodDepartments;
+  const scopeDeptIds = scopeDepartments.map(d => d.id);
+  const defaultDeptId = scopeDepartments[0]?.id || '';
+  const canPickDepartment = isAdmin || hodDepartments.length > 1;
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState(isAdmin ? 'all' : facultyDeptId);
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState('all');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('all');
   const [selectedSemesterFilter, setSelectedSemesterFilter] = useState('all');
 
@@ -49,14 +52,15 @@ export default function ManageStudents() {
     name: '',
     usn: '',
     email: '',
-    department_id: isAdmin ? (departments[0]?.id || 'dept_cse') : facultyDeptId,
-    semester: 5,
+    department_id: defaultDeptId,
+    semester: 1,
     section: 'A',
     phone: '',
     status: 'active'
   });
 
   const [formError, setFormError] = useState('');
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [successToast, setSuccessToast] = useState('');
 
   // USN Regex Validator: 1XX00XX000
@@ -67,12 +71,12 @@ export default function ManageStudents() {
 
   // Scoped list
   const scopedStudents = allStudents.filter(st => {
-    // Faculty can only view students in their own department
-    if (isFaculty && st.department_id !== facultyDeptId) {
+    // HODs only manage students in the departments they head
+    if (!isAdmin && !scopeDeptIds.includes(st.department_id)) {
       return false;
     }
-    // Admin department filter
-    if (isAdmin && selectedDeptFilter !== 'all' && st.department_id !== selectedDeptFilter) {
+    // Department filter
+    if (selectedDeptFilter !== 'all' && st.department_id !== selectedDeptFilter) {
       return false;
     }
     // Section filter
@@ -100,10 +104,10 @@ export default function ManageStudents() {
       name: '',
       usn: '',
       email: '',
-      department_id: isAdmin ? (departments[0]?.id || 'dept_cse') : facultyDeptId,
-      semester: 5,
+      department_id: defaultDeptId,
+      semester: 1,
       section: 'A',
-      phone: '+1 (555) 014-0000',
+      phone: '',
       status: 'active'
     });
     setFormError('');
@@ -116,7 +120,7 @@ export default function ManageStudents() {
       name: student.name,
       usn: student.usn || student.roll_no || '',
       email: student.email,
-      department_id: student.department_id || (isAdmin ? 'dept_cse' : facultyDeptId),
+      department_id: student.department_id || defaultDeptId,
       semester: student.semester || 5,
       section: student.section || 'A',
       phone: student.phone || '',
@@ -221,20 +225,28 @@ export default function ManageStudents() {
               <GraduationCap className="w-5 h-5 text-brand-600" />
               Student Directory & USN Roster
             </h2>
-            {isFaculty && (
+            {isHodView && (
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-brand-600" />
-                {facultyDept?.code || 'CSE'} Department Scoped
+                HOD · {hodDepartments.map(d => d.code).join(', ')}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
             {isAdmin
               ? 'Institutional access: View, provision, edit, and delete student credentials across all university departments.'
-              : `Faculty access: View, provision, and edit students within ${facultyDept?.name || 'your department'}.`}
+              : `HOD access: add and edit students in ${hodDepartments.map(d => d.name).join(', ')}. Only administrators can delete students.`}
           </p>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <button
+          onClick={() => setIsImportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all cursor-pointer"
+        >
+          <Upload className="w-4 h-4" />
+          <span>Import CSV</span>
+        </button>
         <button
           onClick={handleOpenAddModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer shrink-0"
@@ -242,6 +254,7 @@ export default function ManageStudents() {
           <UserPlus className="w-4 h-4" />
           <span>Add New Student</span>
         </button>
+        </div>
       </div>
 
       {/* Success Notification Banner */}
@@ -270,15 +283,15 @@ export default function ManageStudents() {
 
         {/* Filter dropdowns */}
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-end">
-          {/* Department Filter (Admin only) */}
-          {isAdmin && (
+          {/* Department Filter (admin, or HOD of several departments) */}
+          {canPickDepartment && (
             <select
               value={selectedDeptFilter}
               onChange={(e) => setSelectedDeptFilter(e.target.value)}
               className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
             >
               <option value="all">All Departments</option>
-              {departments.map(d => (
+              {scopeDepartments.map(d => (
                 <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
               ))}
             </select>
@@ -492,7 +505,7 @@ export default function ManageStudents() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="e.g. asmith@campusnex.edu"
+                placeholder="e.g. student@yourcollege.edu"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
               />
             </div>
@@ -502,20 +515,20 @@ export default function ManageStudents() {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Academic Department *
               </label>
-              {isAdmin ? (
+              {canPickDepartment ? (
                 <select
                   value={formData.department_id}
                   onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
                 >
-                  {departments.map(d => (
+                  {scopeDepartments.map(d => (
                     <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                   ))}
                 </select>
               ) : (
                 <div className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>{facultyDept?.name || 'Computer Science & Engineering'} ({facultyDept?.code || 'CSE'})</span>
-                  <span className="text-[10px] text-slate-400 font-semibold">(Your Dept)</span>
+                  <span>{hodDepartments[0]?.name} ({hodDepartments[0]?.code})</span>
+                  <span className="text-[10px] text-slate-400 font-semibold">(Your department as HOD)</span>
                 </div>
               )}
             </div>
@@ -611,6 +624,15 @@ export default function ManageStudents() {
           </div>
         </div>
       </Modal>
+      <StudentImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        allowedDepartments={scopeDepartments}
+        onImported={(count) => {
+          setSuccessToast(`Imported ${count} student${count === 1 ? '' : 's'} successfully.`);
+          setTimeout(() => setSuccessToast(''), 4000);
+        }}
+      />
     </div>
   );
 }

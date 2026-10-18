@@ -20,6 +20,7 @@ export default function ExamTimetableManager() {
   const { currentUser } = useAuth();
   const {
     departments = [],
+    users = [],
     courses = [],
     exam_rooms = [],
     exam_timetables = [],
@@ -419,7 +420,7 @@ export default function ExamTimetableManager() {
 
               {/* Footer with Audit info */}
               <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                <span>By: {exam.created_by || 'admin_1'}</span>
+                <span>By: {users.find(u => u.id === exam.created_by)?.name || 'Unknown'}</span>
                 <span>Updated: {new Date(exam.updated_at || exam.created_at || '2026-09-01').toLocaleDateString()}</span>
               </div>
             </div>

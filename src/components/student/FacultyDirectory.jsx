@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { hodLabel } from '../../utils/hod';
 import Badge from '../common/Badge';
 
 export default function FacultyDirectory() {
@@ -65,6 +66,11 @@ export default function FacultyDirectory() {
                     <h3 className="text-base font-bold text-slate-900 truncate">
                       {faculty.name}
                     </h3>
+                    {hodLabel(departments, faculty.id) && (
+                      <span className="mt-1 inline-flex rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                        {hodLabel(departments, faculty.id)}
+                      </span>
+                    )}
                     <p className="text-xs font-semibold text-brand-600">
                       {faculty.designation || 'Professor'}
                     </p>

@@ -86,7 +86,7 @@ export default function AssignmentManager() {
   const mySubmissions = submissions.filter(s => relevantAssignmentIds.includes(s.assignment_id));
 
   const handleSaveGrade = (submissionId, marks, feedback) => {
-    gradeSubmission(submissionId, marks, feedback, currentUser?.id || 'faculty_1');
+    gradeSubmission(submissionId, marks, feedback, currentUser?.id);
   };
 
   return (

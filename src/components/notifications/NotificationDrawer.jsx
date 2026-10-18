@@ -44,6 +44,8 @@ export default function NotificationDrawer({ isOpen, onClose, onNavigate }) {
       case 'ia_published':
         return <Award className="h-4 w-4 text-purple-600" />
       case 'attendance_absent':
+      case 'attendance_risk':
+      case 'marks_risk':
         return <AlertTriangle className="h-4 w-4 text-rose-600" />
       case 'assignment_graded':
         return <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -68,6 +70,8 @@ export default function NotificationDrawer({ isOpen, onClose, onNavigate }) {
       case 'ia_published':
         return 'bg-purple-50 border-purple-100'
       case 'attendance_absent':
+      case 'attendance_risk':
+      case 'marks_risk':
         return 'bg-rose-50 border-rose-100'
       case 'assignment_graded':
         return 'bg-emerald-50 border-emerald-100'

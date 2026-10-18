@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { TABLES, toRow } from '../lib/db-schema';
+import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } from '../utils/enrollment';
 
 const DataContext = createContext(null);
 
 const PAGE_SIZE = 1000;
 
 const emptyData = () => Object.fromEntries(TABLES.map((t) => [t.key, []]));
+
+const toNumberOr = (value, fallback) => (value === '' || value === undefined ? fallback : Number(value));
 
 async function fetchTable(table) {
   const rows = [];
@@ -80,6 +83,11 @@ export function DataProvider({ children }) {
 
   // Which signed-in user the snapshot belongs to. Writes only ever run for that user.
   const snapshotOwner = useRef(null);
+
+  // Profile id of the signed-in user; recorded as created_by / updated_by on edits.
+  const currentProfileId = auth.session
+    ? data.users.find((u) => u.auth_id === auth.session.user.id)?.id || null
+    : null;
 
   const loadAll = useCallback(async () => {
     const uid = userIdRef.current;
@@ -592,33 +600,62 @@ export function DataProvider({ children }) {
       phone: studentData.phone || '',
       status: studentData.status || 'active',
       photo_url: studentData.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentData.name)}`,
-      created_by: authorId || 'admin_1',
-      updated_by: authorId || 'admin_1',
+      created_by: authorId || currentProfileId,
+      updated_by: authorId || currentProfileId,
       created_at: now,
       updated_at: now
     };
 
-    // Auto enroll in courses for matching department and section
-    const matchingCourses = data.courses.filter(
-      c => c.department_id === newStudent.department_id &&
-           c.section === newStudent.section &&
-           c.semester === newStudent.semester
-    );
-
-    const newEnrollments = matchingCourses.map((c, i) => ({
-      id: `enr_${Date.now()}_${i}`,
-      student_id: newId,
-      course_id: c.id,
-      enrolled_at: now.split('T')[0]
-    }));
-
-    setData(prev => ({
-      ...prev,
-      users: [...prev.users, newStudent],
-      enrollments: [...prev.enrollments, ...newEnrollments]
-    }));
+    // Auto enroll in courses for the student's department, semester and section
+    setData(prev => {
+      const pairs = prev.courses
+        .filter(c => studentMatchesCourse(newStudent, c))
+        .map(c => [newId, c.id]);
+      return {
+        ...prev,
+        users: [...prev.users, newStudent],
+        enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
+      };
+    });
 
     return newStudent;
+  };
+
+  // Bulk import of already-validated students (see utils/studentImport.js).
+  // Adds all students and their course enrolments in one save.
+  const createStudentsBulk = (students, authorId) => {
+    const now = new Date().toISOString();
+    const actor = authorId || currentProfileId;
+    const newStudents = students.map(st => ({
+      id: `student_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      name: st.name,
+      email: st.email,
+      role: 'student',
+      usn: st.usn,
+      roll_no: st.usn,
+      department_id: st.department_id,
+      semester: st.semester,
+      section: st.section,
+      phone: '',
+      status: 'active',
+      photo_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(st.name)}`,
+      created_by: actor,
+      updated_by: actor,
+      created_at: now,
+      updated_at: now
+    }));
+
+    setData(prev => {
+      const pairs = newStudents.flatMap(st =>
+        prev.courses.filter(c => studentMatchesCourse(st, c)).map(c => [st.id, c.id])
+      );
+      return {
+        ...prev,
+        users: [...prev.users, ...newStudents],
+        enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
+      };
+    });
+    return newStudents.length;
   };
 
   const updateStudent = (studentId, updateFields, editorId) => {
@@ -649,19 +686,29 @@ export function DataProvider({ children }) {
 
     const now = new Date().toISOString();
 
-    setData(prev => ({
-      ...prev,
-      users: prev.users.map(u => {
+    setData(prev => {
+      let updated = null;
+      const users = prev.users.map(u => {
         if (u.id !== studentId) return u;
-        return {
+        updated = {
           ...u,
           ...updateFields,
           ...(formattedUSN ? { usn: formattedUSN, roll_no: formattedUSN } : {}),
-          updated_by: editorId || u.updated_by || 'admin_1',
+          updated_by: editorId || currentProfileId || u.updated_by,
           updated_at: now
         };
-      })
-    }));
+        return updated;
+      });
+      // Keep existing enrolments (and their history); add any courses the student now matches.
+      const pairs = updated
+        ? prev.courses.filter(c => studentMatchesCourse(updated, c)).map(c => [studentId, c.id])
+        : [];
+      return {
+        ...prev,
+        users,
+        enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
+      };
+    });
   };
 
   const deleteStudent = (studentId, actorRole) => {
@@ -685,20 +732,23 @@ export function DataProvider({ children }) {
       return createStudent(userData, authorId);
     }
 
-    const newId = userData.role === 'faculty' 
-      ? `faculty_${Date.now()}` 
-      : `user_${Date.now()}`;
+    const prefix = userData.role === 'admin' ? 'admin' : 'faculty';
+    const newId = `${prefix}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+
+    // Student-only fields do not apply to faculty or admins.
+    const { usn: _usn, roll_no: _rollNo, semester: _semester, section: _section, ...staffData } = userData;
 
     const now = new Date().toISOString();
     const newUser = {
       id: newId,
       status: 'active',
       photo_url: userData.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.name)}`,
-      created_by: authorId || 'admin_1',
-      updated_by: authorId || 'admin_1',
+      created_by: authorId || currentProfileId,
+      updated_by: authorId || currentProfileId,
       created_at: now,
       updated_at: now,
-      ...userData
+      ...staffData,
+      email: userData.email.trim().toLowerCase()
     };
 
     setData(prev => ({
@@ -720,7 +770,7 @@ export function DataProvider({ children }) {
       users: prev.users.map(u => u.id === userId ? {
         ...u,
         ...updateFields,
-        updated_by: editorId || u.updated_by || 'admin_1',
+        updated_by: editorId || currentProfileId || u.updated_by,
         updated_at: now
       } : u)
     }));
@@ -816,19 +866,53 @@ export function DataProvider({ children }) {
     const newId = `course_${courseData.code.toLowerCase().replace(/\s+/g, '')}_${Date.now().toString().slice(-4)}`;
     const newCourse = {
       id: newId,
-      ...courseData
+      ...courseData,
+      semester: toNumberOr(courseData.semester, null),
+      credits: toNumberOr(courseData.credits, null)
     };
-    setData(prev => ({
-      ...prev,
-      courses: [...prev.courses, newCourse]
-    }));
+    setData(prev => {
+      const pairs = prev.users
+        .filter(u => studentMatchesCourse(u, newCourse))
+        .map(u => [u.id, newId]);
+      return {
+        ...prev,
+        courses: [...prev.courses, newCourse],
+        enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
+      };
+    });
     return newCourse;
   };
 
   const updateCourse = (courseId, updateFields) => {
+    setData(prev => {
+      let updated = null;
+      const courses = prev.courses.map(c => {
+        if (c.id !== courseId) return c;
+        updated = {
+          ...c,
+          ...updateFields,
+          semester: toNumberOr(updateFields.semester, c.semester),
+          credits: toNumberOr(updateFields.credits, c.credits)
+        };
+        return updated;
+      });
+      // Keep existing enrolments; add students who now match the course.
+      const pairs = updated
+        ? prev.users.filter(u => studentMatchesCourse(u, updated)).map(u => [u.id, courseId])
+        : [];
+      return {
+        ...prev,
+        courses,
+        enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
+      };
+    });
+  };
+
+  // Set exactly which students are enrolled in a course. Attendance and marks history is kept.
+  const setCourseEnrollments = (courseId, studentIds) => {
     setData(prev => ({
       ...prev,
-      courses: prev.courses.map(c => c.id === courseId ? { ...c, ...updateFields } : c)
+      enrollments: replaceCourseEnrollments(prev.enrollments, courseId, studentIds)
     }));
   };
 
@@ -919,8 +1003,8 @@ export function DataProvider({ children }) {
       building: roomData.building ? roomData.building.trim() : 'Academic Block',
       floor: roomData.floor ? roomData.floor.trim() : '1st Floor',
       status: roomData.status || 'active',
-      created_by: authorId || 'admin_1',
-      updated_by: authorId || 'admin_1',
+      created_by: authorId || currentProfileId,
+      updated_by: authorId || currentProfileId,
       created_at: now,
       updated_at: now
     };
@@ -958,7 +1042,7 @@ export function DataProvider({ children }) {
           ...r,
           ...updateFields,
           ...(capacity !== undefined ? { capacity } : {}),
-          updated_by: editorId || 'admin_1',
+          updated_by: editorId || currentProfileId,
           updated_at: now
         };
       })
@@ -1014,8 +1098,8 @@ export function DataProvider({ children }) {
       rooms: examData.rooms || [],
       room_ids: examData.room_ids || [],
       exam_type: examData.exam_type || 'Theory Examination',
-      created_by: authorId || 'admin_1',
-      updated_by: authorId || 'admin_1',
+      created_by: authorId || currentProfileId,
+      updated_by: authorId || currentProfileId,
       created_at: now,
       updated_at: now
     };
@@ -1067,7 +1151,7 @@ export function DataProvider({ children }) {
         return {
           ...e,
           ...updateFields,
-          updated_by: editorId || 'admin_1',
+          updated_by: editorId || currentProfileId,
           updated_at: now
         };
       })
@@ -1234,8 +1318,8 @@ export function DataProvider({ children }) {
           exam_date: exam ? exam.exam_date : '',
           start_time: exam ? exam.start_time : '',
           end_time: exam ? exam.end_time : '',
-          created_by: authorId || 'admin_1',
-          updated_by: authorId || 'admin_1',
+          created_by: authorId || currentProfileId,
+          updated_by: authorId || currentProfileId,
           created_at: now,
           updated_at: now
         });
@@ -1260,8 +1344,8 @@ export function DataProvider({ children }) {
           allocated_count: g2Cap
         },
         seats: seats,
-        created_by: authorId || 'admin_1',
-        updated_by: authorId || 'admin_1',
+        created_by: authorId || currentProfileId,
+        updated_by: authorId || currentProfileId,
         created_at: now,
         updated_at: now
       });
@@ -1284,7 +1368,7 @@ export function DataProvider({ children }) {
           ...e,
           room_ids: mergedRoomIds,
           rooms: mergedRoomNames,
-          updated_by: authorId || 'admin_1',
+          updated_by: authorId || currentProfileId,
           updated_at: now
         };
       });
@@ -1353,6 +1437,7 @@ export function DataProvider({ children }) {
         createUser,
         updateUser,
         createStudent,
+        createStudentsBulk,
         updateStudent,
         deleteStudent,
         createDepartment,
@@ -1361,6 +1446,7 @@ export function DataProvider({ children }) {
         createCourse,
         updateCourse,
         assignFacultyToCourse,
+        setCourseEnrollments,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         pushManualBroadcast,

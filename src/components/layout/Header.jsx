@@ -2,7 +2,6 @@ import React from 'react'
 import {
   Bell,
   LogOut,
-  Sparkles,
   ChevronDown,
   ShieldAlert,
   GraduationCap,
@@ -29,7 +28,7 @@ export default function Header({
   onToggleMobileSidebar,
   currentTabTitle = 'Dashboard',
 }) {
-  const { currentUser, logout, switchUser, isDemo } = useAuth()
+  const { currentUser, logout, isHod, hodDepartments } = useAuth()
   const { notifications, refreshData } = useData()
 
   const userNotifs = currentUser
@@ -73,114 +72,15 @@ export default function Header({
               {currentRoleInfo.label}
             </Badge>
           )}
+          {isHod && (
+            <Badge variant="warning" size="sm" className="hidden md:inline-flex">
+              HOD · {hodDepartments.map((d) => d.code).join(', ')}
+            </Badge>
+          )}
         </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        {isDemo && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-auto gap-1.5 rounded-xl border border-border bg-muted/80 px-2.5 py-1.5 text-xs font-bold text-foreground sm:px-3"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-brand-600" />
-              <span className="hidden md:inline">Demo Switcher:</span>
-              <span className="font-extrabold text-brand-700 capitalize">
-                {currentUser?.role || 'Guest'}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2">
-            <DropdownMenuLabel className="px-3 py-2">
-              <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                Switch Test Account
-              </p>
-              <p className="text-xs font-normal text-slate-500">
-                Signs in to a seeded demo account
-              </p>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem
-              onClick={() => switchUser('admin_1')}
-              className="gap-2.5 rounded-xl px-3 py-2"
-            >
-              <div className="rounded-lg bg-purple-100 p-1.5 text-purple-700">
-                <ShieldAlert className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-bold">Dr. Sarah Connor</div>
-                <div className="text-[10px] text-slate-400">Admin (Dean / Registrar)</div>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() => switchUser('faculty_1')}
-              className="gap-2.5 rounded-xl px-3 py-2"
-            >
-              <div className="rounded-lg bg-brand-100 p-1.5 text-brand-700">
-                <Briefcase className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-bold">Dr. Alan Turing</div>
-                <div className="text-[10px] text-slate-400">Faculty (CS301 & CS302)</div>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() => switchUser('faculty_2')}
-              className="gap-2.5 rounded-xl px-3 py-2"
-            >
-              <div className="rounded-lg bg-brand-100 p-1.5 text-brand-700">
-                <Briefcase className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-bold">Dr. Ada Lovelace</div>
-                <div className="text-[10px] text-slate-400">Faculty (CS303 DBMS)</div>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() => switchUser('student_1')}
-              className="gap-2.5 rounded-xl px-3 py-2"
-            >
-              <div className="rounded-lg bg-emerald-100 p-1.5 text-emerald-700">
-                <GraduationCap className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-bold">Alice Smith</div>
-                <div className="text-[10px] text-slate-400">Student (Section A)</div>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() => switchUser('student_2')}
-              className="gap-2.5 rounded-xl px-3 py-2"
-            >
-              <div className="rounded-lg bg-emerald-100 p-1.5 text-emerald-700">
-                <GraduationCap className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-bold">Bob Johnson</div>
-                <div className="text-[10px] text-slate-400">Student (Section A)</div>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => refreshData()}
-              className="justify-center gap-1.5 rounded-lg"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Refresh Data
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        )}
-
         <Button
           variant="ghost"
           size="icon"
@@ -237,6 +137,13 @@ export default function Header({
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => refreshData()}
+              className="gap-2 rounded-xl px-3 py-2"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Refresh data
+            </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
               onClick={logout}

@@ -53,7 +53,7 @@ export default function BroadcastModal() {
     if (!formData.title.trim() || !formData.body.trim()) return;
 
     createAnnouncement({
-      author_id: currentUser?.id || 'admin_1',
+      author_id: currentUser?.id,
       author_name: currentUser?.name || 'Administrator',
       author_role: 'admin',
       scope: formData.scope,
