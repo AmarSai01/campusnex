@@ -1,10 +1,12 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { GraduationCap, ShieldCheck } from 'lucide-react'
+import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 export const CONTACT_EMAIL = '__CONTACT_EMAIL__'
 export const contactHref = (subject) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
+// The address is shown as text only once a real one is filled in.
+const HAS_CONTACT_EMAIL = !CONTACT_EMAIL.startsWith('__')
 
 export function SectionHeading({ title, children, center = false }) {
   return (
@@ -156,13 +158,27 @@ const FAQS = [
   ['Can we bring in our existing student list?', 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. Every row is checked before anything is saved, and students are enrolled in their courses automatically.'],
   ['How do semester results work?', 'The admin uploads the university result file as CSV. Grades follow the 10-point scale, and SGPA and CGPA are worked out automatically. Students see their results only after the admin publishes the semester, and they get a notification when that happens.'],
   ['What does an HOD see that faculty don’t?', 'A view-only overview of every student in their department, subject by subject, with at-risk students flagged, plus which classes are behind on attendance, IA publishing or grading. HODs can also add and edit students and post department notices.'],
+  ['Can students see marks before they are published?', 'No. IA marks stay hidden until the teacher publishes them, and semester results stay hidden until the admin publishes the semester. HODs can review unpublished IA marks for their department.'],
+  ['Does it work on phones?', 'Yes. Campusnex runs in the browser on phones, tablets and laptops, so there is nothing to install. Students can check attendance, marks and their exam seat from their phone.'],
+  ['Can one teacher be HOD of more than one department?', 'Yes. The admin picks a head for each department, and the same faculty member can head several. They see every department they head in one overview.'],
   ['Does it replace our LMS?', 'No. Campusnex runs academic operations: attendance, assessment, results, timetables, exams and communication. It sits alongside a learning management system used for course content.'],
 ]
 
 export function Faq() {
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <SectionHeading title="What your principal will ask" />
+      <div>
+        <SectionHeading title="What your principal will ask">
+          Didn't find your question? Write to us and we'll answer it.
+        </SectionHeading>
+        <a
+          href={contactHref('Question about Campusnex')}
+          className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+        >
+          <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
+          Ask us
+        </a>
+      </div>
       <Accordion type="single" collapsible className="rounded-2xl border border-white/10 bg-night-2/60 px-5 backdrop-blur-sm">
         {FAQS.map(([q, a], i) => (
           <AccordionItem key={q} value={`faq-${i}`} className="border-white/10">
@@ -177,30 +193,117 @@ export function Faq() {
   )
 }
 
+// The day ends: the page closes at night, with tomorrow already planned.
+export function ClosingCall({ onSignIn }) {
+  return (
+    <div className="mx-auto max-w-3xl text-center">
+      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mist">
+        <Moon className="h-3.5 w-3.5 text-brand-300" aria-hidden="true" />
+        9:30 pm, campus closed
+      </span>
+      <motion.h2
+        initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ duration: 0.6 }}
+        className="mt-6 font-display text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl"
+      >
+        Tomorrow's 8:45 roll call is already set up.
+      </motion.h2>
+      <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-mist sm:text-lg">
+        Timetable checked for clashes, seats allotted, shortage alerts sent. That could be your college tomorrow.
+      </p>
+      <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
+          Request a pilot
+        </a>
+        <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
+          Sign in to your campus
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const FOOTER_LINKS = [
+  ['Product', [['A day at college', '#day'], ['Features', '#features'], ['Security', '#security'], ['Plans', '#plans']]],
+  ['For your role', [['Admin', '#security'], ['HOD', '#security'], ['Faculty', '#security'], ['Student', '#security']]],
+  ['Help', [['FAQ', '#faq'], ['Contact', null]]],
+]
+
+const TRUST = [
+  [MapPin, 'Data stored in India (Mumbai)'],
+  [ShieldCheck, 'Role-based access, enforced by the database'],
+  [MonitorSmartphone, 'Runs in the browser, nothing to install'],
+]
+
 export function Footer({ onSignIn }) {
   return (
-    <footer className="border-t border-white/10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-sm">
-          <span className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
-              <GraduationCap className="h-4.5 w-4.5" aria-hidden="true" />
+    <footer className="relative overflow-hidden border-t border-white/10">
+      <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pt-16 pb-12 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))]">
+        <div className="max-w-md">
+          <span className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 shadow-[0_0_30px_-6px_rgba(255,92,0,0.6)]">
+              <GraduationCap className="h-6 w-6" aria-hidden="true" />
             </span>
-            <span className="font-display text-lg font-bold text-white">Campusnex</span>
+            <span className="font-display text-2xl font-bold tracking-tight text-white">Campusnex</span>
           </span>
-          <p className="mt-3 text-sm text-mist">The academic portal built for Indian colleges.</p>
+          <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
+          <p className="mt-2 text-sm leading-relaxed text-mist">
+            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the 75%
+            attendance rule.
+          </p>
+          {HAS_CONTACT_EMAIL && (
+            <a href={contactHref('Campusnex enquiry')} className="mt-3 inline-block text-sm text-white/80 hover:text-white">
+              {CONTACT_EMAIL}
+            </a>
+          )}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+              Request a pilot
+            </a>
+            <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
+              Sign in
+            </button>
+          </div>
         </div>
-        <nav aria-label="Footer" className="grid grid-cols-2 gap-x-12 gap-y-2.5 text-sm">
-          <a href="#day" className="text-mist hover:text-white">A day at college</a>
-          <a href="#security" className="text-mist hover:text-white">Security</a>
-          <a href="#features" className="text-mist hover:text-white">Features</a>
-          <a href="#faq" className="text-mist hover:text-white">FAQ</a>
-          <a href="#plans" className="text-mist hover:text-white">Plans</a>
-          <a href={contactHref('Campusnex enquiry')} className="text-mist hover:text-white">Contact</a>
-          <button type="button" onClick={onSignIn} className="text-left text-mist hover:text-white cursor-pointer">Sign in</button>
-        </nav>
+        {FOOTER_LINKS.map(([group, links]) => (
+          <nav key={group} aria-label={group} className="text-sm">
+            <p className="font-semibold text-white">{group}</p>
+            <ul className="mt-3 space-y-2.5">
+              {links.map(([label, href]) => (
+                <li key={label}>
+                  <a href={href ?? contactHref('Campusnex enquiry')} className="text-mist hover:text-white">{label}</a>
+                </li>
+              ))}
+              {group === 'Help' && (
+                <li>
+                  <button type="button" onClick={onSignIn} className="cursor-pointer text-mist hover:text-white">Sign in</button>
+                </li>
+              )}
+            </ul>
+          </nav>
+        ))}
       </div>
-      <p className="mx-auto max-w-6xl border-t border-white/5 px-4 py-5 text-xs text-white/40 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
+
+      <ul className="relative mx-auto flex max-w-6xl flex-wrap gap-3 px-4 pb-10 sm:px-6">
+        {TRUST.map(([Icon, label]) => (
+          <li key={label} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/75">
+            <Icon className="h-3.5 w-3.5 text-brand-300" aria-hidden="true" />
+            {label}
+          </li>
+        ))}
+      </ul>
+
+      <div aria-hidden="true" className="pointer-events-none relative -mb-[0.18em] flex items-center justify-center gap-[0.12em] text-[15vw] leading-none select-none">
+        <span className="flex h-[0.8em] w-[0.8em] items-center justify-center rounded-[0.18em] bg-brand-500/15">
+          <GraduationCap className="h-[0.55em] w-[0.55em] text-brand-400/40" strokeWidth={2.25} />
+        </span>
+        <span className="bg-gradient-to-b from-white/[0.14] to-white/[0.02] bg-clip-text font-display font-extrabold tracking-tighter text-transparent">
+          Campusnex
+        </span>
+      </div>
+      <p className="relative mx-auto max-w-6xl border-t border-white/5 px-4 py-5 text-xs text-white/40 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
     </footer>
   )
 }

@@ -6,7 +6,7 @@ import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import HeroRegister from './HeroRegister'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
-import { contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
+import { ClosingCall, contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
 
 // A page section that sets the background mood while it fills the screen.
 function Section({ id, theme, className = '', children }) {
@@ -166,6 +166,10 @@ function Page({ onSignIn }) {
 
         <Section id="faq" theme="night" className="border-t border-white/10">
           <Faq />
+        </Section>
+
+        <Section id="tomorrow" theme="night" className="border-t border-white/10">
+          <ClosingCall onSignIn={onSignIn} />
         </Section>
       </main>
       <Footer onSignIn={onSignIn} />
