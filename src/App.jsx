@@ -4,12 +4,14 @@ import { DataProvider, useData } from './context/DataContext'
 import SmoothScroll from './lib/smooth-scroll'
 import LandingPage from './views/landing/LandingPage'
 
-// Dev-only preview of the results screens with sample data: http://localhost:5173/?preview=results
-const SHOW_RESULTS_PREVIEW =
-  import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'results'
+// Dev-only previews with sample data: http://localhost:5173/?preview=results or ?preview=analytics
+const PREVIEW = import.meta.env.DEV ? new URLSearchParams(window.location.search).get('preview') : null
+const SHOW_RESULTS_PREVIEW = PREVIEW === 'results'
+const SHOW_ANALYTICS_PREVIEW = PREVIEW === 'analytics'
 
 // Everything behind sign-in is downloaded only when it is needed, so the landing page stays light.
 const ResultsPreview = lazy(() => import('./views/preview/ResultsPreview'))
+const AnalyticsPreview = lazy(() => import('./views/preview/AnalyticsPreview'))
 const LoginView = lazy(() => import('./views/auth/LoginView'))
 const ResetPasswordView = lazy(() => import('./views/auth/ResetPasswordView'))
 const AdminDashboard = lazy(() => import('./views/admin/AdminDashboard'))
@@ -32,7 +34,7 @@ const MAY_HAVE_SESSION = (() => {
 })()
 
 // The tabs in an HOD's department panel (see Sidebar and MobileNav).
-const HOD_TABS = ['hod_overview', 'students', 'hod_compliance']
+const HOD_TABS = ['hod_overview', 'students', 'hod_student_analytics', 'hod_class_analytics', 'hod_compliance']
 
 const Spinner = () => (
   <div className="bg-background">
@@ -80,6 +82,7 @@ function AppContent() {
   }
 
   if (SHOW_RESULTS_PREVIEW) return <ResultsPreview />
+  if (SHOW_ANALYTICS_PREVIEW) return <AnalyticsPreview />
 
   if (passwordRecovery) {
     return <ResetPasswordView />
@@ -115,6 +118,10 @@ function AppContent() {
       hod_overview: 'Department Overview',
       results: currentUser.role === 'admin' ? 'Semester Results' : 'Results: SGPA and CGPA',
       hod_compliance: 'Faculty Compliance',
+      student_analytics: 'Student Analytics',
+      hod_student_analytics: 'Student Analytics',
+      class_analytics: 'Class Analytics',
+      hod_class_analytics: 'Class Analytics',
     }
     return titles[tab] || 'Workspace'
   }

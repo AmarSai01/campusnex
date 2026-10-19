@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   ClipboardCheck,
   Trophy,
+  UserRoundSearch,
+  ChartColumn,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -52,6 +54,8 @@ export default function Sidebar({
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },
       { id: 'attendance', label: 'Mark Attendance', icon: CheckSquare, badge: 'Bulk' },
       { id: 'iamarks', label: 'IA Marks Entry', icon: Award, badge: 'Publish' },
+      { id: 'student_analytics', label: 'Student Analytics', icon: UserRoundSearch },
+      { id: 'class_analytics', label: 'Class Analytics', icon: ChartColumn },
       { id: 'assignments', label: 'Assignments & Grading', icon: FileText },
       { id: 'timetable', label: 'My Teaching Schedule', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
@@ -75,6 +79,8 @@ export default function Sidebar({
     ? [
         { id: 'hod_overview', label: 'Department Overview', icon: ShieldCheck, badge: 'HOD' },
         { id: 'students', label: 'Manage Students', icon: GraduationCap, badge: 'HOD' },
+        { id: 'hod_student_analytics', label: 'Student Analytics', icon: UserRoundSearch, badge: 'HOD' },
+        { id: 'hod_class_analytics', label: 'Class Analytics', icon: ChartColumn, badge: 'HOD' },
         { id: 'hod_compliance', label: 'Faculty Compliance', icon: ClipboardCheck, badge: 'HOD' },
       ]
     : []

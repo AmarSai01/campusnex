@@ -11,7 +11,8 @@ import {
   Menu,
   ShieldCheck,
   GraduationCap,
-  ClipboardCheck
+  ClipboardCheck,
+  UserRoundSearch
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ export default function MobileNav({ activeTab, setActiveTab, hodView, onOpenDraw
       return [
         { id: 'hod_overview', label: 'Department', icon: ShieldCheck },
         { id: 'students', label: 'Students', icon: GraduationCap },
+        { id: 'hod_student_analytics', label: 'Analytics', icon: UserRoundSearch },
         { id: 'hod_compliance', label: 'Compliance', icon: ClipboardCheck },
       ];
     }
