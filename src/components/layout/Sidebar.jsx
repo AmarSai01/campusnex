@@ -4,6 +4,7 @@ import {
   Users,
   BookOpen,
   CalendarDays,
+  CalendarRange,
   Megaphone,
   CheckSquare,
   Award,
@@ -44,6 +45,7 @@ export default function Sidebar({
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers, badge: 'Halls' },
       { id: 'results', label: 'Semester Results', icon: Trophy, badge: 'Publish' },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
     ],
     faculty: [

@@ -9,6 +9,7 @@ import CalendarManager from '../../components/admin/CalendarManager';
 import BroadcastModal from '../../components/admin/BroadcastModal';
 import ExamManagement from '../../components/exams/ExamManagement';
 import ResultsManager from '../../components/admin/ResultsManager';
+import SemesterCalendarManager from '../../components/admin/SemesterCalendarManager';
 
 export default function AdminDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -31,6 +32,8 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
         return <ResultsManager />;
       case 'calendar':
         return <CalendarManager />;
+      case 'semester_calendar':
+        return <SemesterCalendarManager />;
       case 'announcements':
         return <BroadcastModal />;
       default:

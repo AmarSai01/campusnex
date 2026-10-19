@@ -5,6 +5,7 @@ import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } fr
 import { gpa } from '../utils/results';
 import { formatTimeRange } from '../utils/time';
 import { eventAppliesTo } from '../utils/calendarScope';
+import { calendarAppliesTo } from '../utils/semesterCalendar';
 
 export const DataContext = createContext(null);
 
@@ -717,6 +718,80 @@ export function DataProvider({ children }) {
       }
       return { ...prev, results, notifications };
     });
+  };
+
+  // Semester calendars: one circular with many dated rows, published to its semesters at once.
+  const notifySemesterCalendar = (prevUsers, calendar) =>
+    prevUsers
+      .filter(u => (u.role === 'student' || u.role === 'faculty') && calendarAppliesTo(calendar, u))
+      .map(u => addNotification({
+        user_id: u.id,
+        type: 'semester_calendar_published',
+        reference_id: calendar.id,
+        title: `${calendar.title} published`,
+        message: `The semester calendar for Sem ${calendar.semesters.join(', ')} is out: CIE tests, SEE dates and deadlines.`
+      }));
+
+  const createSemesterCalendar = ({ title, ref_no, semesters, department_id, items }, publish) => {
+    if (!title?.trim()) throw new Error('Give the calendar a title.');
+    if (!semesters?.length) throw new Error('Pick at least one semester.');
+    if (!items?.length) throw new Error('Paste at least one row with a date.');
+
+    const now = new Date().toISOString();
+    const id = `semcal_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    const calendar = {
+      id,
+      title: title.trim(),
+      ref_no: ref_no?.trim() || null,
+      semesters: [...semesters].sort((a, b) => a - b),
+      department_id: department_id || null,
+      status: publish ? 'published' : 'draft',
+      published_at: publish ? now : null,
+      created_by: currentProfileId,
+      created_at: now,
+      updated_at: now
+    };
+    const rows = items.map((item, i) => ({
+      id: `${id}_${String(i + 1).padStart(3, '0')}`,
+      calendar_id: id,
+      activity: item.activity.trim(),
+      start_date: item.start_date,
+      end_date: item.end_date || null,
+      type: item.type,
+      sort_order: i
+    }));
+
+    setData(prev => ({
+      ...prev,
+      semester_calendars: [...prev.semester_calendars, calendar],
+      semester_calendar_items: [...prev.semester_calendar_items, ...rows],
+      notifications: publish
+        ? [...notifySemesterCalendar(prev.users, calendar), ...prev.notifications]
+        : prev.notifications
+    }));
+    return calendar;
+  };
+
+  const publishSemesterCalendar = (calendarId) => {
+    const now = new Date().toISOString();
+    setData(prev => {
+      const calendar = prev.semester_calendars.find(c => c.id === calendarId);
+      if (!calendar || calendar.status === 'published') return prev;
+      const published = { ...calendar, status: 'published', published_at: now, updated_at: now };
+      return {
+        ...prev,
+        semester_calendars: prev.semester_calendars.map(c => (c.id === calendarId ? published : c)),
+        notifications: [...notifySemesterCalendar(prev.users, published), ...prev.notifications]
+      };
+    });
+  };
+
+  const deleteSemesterCalendar = (calendarId) => {
+    setData(prev => ({
+      ...prev,
+      semester_calendars: prev.semester_calendars.filter(c => c.id !== calendarId),
+      semester_calendar_items: prev.semester_calendar_items.filter(i => i.calendar_id !== calendarId)
+    }));
   };
 
   const updateStudent = (studentId, updateFields, editorId) => {
@@ -1502,6 +1577,9 @@ export function DataProvider({ children }) {
         createStudentsBulk,
         importResults,
         setResultsPublished,
+        createSemesterCalendar,
+        publishSemesterCalendar,
+        deleteSemesterCalendar,
         updateStudent,
         deleteStudent,
         createDepartment,

@@ -115,6 +115,23 @@ export const TABLES = [
   }
 ];
 
+// Semester calendars (the COE circular) and their dated rows; parent before child.
+TABLES.push(
+  {
+    key: 'semester_calendars',
+    table: 'semester_calendars',
+    columns: [
+      'id', 'title', 'ref_no', 'semesters', 'department_id', 'status', 'published_at', 'created_by',
+      'created_at', 'updated_at'
+    ]
+  },
+  {
+    key: 'semester_calendar_items',
+    table: 'semester_calendar_items',
+    columns: ['id', 'calendar_id', 'activity', 'start_date', 'end_date', 'type', 'sort_order']
+  }
+);
+
 // Keep only known columns; empty strings become null so date/number columns accept them.
 // Appended after the original list: results reference profiles only.
 TABLES.push({
