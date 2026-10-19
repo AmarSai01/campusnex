@@ -3,6 +3,7 @@ import { Clock, Calendar, Building, User, Sparkles, MapPin } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
+import { formatTimeRange } from '../../utils/time';
 
 export default function StudentTimetable() {
   const { currentUser } = useAuth();
@@ -125,12 +126,12 @@ export default function StudentTimetable() {
                           key={slot.id}
                           className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-brand-300 hover:shadow-card transition-all"
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 whitespace-nowrap tabular-nums">
                               <Clock className="w-3.5 h-3.5" />
-                              {slot.start_time} - {slot.end_time}
+                              {formatTimeRange(slot.start_time, slot.end_time)}
                             </span>
-                            <span className="text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-200 text-slate-800 flex items-center gap-1">
+                            <span className="text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-200 text-slate-800 whitespace-nowrap flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-slate-500" />
                               {slot.room}
                             </span>

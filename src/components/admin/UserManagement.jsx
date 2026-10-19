@@ -21,6 +21,17 @@ import { useAuth } from '../../context/AuthContext';
 import { hodLabel } from '../../utils/hod';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import ConfirmDialog from '../common/ConfirmDialog';
+
+const FACULTY_DESIGNATIONS = [
+  'Professor',
+  'Associate Professor',
+  'Assistant Professor',
+  'Professor & Head of Department',
+  'Lecturer',
+  'Lab Instructor'
+];
+const OTHER_DESIGNATION = '__other__';
 
 export default function UserManagement() {
   const { users, departments, createUser, updateUser } = useData();
@@ -51,6 +62,7 @@ export default function UserManagement() {
 
   const [formError, setFormError] = useState('');
   const [confirmAdmin, setConfirmAdmin] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState(null);
 
   // At least one active administrator must always remain.
   const activeAdminCount = users.filter(u => u.role === 'admin' && u.status !== 'inactive').length;
@@ -117,8 +129,16 @@ export default function UserManagement() {
 
   const handleToggleStatus = (user) => {
     if (isSelf(user) || isLastActiveAdmin(user)) return;
-    const newStatus = user.status === 'active' ? 'inactive' : 'active';
-    updateUser(user.id, { status: newStatus }, currentUser?.id);
+    const deactivating = user.status === 'active';
+    setConfirmRequest({
+      title: deactivating ? `Deactivate ${user.name}?` : `Reactivate ${user.name}?`,
+      message: deactivating
+        ? 'They lose access to Campusnex until you reactivate them. Their records are kept.'
+        : 'They will be able to sign in to Campusnex again with their existing account.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Reactivate',
+      tone: deactivating ? 'danger' : 'neutral',
+      onConfirm: () => updateUser(user.id, { status: deactivating ? 'inactive' : 'active' }, currentUser?.id)
+    });
   };
 
   const USN_REGEX = /^1[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
@@ -246,6 +266,14 @@ export default function UserManagement() {
             >
               Faculty ({users.filter(u => u.role === 'faculty').length})
             </button>
+            <button
+              onClick={() => setRoleFilter('admin')}
+              className={`px-3 py-1 rounded-lg transition-all ${
+                roleFilter === 'admin' ? 'bg-white text-purple-700 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Admins ({users.filter(u => u.role === 'admin').length})
+            </button>
           </div>
 
           {/* Status Filter */}
@@ -328,14 +356,14 @@ export default function UserManagement() {
                     </td>
 
                     <td className="px-6 py-4">
-                      <p className="font-bold text-slate-800">{dept?.name || 'CSE'}</p>
+                      <p className="font-bold text-slate-800">{dept?.name || '—'}</p>
                       <p className="text-slate-500 text-[11px]">
                         {user.designation || (user.role === 'student' ? `Section ${user.section}` : 'Staff')}
                       </p>
                     </td>
 
                     <td className="px-6 py-4">
-                      <p className="text-slate-800 text-xs font-semibold">{user.office || user.phone || 'Campus Hostel'}</p>
+                      <p className="text-slate-800 text-xs font-semibold">{user.office || user.phone || '—'}</p>
                       {user.phone && <p className="text-slate-400 text-[10px]">{user.phone}</p>}
                     </td>
 
@@ -436,7 +464,12 @@ export default function UserManagement() {
                 disabled={isSelf(editingUser)}
                 value={formData.role}
                 onChange={(e) => {
-                  setFormData({ ...formData, role: e.target.value });
+                  const role = e.target.value;
+                  setFormData({
+                    ...formData,
+                    role,
+                    designation: role === 'faculty' && !formData.designation ? 'Assistant Professor' : formData.designation
+                  });
                   setConfirmAdmin(false);
                 }}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100"
@@ -537,13 +570,32 @@ export default function UserManagement() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     {formData.role === 'admin' ? 'Designation' : 'Faculty Designation'}
                   </label>
-                  <input
-                    type="text"
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    placeholder={formData.role === 'admin' ? 'e.g. Registrar' : 'e.g. Associate Professor'}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
+                  {formData.role === 'faculty' && (
+                    <select
+                      value={FACULTY_DESIGNATIONS.includes(formData.designation) ? formData.designation : OTHER_DESIGNATION}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        designation: e.target.value === OTHER_DESIGNATION ? '' : e.target.value
+                      })}
+                      aria-label="Faculty designation"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    >
+                      {FACULTY_DESIGNATIONS.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                      <option value={OTHER_DESIGNATION}>Other (type below)</option>
+                    </select>
+                  )}
+                  {(formData.role === 'admin' || !FACULTY_DESIGNATIONS.includes(formData.designation)) && (
+                    <input
+                      type="text"
+                      value={formData.designation}
+                      onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                      placeholder={formData.role === 'admin' ? 'e.g. Registrar' : 'e.g. Visiting Faculty'}
+                      aria-label={formData.role === 'admin' ? undefined : 'Custom designation'}
+                      className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none ${formData.role === 'faculty' ? 'mt-2' : ''}`}
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -606,6 +658,8 @@ export default function UserManagement() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }

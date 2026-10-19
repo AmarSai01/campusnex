@@ -110,6 +110,7 @@ function AppContent() {
       timetable: 'Academic Timetable & Schedule',
       exam_seating: 'Exam Timetable & Seating Arrangement',
       calendar: 'Institutional Calendar & Events',
+      semester_calendar: 'Semester Calendar',
       announcements: 'Campus Broadcasts & Circulars',
       attendance: 'Attendance Management',
       iamarks: 'Internal Assessment (IA) Marks',
@@ -153,6 +154,8 @@ function AppContent() {
       openTab('timetable')
     } else if (notif.type === 'calendar_event_added') {
       openTab('calendar')
+    } else if (notif.type === 'semester_calendar_published') {
+      openTab('semester_calendar')
     } else if (
       notif.type === 'exam_scheduled' ||
       notif.type === 'seating_allocated'

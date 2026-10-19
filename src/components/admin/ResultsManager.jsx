@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import ResultImportModal from './ResultImportModal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { gpa } from '../../utils/results';
 
 // Admin: import semester results and publish them, semester by semester.
@@ -12,6 +13,7 @@ export default function ResultsManager() {
   const [deptId, setDeptId] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [confirmRequest, setConfirmRequest] = useState(null);
 
   const deptOf = useMemo(() => new Map(users.map((u) => [u.id, u.department_id])), [users]);
   const scoped = results.filter((r) => !deptId || deptOf.get(r.student_id) === deptId);
@@ -33,7 +35,19 @@ export default function ResultsManager() {
 
   const deptLabel = deptId ? departments.find((d) => d.id === deptId)?.code : 'all departments';
 
-  const toggle = (semester, publish) => {
+  const toggle = (semester, publish, studentCount) => {
+    setConfirmRequest({
+      title: publish ? `Publish Semester ${semester} results?` : `Hide Semester ${semester} results?`,
+      message: publish
+        ? `${studentCount} ${studentCount === 1 ? 'student' : 'students'} in ${deptLabel} will see their SGPA and CGPA and get a notification. Check the numbers first.`
+        : `Students in ${deptLabel} will no longer see their Semester ${semester} results until you publish again.`,
+      confirmLabel: publish ? 'Publish results' : 'Hide results',
+      tone: publish ? 'neutral' : 'danger',
+      onConfirm: () => applyToggle(semester, publish)
+    });
+  };
+
+  const applyToggle = (semester, publish) => {
     setResultsPublished(semester, deptId || null, publish);
     setNotice(publish
       ? `Semester ${semester} results published for ${deptLabel}. Students have been notified.`
@@ -109,11 +123,11 @@ export default function ResultsManager() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     {s.status !== 'published' ? (
-                      <button type="button" onClick={() => toggle(s.semester, true)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 cursor-pointer">
+                      <button type="button" onClick={() => toggle(s.semester, true, s.students)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 cursor-pointer">
                         <Eye className="h-3.5 w-3.5" /> Publish
                       </button>
                     ) : (
-                      <button type="button" onClick={() => toggle(s.semester, false)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
+                      <button type="button" onClick={() => toggle(s.semester, false, s.students)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
                         <EyeOff className="h-3.5 w-3.5" /> Hide
                       </button>
                     )}
@@ -126,6 +140,7 @@ export default function ResultsManager() {
       )}
 
       <ResultImportModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }

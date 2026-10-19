@@ -9,6 +9,7 @@ import FacultyDirectory from '../../components/student/FacultyDirectory';
 import StudentAnnouncements from '../../components/student/StudentAnnouncements';
 import ExamManagement from '../../components/exams/ExamManagement';
 import StudentResults from '../../components/student/StudentResults';
+import SemesterCalendarView from '../../components/shared/SemesterCalendarView';
 
 export default function StudentDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -29,6 +30,8 @@ export default function StudentDashboard({ activeTab = 'overview', setActiveTab 
         return <ExamManagement />;
       case 'calendar':
         return <StudentCalendar />;
+      case 'semester_calendar':
+        return <SemesterCalendarView />;
       case 'directory':
         return <FacultyDirectory />;
       case 'announcements':

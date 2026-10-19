@@ -4,6 +4,7 @@ import {
   Users,
   BookOpen,
   CalendarDays,
+  CalendarRange,
   Megaphone,
   CheckSquare,
   Award,
@@ -48,6 +49,7 @@ export default function Sidebar({
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers, badge: 'Halls' },
       { id: 'results', label: 'Semester Results', icon: Trophy, badge: 'Publish' },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
     ],
     faculty: [
@@ -59,6 +61,7 @@ export default function Sidebar({
       { id: 'assignments', label: 'Assignments & Grading', icon: FileText },
       { id: 'timetable', label: 'My Teaching Schedule', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone },
     ],
     student: [
@@ -70,6 +73,7 @@ export default function Sidebar({
       { id: 'timetable', label: 'Class Timetable', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'directory', label: 'Faculty Directory', icon: Contact },
       { id: 'announcements', label: 'Campus Bulletins', icon: Megaphone },
     ],

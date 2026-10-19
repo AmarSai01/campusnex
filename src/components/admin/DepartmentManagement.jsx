@@ -33,6 +33,7 @@ export default function DepartmentManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState(null);
   const [deleteConfirmDept, setDeleteConfirmDept] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const [formData, setFormData] = useState({
     code: '',
@@ -138,7 +139,7 @@ export default function DepartmentManagement() {
       setDeleteConfirmDept(null);
       setTimeout(() => setSuccessToast(''), 4000);
     } catch (err) {
-      alert(err.message || 'Delete operation failed.');
+      setDeleteError(err.message || 'Delete operation failed.');
     }
   };
 
@@ -264,7 +265,7 @@ export default function DepartmentManagement() {
                 </button>
 
                 <button
-                  onClick={() => setDeleteConfirmDept(dept)}
+                  onClick={() => { setDeleteError(''); setDeleteConfirmDept(dept); }}
                   className="p-2 text-xs font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -333,7 +334,7 @@ export default function DepartmentManagement() {
               >
                 <option value="">-- Unassigned --</option>
                 {facultyList.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                  <option key={f.id} value={f.id}>{f.name}{f.designation ? ` (${f.designation})` : ''}</option>
                 ))}
               </select>
             </div>
@@ -379,6 +380,12 @@ export default function DepartmentManagement() {
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
+          {deleteError && (
+            <div role="alert" className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{deleteError}</span>
+            </div>
+          )}
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
             <p className="font-bold text-rose-900">Confirm Deletion</p>
             <p><strong>Department:</strong> {deleteConfirmDept?.name} ({deleteConfirmDept?.code})</p>

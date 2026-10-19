@@ -13,9 +13,20 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import ConfirmDialog from '../common/ConfirmDialog';
+import EmptyState from '../common/EmptyState';
 
 export default function BroadcastModal() {
-  const { announcements, departments, createAnnouncement, pushManualBroadcast } = useData();
+  const { announcements, departments, users, createAnnouncement, pushManualBroadcast } = useData();
+  const [confirmRequest, setConfirmRequest] = useState(null);
+  const [notice, setNotice] = useState('');
+
+  const showNotice = (text) => {
+    setNotice(text);
+    setTimeout(() => setNotice(''), 5000);
+  };
+
+  const sortedAnnouncements = [...announcements].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const { currentUser } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,7 +37,7 @@ export default function BroadcastModal() {
     title: '',
     body: '',
     scope: 'global', // 'global' | 'department'
-    department_id: 'dept_cse',
+    department_id: departments[0]?.id || '',
     priority: 'normal'
   });
 
@@ -42,7 +53,7 @@ export default function BroadcastModal() {
       title: '',
       body: '',
       scope: 'global',
-      department_id: departments[0]?.id || 'dept_cse',
+      department_id: departments[0]?.id || '',
       priority: 'normal'
     });
     setIsModalOpen(true);
@@ -64,14 +75,28 @@ export default function BroadcastModal() {
       priority: formData.priority
     });
     setIsModalOpen(false);
+    showNotice(`"${formData.title}" was published.`);
   };
 
   const handlePushSubmit = (e) => {
     e.preventDefault();
     if (!pushData.title.trim() || !pushData.message.trim()) return;
 
-    pushManualBroadcast(pushData);
+    const recipients = users.filter(u =>
+      u.status !== 'inactive' && (pushData.targetRole === 'all' || u.role === pushData.targetRole)
+    ).length;
+    const audience = pushData.targetRole === 'all' ? 'everyone' : pushData.targetRole === 'student' ? 'all students' : 'all faculty';
     setIsDirectPushOpen(false);
+    setConfirmRequest({
+      title: `Send this alert to ${audience}?`,
+      message: `"${pushData.title}" goes to ${recipients} ${recipients === 1 ? 'person' : 'people'} straight away. Alerts can't be recalled.`,
+      confirmLabel: 'Send alert',
+      onConfirm: () => {
+        pushManualBroadcast(pushData);
+        setPushData({ title: '', message: '', targetRole: 'all' });
+        showNotice(`Alert sent to ${recipients} ${recipients === 1 ? 'person' : 'people'}.`);
+      }
+    });
   };
 
   return (
@@ -106,9 +131,26 @@ export default function BroadcastModal() {
         </div>
       </div>
 
+      {notice && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {notice}
+        </div>
+      )}
+
+      {sortedAnnouncements.length === 0 && (
+        <EmptyState
+          icon={Megaphone}
+          title="No circulars yet"
+          description="Publish a circular to everyone or one department. It shows on their dashboard and in their notifications."
+          actionLabel="Create Broadcast"
+          onAction={handleOpenAnnouncement}
+        />
+      )}
+
       {/* Announcements List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {announcements.map((ann) => {
+        {sortedAnnouncements.map((ann) => {
           const isGlobal = ann.scope === 'global';
           const isDept = ann.scope === 'department';
 
@@ -299,6 +341,8 @@ export default function BroadcastModal() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }

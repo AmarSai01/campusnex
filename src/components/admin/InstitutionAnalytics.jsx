@@ -43,10 +43,19 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
     return { ...st, attendanceRate: rate, totalClasses: stRecords.length };
   });
 
-  const atRiskStudents = studentAttendanceStats.filter(s => s.attendanceRate < 75);
+  // Students with no marked classes yet are not at risk.
+  const atRiskStudents = studentAttendanceStats.filter(s => s.totalClasses > 0 && s.attendanceRate < 75);
+  const studentsWithAttendance = studentAttendanceStats.filter(s => s.totalClasses > 0);
+  const eligibleCount = studentsWithAttendance.length - atRiskStudents.length;
+  const eligibleRate = studentsWithAttendance.length > 0
+    ? Math.round((eligibleCount / studentsWithAttendance.length) * 100)
+    : 0;
+  const sectionCount = new Set(
+    students.filter(s => s.section).map(s => `${s.department_id}|${s.semester}|${s.section}`)
+  ).size;
 
   // IA Marks average
-  const publishedMarks = ia_marks.filter(m => m.published);
+  const publishedMarks = ia_marks.filter(m => m.published && m.max_score > 0);
   const totalMarksEarned = publishedMarks.reduce((acc, m) => acc + (m.score / m.max_score) * 100, 0);
   const avgIAMark = publishedMarks.length > 0 ? Math.round(totalMarksEarned / publishedMarks.length) : 0;
 
@@ -64,11 +73,14 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
     const courseFaculty = users.find(u => u.id === course.faculty_id);
     const courseAttendance = attendance.filter(a => a.course_id === course.id);
     const cPresent = courseAttendance.filter(a => a.status === 'present').length;
-    const rate = courseAttendance.length > 0 ? Math.round((cPresent / courseAttendance.length) * 100) : 0;
-    const courseMarks = ia_marks.filter(m => m.course_id === course.id && m.published);
+    const cLate = courseAttendance.filter(a => a.status === 'late').length;
+    const rate = courseAttendance.length > 0
+      ? Math.round(((cPresent + cLate * 0.5) / courseAttendance.length) * 100)
+      : null;
+    const courseMarks = ia_marks.filter(m => m.course_id === course.id && m.published && m.max_score > 0);
     const avgScore = courseMarks.length > 0
-      ? Math.round(courseMarks.reduce((acc, m) => acc + m.score, 0) / courseMarks.length)
-      : 0;
+      ? Math.round(courseMarks.reduce((acc, m) => acc + (m.score / m.max_score) * 100, 0) / courseMarks.length)
+      : null;
 
     return {
       ...course,
@@ -117,34 +129,37 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
         <StatCard
           title="Active Students"
           value={students.length}
-          subtitle="Across 2 Sections"
+          subtitle={
+            students.length === 0
+              ? 'No students added yet'
+              : `Across ${sectionCount} section${sectionCount === 1 ? '' : 's'}`
+          }
           icon={GraduationCap}
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
-          onClick={() => onNavigateTab('users')}
+          onClick={() => onNavigateTab('students')}
         />
 
         <StatCard
-          title="Appointed Faculty"
+          title="Active Faculty"
           value={faculty.length}
-          subtitle="Full-Time Professors"
+          subtitle={`${departments.length} department${departments.length === 1 ? '' : 's'}`}
           icon={Briefcase}
           iconBg="bg-brand-50 text-brand-600 border-brand-100"
-          badgeText="100% Active"
           onClick={() => onNavigateTab('users')}
         />
 
         <StatCard
           title="Average Attendance"
-          value={`${overallAttendanceRate}%`}
-          subtitle="Institution-wide average"
+          value={totalAttendanceRecords > 0 ? `${overallAttendanceRate}%` : '—'}
+          subtitle={totalAttendanceRecords > 0 ? 'Institution-wide average' : 'No attendance marked yet'}
           icon={CheckSquare}
           iconBg="bg-sky-50 text-sky-600 border-sky-100"
         />
 
         <StatCard
           title="Avg IA Score"
-          value={`${avgIAMark}%`}
-          subtitle="Published IA assessments"
+          value={publishedMarks.length > 0 ? `${avgIAMark}%` : '—'}
+          subtitle={publishedMarks.length > 0 ? 'Published IA assessments' : 'No IA marks published yet'}
           icon={Award}
           iconBg="bg-purple-50 text-purple-600 border-purple-100"
         />
@@ -178,13 +193,20 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
               Students meeting 75% minimum eligibility
             </p>
             <div className="py-2">
-              <AttendanceRingChart
-                percentage={overallAttendanceRate}
-                size={140}
-                strokeWidth={12}
-                sublabel="Campus Avg"
-                label="Overall Compliance"
-              />
+              {studentsWithAttendance.length > 0 ? (
+                <AttendanceRingChart
+                  percentage={eligibleRate}
+                  size={140}
+                  strokeWidth={12}
+                  sublabel={`${eligibleCount} of ${studentsWithAttendance.length}`}
+                  label="Students eligible"
+                  showThreshold={false}
+                />
+              ) : (
+                <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
+                  Attendance health appears once teachers start marking attendance.
+                </p>
+              )}
             </div>
           </div>
 
@@ -248,6 +270,20 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
+              {courseSummaries.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                    No courses yet.{' '}
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab('courses')}
+                      className="font-bold text-brand-600 hover:text-brand-700 cursor-pointer"
+                    >
+                      Add your first course
+                    </button>
+                  </td>
+                </tr>
+              )}
               {courseSummaries.map((course) => (
                 <tr key={course.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-6 py-4">
@@ -271,20 +307,24 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            course.attendanceRate >= 75 ? 'bg-emerald-500' : 'bg-rose-500'
-                          }`}
-                          style={{ width: `${course.attendanceRate}%` }}
-                        />
+                    {course.attendanceRate === null ? (
+                      <span className="text-slate-400">Not marked yet</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              course.attendanceRate >= 75 ? 'bg-emerald-500' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${course.attendanceRate}%` }}
+                          />
+                        </div>
+                        <span className="font-extrabold text-slate-800">{course.attendanceRate}%</span>
                       </div>
-                      <span className="font-extrabold text-slate-800">{course.attendanceRate}%</span>
-                    </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 font-extrabold text-brand-700">
-                    {course.avgScore > 0 ? `${course.avgScore}/50` : 'Pending'}
+                    {course.avgScore === null ? <span className="font-medium text-slate-400">Pending</span> : `${course.avgScore}%`}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
