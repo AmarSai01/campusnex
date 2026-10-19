@@ -64,12 +64,12 @@ function SeatingDemo() {
             layout
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className={cn(
-              'rounded-md py-1.5 text-center text-[10px] font-bold sm:text-[11px]',
+              'rounded-md py-1.5 text-center text-[11px] font-bold',
               s.branch === 'CSE' ? 'bg-white text-night' : 'border border-brand-400/40 bg-brand-500/20 text-brand-200'
             )}
           >
             {s.branch}
-            <span className="block text-[9px] font-medium opacity-70 tabular-nums">S-{String(i + 1).padStart(2, '0')}</span>
+            <span className="block text-[10px] font-medium opacity-70 tabular-nums sm:text-[9px]">S-{String(i + 1).padStart(2, '0')}</span>
           </motion.li>
         ))}
       </ol>

@@ -2,6 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { cn } from '@/lib/utils'
 
 // Demo address for now (.example never delivers); replace with the real contact email.
 export const CONTACT_EMAIL = 'hello@campusnex.example'
@@ -35,6 +36,8 @@ const ACCESS = [
   ['Deleting records', 'Yes', 'No', 'No', 'No'],
 ]
 
+const ROLES = ['Admin', 'HOD', 'Faculty', 'Student']
+
 export function SecuritySection() {
   return (
     <>
@@ -42,13 +45,29 @@ export function SecuritySection() {
         Admin, HOD, teacher, student: each sees only what's theirs, and marks stay locked until they're published. These
         rules run inside the database, so they hold even if someone tampers with the browser.
       </SectionHeading>
-      <div className="mt-12 overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm">
+      {/* Phones and small tablets: one card per role, so nothing hides off-screen. */}
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 md:hidden">
+        {ROLES.map((role, r) => (
+          <div key={role} className="rounded-2xl border border-white/10 bg-night-2/60 p-5 backdrop-blur-sm">
+            <h3 className="font-display text-lg font-semibold text-white">{role}</h3>
+            <dl className="mt-3 divide-y divide-white/5 text-sm">
+              {ACCESS.map(([item, ...cells]) => (
+                <div key={item} className="flex justify-between gap-4 py-2">
+                  <dt className="text-white/85">{item}</dt>
+                  <dd className={cn('text-right', cells[r] === 'No' || cells[r] === 'No access' ? 'text-white/55' : 'text-mist')}>{cells[r]}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <div className="mt-12 hidden overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm md:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <caption className="sr-only">What each role can see and change</caption>
           <thead>
             <tr className="border-b border-white/10">
               <td className="px-5 py-4" />
-              {['Admin', 'HOD', 'Faculty', 'Student'].map((r) => (
+              {ROLES.map((r) => (
                 <th key={r} scope="col" className="px-5 py-4 font-display text-base font-semibold text-white">{r}</th>
               ))}
             </tr>
@@ -241,8 +260,8 @@ const TRUST = [
 export function Footer({ onSignIn }) {
   return (
     <footer className="relative overflow-hidden border-t border-white/10">
-      <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pt-16 pb-12 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))]">
-        <div className="max-w-md">
+      <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
+        <div className="col-span-2 max-w-md sm:col-span-3 lg:col-span-1">
           <span className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 shadow-[0_0_30px_-6px_rgba(255,92,0,0.6)]">
               <GraduationCap className="h-6 w-6" aria-hidden="true" />
@@ -271,15 +290,15 @@ export function Footer({ onSignIn }) {
         {FOOTER_LINKS.map(([group, links]) => (
           <nav key={group} aria-label={group} className="text-sm">
             <p className="font-semibold text-white">{group}</p>
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-3 space-y-1 lg:space-y-2.5">
               {links.map(([label, href]) => (
                 <li key={label}>
-                  <a href={href ?? contactHref('Campusnex enquiry')} className="text-mist hover:text-white">{label}</a>
+                  <a href={href ?? contactHref('Campusnex enquiry')} className="inline-block py-1.5 text-mist hover:text-white lg:py-0">{label}</a>
                 </li>
               ))}
               {group === 'Help' && (
                 <li>
-                  <button type="button" onClick={onSignIn} className="cursor-pointer text-mist hover:text-white">Sign in</button>
+                  <button type="button" onClick={onSignIn} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Sign in</button>
                 </li>
               )}
             </ul>
