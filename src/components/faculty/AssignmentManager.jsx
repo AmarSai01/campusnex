@@ -21,7 +21,7 @@ import SubmissionGraderModal from './SubmissionGraderModal';
 
 export default function AssignmentManager() {
   const { currentUser } = useAuth();
-  const { courses, assignments, submissions, users, enrollments, createAssignment, gradeSubmission } = useData();
+  const { courses, assignments, submissions, users, createAssignment, gradeSubmission, uploadAssignmentFile } = useData();
 
   // Scoped to courses assigned to this faculty
   const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);
@@ -40,10 +40,11 @@ export default function AssignmentManager() {
     title: '',
     description: '',
     due_date: '2026-09-10T23:59',
-    max_marks: 30,
-    attachment_name: 'assignment_brief.pdf',
-    attachment_url: 'https://raw.githubusercontent.com/campusnex/docs/main/sample-spec.pdf'
+    max_marks: 30
   });
+  // Optional problem statement or spec, uploaded when the assignment is posted.
+  const [attachment, setAttachment] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
 
   const [formError, setFormError] = useState('');
 
@@ -53,26 +54,48 @@ export default function AssignmentManager() {
       title: '',
       description: '',
       due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
-      max_marks: 30,
-      attachment_name: 'lab_problem_statement.pdf',
-      attachment_url: 'https://raw.githubusercontent.com/campusnex/docs/main/problem-statement.pdf'
+      max_marks: 30
     });
+    setAttachment(null);
     setFormError('');
     setIsCreateModalOpen(true);
   };
 
-  const handleCreateSubmit = (e) => {
+  const handlePickAttachment = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setFormError('The attachment must be 20 MB or smaller.');
+      return;
+    }
+    setFormError('');
+    setAttachment(file);
+  };
+
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       setFormError('Please enter an assignment title.');
       return;
     }
 
-    createAssignment({
-      ...formData,
-      max_marks: Number(formData.max_marks)
-    });
-    setIsCreateModalOpen(false);
+    setIsPosting(true);
+    try {
+      const file = attachment
+        ? await uploadAssignmentFile(formData.course_id, attachment)
+        : { attachment_url: null, attachment_name: null };
+      createAssignment({
+        ...formData,
+        ...file,
+        max_marks: Number(formData.max_marks)
+      });
+      setIsCreateModalOpen(false);
+    } catch (err) {
+      setFormError(err.message || 'Could not post the assignment.');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   // Filter assignments
@@ -180,6 +203,9 @@ export default function AssignmentManager() {
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
                     {asg.description}
                   </p>
+                  {asg.attachment_url && (
+                    <SubmissionFileLink url={asg.attachment_url} name={asg.attachment_name} className="mt-2 text-xs max-w-full" />
+                  )}
 
                   <div className="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
                     <div className="flex items-center justify-between text-slate-500">
@@ -393,15 +419,27 @@ export default function AssignmentManager() {
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Attachment File Name
+                Attachment (optional)
               </label>
-              <input
-                type="text"
-                value={formData.attachment_name}
-                onChange={(e) => setFormData({ ...formData, attachment_name: e.target.value })}
-                placeholder="e.g. consensus_specification.pdf"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer focus-within:ring-2 focus-within:ring-brand-500">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {attachment ? 'Change file' : 'Choose file'}
+                  <input type="file" onChange={handlePickAttachment} className="sr-only" />
+                </label>
+                {attachment ? (
+                  <>
+                    <span className="text-xs font-semibold text-slate-700 break-all">
+                      {attachment.name} ({(attachment.size / (1024 * 1024)).toFixed(1)} MB)
+                    </span>
+                    <button type="button" onClick={() => setAttachment(null)} className="text-[11px] font-bold text-rose-600 hover:underline">
+                      Remove
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-slate-400">Problem statement, spec or dataset. Up to 20 MB.</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -415,9 +453,10 @@ export default function AssignmentManager() {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md shadow-brand-600/20 transition-all cursor-pointer"
+              disabled={isPosting}
+              className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md shadow-brand-600/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              Post Assignment
+              {isPosting ? 'Uploading…' : 'Post Assignment'}
             </button>
           </div>
         </form>

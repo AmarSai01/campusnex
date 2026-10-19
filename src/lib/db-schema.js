@@ -143,6 +143,14 @@ TABLES.push({
   ]
 });
 
+// Student requests and grievances. The server sets created_at, and a trigger stamps
+// responded_by / responded_at, so neither is ever sent.
+TABLES.push({
+  key: 'student_requests',
+  table: 'student_requests',
+  columns: ['id', 'student_id', 'type', 'course_id', 'subject', 'details', 'status', 'response']
+});
+
 export function toRow(columns, record) {
   const row = {};
   for (const col of columns) {

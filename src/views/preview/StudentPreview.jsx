@@ -9,6 +9,10 @@ import StudentHub from '../../components/student/StudentHub'
 import StudentTimetable from '../../components/student/StudentTimetable'
 import StudentExamView from '../../components/exams/StudentExamView'
 import AssignmentSubmissionList from '../../components/student/AssignmentSubmissionList'
+import CourseFeedback from '../../components/student/CourseFeedback'
+import StudentRequests from '../../components/student/StudentRequests'
+import RequestsInbox from '../../components/shared/RequestsInbox'
+import FeedbackResults from '../../components/shared/FeedbackResults'
 
 // Dev-only preview of the student screens with
 // sample data (no sign-in, nothing saved). Open http://localhost:5173/?preview=student.
@@ -69,7 +73,7 @@ const EXAMS = [
 }))
 
 const ASSIGNMENTS = [
-  { id: 'a1', course_id: 'c2', title: 'Socket programming lab', description: 'Build a TCP chat server and client.', due_date: '2026-10-30T23:59:00', max_marks: 20, created_by: 'f1' },
+  { id: 'a1', course_id: 'c2', attachment_url: 'storage://assignment-files/data:text/plain,Build%20a%20TCP%20chat%20server', attachment_name: 'lab3_problem_statement.txt', title: 'Socket programming lab', description: 'Build a TCP chat server and client.', due_date: '2026-10-30T23:59:00', max_marks: 20, created_by: 'f1' },
 ]
 
 // Per student and subject: [attendance rate, IA level].
@@ -140,7 +144,8 @@ function classAverages(studentId) {
 
 const TABS = {
   overview: 'Hub', attendance: 'My Attendance', performance: 'My Performance', timetable: 'Timetable',
-  exam_seating: 'Exams', assignments: 'Assignments', profile: 'My Profile',
+  exam_seating: 'Exams', assignments: 'Assignments', feedback: 'Feedback', requests: 'Requests', profile: 'My Profile',
+  staff_requests: 'Teacher: requests', staff_feedback: 'Teacher: feedback',
 }
 const NOTES = {
   s1: 'on track everywhere',
@@ -174,6 +179,15 @@ export default function StudentPreview() {
   // Profile edits stay in this page only.
   const [edits, setEdits] = useState({})
   const [subs, setSubs] = useState([])
+  const [requests, setRequests] = useState([
+    {
+      id: 'req_demo', student_id: 's2', type: 'attendance', course_id: 'c2', subject: 'Marked absent on 12 Aug while on OD',
+      details: 'I was at the inter-college hackathon with the department team on 12 August. OD letter attached with the HOD.',
+      status: 'resolved', response: 'Checked with the HOD. Corrected to present.', created_at: '2026-08-14T10:00:00Z',
+      responded_at: '2026-08-16T09:30:00Z', responded_by: 'f1',
+    },
+  ])
+  const [feedbackDone, setFeedbackDone] = useState({})
 
   const student = { ...STUDENTS.find((s) => s.id === studentId), ...edits[studentId] }
 
@@ -204,15 +218,42 @@ export default function StudentPreview() {
         file_url: `storage://submissions/${URL.createObjectURL(file)}`,
         file_name: file.name,
       }),
-      getSubmissionFileLink: async (url) => url.replace('storage://submissions/', ''),
+      getStoredFileLink: async (url) => url.replace(/^storage:\/\/[^/]+\//, ''),
+      student_requests: requests.filter((r) => r.student_id === studentId),
+      createStudentRequest: (req) =>
+        setRequests((prev) => [
+          { id: `req_${Date.now()}`, student_id: studentId, status: 'open', response: null, created_at: new Date().toISOString(), ...req },
+          ...prev,
+        ]),
+      withdrawStudentRequest: (id) => setRequests((prev) => prev.filter((r) => r.id !== id)),
+      fetchMyFeedbackCourses: async () => feedbackDone[studentId] || [],
+      submitCourseFeedback: async (courseId) =>
+        setFeedbackDone((prev) => ({ ...prev, [studentId]: [...(prev[studentId] || []), courseId] })),
       fetchClassAverages: async () => classAverages(studentId),
       updateMyContact: async ({ phone, photo_url }) =>
         setEdits((prev) => ({ ...prev, [studentId]: { phone: phone || null, photo_url: photo_url || null } })),
       uploadProfilePhoto: async (file) => URL.createObjectURL(file),
       deleteProfilePhoto: async () => {},
     }),
-    [studentId, edits, subs]
+    [studentId, edits, subs, requests, feedbackDone]
   )
+
+  // Dr. Kiran Rao's view (teaches CS501 and CS502): every request for those subjects, and feedback.
+  const staffData = {
+    ...data,
+    student_requests: requests,
+    answerStudentRequest: (id, { status, response }) =>
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status, response, responded_by: 'f1', responded_at: new Date().toISOString() } : r))
+      ),
+    fetchCourseFeedbackSummary: async (courseId) =>
+      courseId === 'c1'
+        ? { responses: 2, enrolled: 5, averages: null, comments: null }
+        : {
+            responses: 4, enrolled: 5, averages: [4.25, 3.5, 4.75, 2.75, 4],
+            comments: ['Labs were really useful.', 'Please share slides before class.'],
+          },
+  }
 
   return (
     <DataContext.Provider value={data}>
@@ -236,6 +277,15 @@ export default function StudentPreview() {
             </p>
           </div>
 
+          {tab.startsWith('staff_') && (
+            <DataContext.Provider value={staffData}>
+              <AuthContext.Provider key={tab} value={{ currentUser: FACULTY[0], isHod: false, hodDepartments: [] }}>
+                {tab === 'staff_requests' && <RequestsInbox />}
+                {tab === 'staff_feedback' && <FeedbackResults />}
+              </AuthContext.Provider>
+            </DataContext.Provider>
+          )}
+
           <AuthContext.Provider key={`${studentId}-${tab}`} value={{ currentUser: student, isHod: false, hodDepartments: [] }}>
             {tab === 'overview' && <StudentHub onNavigateTab={(t) => setTab(t in TABS ? t : 'overview')} />}
             {tab === 'timetable' && <StudentTimetable />}
@@ -243,6 +293,8 @@ export default function StudentPreview() {
             {tab === 'assignments' && <AssignmentSubmissionList />}
             {tab === 'attendance' && <AttendanceOverview />}
             {tab === 'performance' && <MyPerformance onNavigateTab={(t) => setTab(t in TABS ? t : 'performance')} />}
+            {tab === 'feedback' && <CourseFeedback />}
+            {tab === 'requests' && <StudentRequests />}
             {tab === 'profile' && <MyProfile />}
           </AuthContext.Provider>
         </div>

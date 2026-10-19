@@ -128,6 +128,9 @@ function AppContent() {
       hod_class_analytics: 'Class Analytics',
       performance: 'My Performance',
       profile: 'My Profile',
+      feedback: 'Course Feedback',
+      feedback_results: 'Course Feedback Results',
+      requests: currentUser.role === 'student' ? 'Requests & Grievances' : 'Student Requests',
     }
     return titles[tab] || 'Workspace'
   }
@@ -155,6 +158,8 @@ function AppContent() {
       notif.type === 'admin_broadcast'
     ) {
       openTab('announcements')
+    } else if (notif.type === 'request_created' || notif.type === 'request_updated') {
+      openTab('requests')
     } else if (notif.type === 'timetable_changed') {
       openTab('timetable')
     } else if (notif.type === 'calendar_event_added') {

@@ -189,6 +189,12 @@ export default function AssignmentSubmissionList() {
                     <span>Instructor: {item.faculty?.name || 'Faculty'}</span>
                   </div>
 
+                  {item.attachment_url && (
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                      Task file: <SubmissionFileLink url={item.attachment_url} name={item.attachment_name} />
+                    </div>
+                  )}
+
                   {item.submission && (
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
                       Your submission: <SubmissionFileLink submission={item.submission} />

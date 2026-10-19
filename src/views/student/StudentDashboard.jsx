@@ -11,6 +11,8 @@ import ExamManagement from '../../components/exams/ExamManagement';
 import StudentResults from '../../components/student/StudentResults';
 import SemesterCalendarView from '../../components/shared/SemesterCalendarView';
 import MyPerformance from '../../components/student/MyPerformance';
+import CourseFeedback from '../../components/student/CourseFeedback';
+import StudentRequests from '../../components/student/StudentRequests';
 import MyProfile from '../../components/student/MyProfile';
 
 export default function StudentDashboard({ activeTab = 'overview', setActiveTab }) {
@@ -40,6 +42,10 @@ export default function StudentDashboard({ activeTab = 'overview', setActiveTab 
         return <FacultyDirectory />;
       case 'announcements':
         return <StudentAnnouncements />;
+      case 'feedback':
+        return <CourseFeedback />;
+      case 'requests':
+        return <StudentRequests />;
       case 'profile':
         return <MyProfile />;
       default:
