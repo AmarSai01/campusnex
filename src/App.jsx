@@ -125,7 +125,7 @@ function AppContent() {
       setActiveTab('timetable')
     } else if (notif.type === 'calendar_event_added') {
       setActiveTab('calendar')
-    } else if (notif.type === 'semester_calendar_published' && currentUser.role === 'admin') {
+    } else if (notif.type === 'semester_calendar_published') {
       setActiveTab('semester_calendar')
     } else if (
       notif.type === 'exam_scheduled' ||

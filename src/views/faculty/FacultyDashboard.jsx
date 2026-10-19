@@ -7,6 +7,7 @@ import AssignmentManager from '../../components/faculty/AssignmentManager';
 import FacultyTimetable from '../../components/faculty/FacultyTimetable';
 import CourseAnnouncementModal from '../../components/faculty/CourseAnnouncementModal';
 import ExamManagement from '../../components/exams/ExamManagement';
+import SemesterCalendarView from '../../components/shared/SemesterCalendarView';
 import HodDepartmentOverview from '../../components/hod/HodDepartmentOverview';
 import HodFacultyCompliance from '../../components/hod/HodFacultyCompliance';
 import { useAuth } from '../../context/AuthContext';
@@ -29,6 +30,8 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
         return <FacultyTimetable />;
       case 'exam_seating':
         return <ExamManagement />;
+      case 'semester_calendar':
+        return <SemesterCalendarView />;
       case 'announcements':
         return <CourseAnnouncementModal />;
       case 'hod_overview':
