@@ -1587,6 +1587,38 @@ export function DataProvider({ children }) {
     await supabase.storage.from('avatars').remove([path]);
   };
 
+  // Assignment files (supabase/migrations/20261020000000_submission_files.sql). The submission row
+  // stores `storage://submissions/<path>`; links are signed on demand because the bucket is private.
+  const SUBMISSION_PREFIX = 'storage://submissions/';
+  const SUBMISSION_MAX_BYTES = 10 * 1024 * 1024;
+
+  const uploadSubmissionFile = async (assignmentId, file) => {
+    if (!currentProfileId) throw new Error('Sign in again to upload your file.');
+    if (file.size > SUBMISSION_MAX_BYTES) throw new Error('The file must be 10 MB or smaller.');
+    const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-120) || 'submission';
+    const path = `${assignmentId}/${currentProfileId}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage
+      .from('submissions')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+    if (error) throw new Error(`Could not upload the file: ${error.message}`);
+    return { file_url: `${SUBMISSION_PREFIX}${path}`, file_name: file.name };
+  };
+
+  // A link that opens the submitted work: a signed link for uploaded files, or the student's own
+  // https link (a repository, say). Anything else is an old placeholder and has no file.
+  const getSubmissionFileLink = async (fileUrl) => {
+    if (!fileUrl) return null;
+    if (fileUrl.startsWith(SUBMISSION_PREFIX)) {
+      const { data: signed, error } = await supabase.storage
+        .from('submissions')
+        .createSignedUrl(fileUrl.slice(SUBMISSION_PREFIX.length), 60 * 10);
+      if (error) throw new Error(`Could not open the file: ${error.message}`);
+      return signed.signedUrl;
+    }
+    if (/^https:\/\//i.test(fileUrl) && !fileUrl.startsWith('https://storage.campusnex.edu/')) return fileUrl;
+    return null;
+  };
+
   // Class averages for the caller's own courses: aggregates only, never classmates' rows.
   const fetchClassAverages = async () => {
     const { data: rows, error } = await supabase.rpc('my_class_averages');
@@ -1607,6 +1639,8 @@ export function DataProvider({ children }) {
         uploadProfilePhoto,
         deleteProfilePhoto,
         fetchClassAverages,
+        uploadSubmissionFile,
+        getSubmissionFileLink,
         markBulkAttendance,
         saveIAMarks,
         createAssignment,

@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import SubmissionFileLink from '../shared/SubmissionFileLink';
 import SubmissionGraderModal from './SubmissionGraderModal';
 
 export default function AssignmentManager() {
@@ -258,10 +259,7 @@ export default function AssignmentManager() {
                       </td>
 
                       <td className="px-6 py-4 font-bold text-brand-600">
-                        <span className="flex items-center gap-1.5">
-                          <Paperclip className="w-3.5 h-3.5 text-slate-400" />
-                          {sub.file_name || 'submission.zip'}
-                        </span>
+                        <SubmissionFileLink submission={sub} className="max-w-[14rem]" />
                       </td>
 
                       <td className="px-6 py-4 text-slate-500 text-[11px]">

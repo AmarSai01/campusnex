@@ -5,8 +5,12 @@ import { AuthContext } from '../../context/AuthContext'
 import AttendanceOverview from '../../components/student/AttendanceOverview'
 import MyPerformance from '../../components/student/MyPerformance'
 import MyProfile from '../../components/student/MyProfile'
+import StudentHub from '../../components/student/StudentHub'
+import StudentTimetable from '../../components/student/StudentTimetable'
+import StudentExamView from '../../components/exams/StudentExamView'
+import AssignmentSubmissionList from '../../components/student/AssignmentSubmissionList'
 
-// Dev-only preview of the student's Attendance planner, My Performance and My Profile with
+// Dev-only preview of the student screens with
 // sample data (no sign-in, nothing saved). Open http://localhost:5173/?preview=student.
 
 const DEPARTMENT = { id: 'dept_cse', code: 'CSE', name: 'Computer Science & Engineering', head_faculty_id: 'h1' }
@@ -44,10 +48,29 @@ const ENROLLMENTS = STUDENTS.flatMap((s) =>
   COURSES.map((c) => ({ id: `e_${s.id}_${c.id}`, student_id: s.id, course_id: c.id }))
 )
 
-// Three classes a week per subject.
+// Three classes a week per subject, Saturday included.
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const TIMETABLE = COURSES.flatMap((c, i) =>
-  [1, 3, 5].map((day) => ({ id: `tt_${c.id}_${day}`, course_id: c.id, section: 'A', day_of_week: (day + i) % 6 || 6 }))
+  [0, 2, 4].map((d) => ({
+    id: `tt_${c.id}_${d}`, course_id: c.id, section: 'A', day_of_week: DAYS[(d + i) % 6], room: '301',
+    start_time: `${String(9 + i).padStart(2, '0')}:00`, end_time: `${String(10 + i).padStart(2, '0')}:00`, faculty_id: c.faculty_id,
+  }))
 )
+
+// SEE papers are attendance-gated; the mid-semester test is not.
+const EXAMS = [
+  ['x1', 'CS501 Compiler Design', 'c1', '2026-11-03', 'Mid-Semester Theory'],
+  ['x2', 'CS502 Computer Networks', 'c2', '2026-12-01', 'End-Semester Theory'],
+  ['x3', 'CS503 Machine Learning', 'c3', '2026-12-04', 'End-Semester Theory'],
+  ['x4', 'MA501 Probability & Statistics', 'c4', '2026-12-08', 'End-Semester Theory'],
+].map(([id, subject, course_id, exam_date, exam_type]) => ({
+  id, subject, course_id, exam_date, exam_type, department_id: 'dept_cse', semester: 5,
+  start_time: '09:30', end_time: '12:30', rooms: ['LH-102'],
+}))
+
+const ASSIGNMENTS = [
+  { id: 'a1', course_id: 'c2', title: 'Socket programming lab', description: 'Build a TCP chat server and client.', due_date: '2026-10-30T23:59:00', max_marks: 20, created_by: 'f1' },
+]
 
 // Per student and subject: [attendance rate, IA level].
 const PROFILE = {
@@ -115,7 +138,10 @@ function classAverages(studentId) {
   return rows
 }
 
-const TABS = { attendance: 'My Attendance', performance: 'My Performance', profile: 'My Profile' }
+const TABS = {
+  overview: 'Hub', attendance: 'My Attendance', performance: 'My Performance', timetable: 'Timetable',
+  exam_seating: 'Exams', assignments: 'Assignments', profile: 'My Profile',
+}
 const NOTES = {
   s1: 'on track everywhere',
   s2: 'attendance shortage in CS502',
@@ -147,6 +173,7 @@ export default function StudentPreview() {
   const [tab, setTab] = useState('attendance')
   // Profile edits stay in this page only.
   const [edits, setEdits] = useState({})
+  const [subs, setSubs] = useState([])
 
   const student = { ...STUDENTS.find((s) => s.id === studentId), ...edits[studentId] }
 
@@ -161,13 +188,30 @@ export default function StudentPreview() {
       ia_marks: IA_MARKS.filter((m) => m.student_id === studentId && m.published),
       timetable: TIMETABLE,
       notifications: [],
+      exam_timetables: EXAMS,
+      exam_rooms: [],
+      exam_seatings: [],
+      assignments: ASSIGNMENTS,
+      submissions: subs.filter((x) => x.student_id === studentId),
+      announcements: [],
+      submitAssignment: (sub) =>
+        setSubs((prev) => [
+          { id: `sub_${Date.now()}`, ...sub, submitted_at: new Date().toISOString(), graded: false },
+          ...prev.filter((x) => !(x.assignment_id === sub.assignment_id && x.student_id === sub.student_id)),
+        ]),
+      // Files stay in this page: an object URL stands in for the storage path.
+      uploadSubmissionFile: async (_assignmentId, file) => ({
+        file_url: `storage://submissions/${URL.createObjectURL(file)}`,
+        file_name: file.name,
+      }),
+      getSubmissionFileLink: async (url) => url.replace('storage://submissions/', ''),
       fetchClassAverages: async () => classAverages(studentId),
       updateMyContact: async ({ phone, photo_url }) =>
         setEdits((prev) => ({ ...prev, [studentId]: { phone: phone || null, photo_url: photo_url || null } })),
       uploadProfilePhoto: async (file) => URL.createObjectURL(file),
       deleteProfilePhoto: async () => {},
     }),
-    [studentId, edits]
+    [studentId, edits, subs]
   )
 
   return (
@@ -193,6 +237,10 @@ export default function StudentPreview() {
           </div>
 
           <AuthContext.Provider key={`${studentId}-${tab}`} value={{ currentUser: student, isHod: false, hodDepartments: [] }}>
+            {tab === 'overview' && <StudentHub onNavigateTab={(t) => setTab(t in TABS ? t : 'overview')} />}
+            {tab === 'timetable' && <StudentTimetable />}
+            {tab === 'exam_seating' && <StudentExamView />}
+            {tab === 'assignments' && <AssignmentSubmissionList />}
             {tab === 'attendance' && <AttendanceOverview />}
             {tab === 'performance' && <MyPerformance onNavigateTab={(t) => setTab(t in TABS ? t : 'performance')} />}
             {tab === 'profile' && <MyProfile />}

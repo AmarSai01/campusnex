@@ -12,7 +12,9 @@ export default function AttendanceRingChart({
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const clamped = Math.min(100, Math.max(0, percentage));
+  // null means no classes have been marked yet: grey ring, no eligibility badge.
+  const empty = percentage === null || percentage === undefined;
+  const clamped = empty ? 0 : Math.min(100, Math.max(0, percentage));
   const offset = circumference - (clamped / 100) * circumference;
 
   // Red below the SEE minimum, amber in the warning band just above it.
@@ -20,7 +22,9 @@ export default function AttendanceRingChart({
   let bgColor = 'text-emerald-50';
   let badgeColor = 'text-emerald-700 bg-emerald-100';
 
-  if (clamped < RISK_RULES.attendance.shortage) {
+  if (empty) {
+    badgeColor = 'text-slate-600 bg-slate-100';
+  } else if (clamped < RISK_RULES.attendance.shortage) {
     strokeColor = '#f43f5e'; // rose-500
     bgColor = 'text-rose-50';
     badgeColor = 'text-rose-700 bg-rose-100';
@@ -62,7 +66,7 @@ export default function AttendanceRingChart({
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
-            {Math.round(clamped)}%
+            {empty ? '—' : `${Math.round(clamped)}%`}
           </span>
           {sublabel && (
             <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
@@ -77,7 +81,7 @@ export default function AttendanceRingChart({
           <p className="text-xs font-bold text-slate-800 line-clamp-1">{label}</p>
           {showThreshold && (
             <span className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${badgeColor}`}>
-              {clamped >= RISK_RULES.attendance.shortage ? 'Eligible' : 'Shortage Alert'}
+              {empty ? 'No classes yet' : clamped >= RISK_RULES.attendance.shortage ? 'Eligible' : 'Shortage Alert'}
             </span>
           )}
         </div>
