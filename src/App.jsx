@@ -31,6 +31,9 @@ const MAY_HAVE_SESSION = (() => {
   }
 })()
 
+// The tabs in an HOD's department panel (see Sidebar and MobileNav).
+const HOD_TABS = ['hod_overview', 'students', 'hod_compliance']
+
 const Spinner = () => (
   <div className="bg-background">
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
@@ -44,6 +47,7 @@ function AppContent() {
   const { syncError, clearSyncError } = useData()
   const [authScreen, setAuthScreen] = useState('landing')
   const [activeTab, setActiveTab] = useState('overview')
+  const [hodView, setHodView] = useState(true)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
@@ -52,6 +56,24 @@ function AppContent() {
       <LandingPage onSignIn={() => setAuthScreen('login')} />
     </SmoothScroll>
   )
+
+  // An HOD switches between their department panel and their teaching workspace.
+  // Each shows only its own tabs; any other tab opens that view's home.
+  const inHodPanel = isHod && hodView
+  const tab = inHodPanel
+    ? HOD_TABS.includes(activeTab) ? activeTab : 'hod_overview'
+    : isHod && HOD_TABS.includes(activeTab) ? 'overview' : activeTab
+
+  const switchView = (toHodPanel) => {
+    setHodView(toHodPanel)
+    setActiveTab(toHodPanel ? 'hod_overview' : 'overview')
+  }
+
+  // Opens a tab, moving an HOD into whichever view holds it.
+  const openTab = (id) => {
+    if (isHod) setHodView(HOD_TABS.includes(id))
+    setActiveTab(id)
+  }
 
   if (authLoading) {
     return MAY_HAVE_SESSION || authScreen !== 'landing' ? <Spinner /> : landing
@@ -94,49 +116,51 @@ function AppContent() {
       results: currentUser.role === 'admin' ? 'Semester Results' : 'Results: SGPA and CGPA',
       hod_compliance: 'Faculty Compliance',
     }
-    return titles[activeTab] || 'Workspace'
+    return titles[tab] || 'Workspace'
   }
 
   const handleNotificationNavigate = (notif) => {
     setIsNotifOpen(false)
     if (notif.type === 'result_published') {
-      setActiveTab('results')
+      openTab('results')
     } else if (notif.type === 'attendance_risk' || notif.type === 'marks_risk') {
-      if (isHod) setActiveTab('hod_overview')
-      else setActiveTab(notif.type === 'attendance_risk' ? 'attendance' : 'iamarks')
+      if (isHod) openTab('hod_overview')
+      else openTab(notif.type === 'attendance_risk' ? 'attendance' : 'iamarks')
     } else if (notif.type === 'attendance_absent') {
-      setActiveTab('attendance')
+      openTab('attendance')
     } else if (notif.type === 'ia_published') {
-      setActiveTab('iamarks')
+      openTab('iamarks')
     } else if (
       notif.type === 'assignment_due' ||
       notif.type === 'assignment_graded' ||
       notif.type === 'assignment_created' ||
       notif.type === 'assignment_submitted'
     ) {
-      setActiveTab('assignments')
+      openTab('assignments')
     } else if (
       notif.type === 'new_announcement' ||
       notif.type === 'admin_broadcast'
     ) {
-      setActiveTab('announcements')
+      openTab('announcements')
     } else if (notif.type === 'timetable_changed') {
-      setActiveTab('timetable')
+      openTab('timetable')
     } else if (notif.type === 'calendar_event_added') {
-      setActiveTab('calendar')
+      openTab('calendar')
     } else if (
       notif.type === 'exam_scheduled' ||
       notif.type === 'seating_allocated'
     ) {
-      setActiveTab('exam_seating')
+      openTab('exam_seating')
     }
   }
 
   return (
     <div className="flex min-h-screen bg-muted/40 text-foreground">
       <Sidebar
-        activeTab={activeTab}
+        activeTab={tab}
         setActiveTab={setActiveTab}
+        hodView={inHodPanel}
+        onSwitchView={switchView}
         mobileOpen={isMobileSidebarOpen}
         setMobileOpen={setIsMobileSidebarOpen}
       />
@@ -170,17 +194,17 @@ function AppContent() {
             </div>
           )}
           {currentUser.role === 'admin' && (
-            <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+            <AdminDashboard activeTab={tab} setActiveTab={setActiveTab} />
           )}
           {currentUser.role === 'faculty' && (
             <FacultyDashboard
-              activeTab={activeTab}
+              activeTab={tab}
               setActiveTab={setActiveTab}
             />
           )}
           {currentUser.role === 'student' && (
             <StudentDashboard
-              activeTab={activeTab}
+              activeTab={tab}
               setActiveTab={setActiveTab}
             />
           )}
@@ -188,8 +212,9 @@ function AppContent() {
       </div>
 
       <MobileNav
-        activeTab={activeTab}
+        activeTab={tab}
         setActiveTab={setActiveTab}
+        hodView={inHodPanel}
         onOpenDrawer={() => setIsMobileSidebarOpen(true)}
       />
 

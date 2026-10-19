@@ -8,17 +8,27 @@ import {
   Clock,
   CalendarDays,
   Layers,
-  Menu
+  Menu,
+  ShieldCheck,
+  GraduationCap,
+  ClipboardCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-export default function MobileNav({ activeTab, setActiveTab, onOpenDrawer }) {
+export default function MobileNav({ activeTab, setActiveTab, hodView, onOpenDrawer }) {
   const { currentUser } = useAuth();
   const role = currentUser?.role || 'student';
 
   const getMobileTabs = () => {
+    if (hodView) {
+      return [
+        { id: 'hod_overview', label: 'Department', icon: ShieldCheck },
+        { id: 'students', label: 'Students', icon: GraduationCap },
+        { id: 'hod_compliance', label: 'Compliance', icon: ClipboardCheck },
+      ];
+    }
     switch (role) {
       case 'admin':
         return [
