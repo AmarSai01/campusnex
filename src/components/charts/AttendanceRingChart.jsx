@@ -1,4 +1,5 @@
 import React from 'react';
+import { RISK_RULES } from '../../utils/risk';
 
 export default function AttendanceRingChart({
   percentage = 0,
@@ -14,16 +15,16 @@ export default function AttendanceRingChart({
   const clamped = Math.min(100, Math.max(0, percentage));
   const offset = circumference - (clamped / 100) * circumference;
 
-  // Determine color based on threshold (75% standard university cutoff)
+  // Red below the SEE minimum, amber in the warning band just above it.
   let strokeColor = '#10b981'; // emerald-500
   let bgColor = 'text-emerald-50';
   let badgeColor = 'text-emerald-700 bg-emerald-100';
 
-  if (clamped < 75) {
+  if (clamped < RISK_RULES.attendance.shortage) {
     strokeColor = '#f43f5e'; // rose-500
     bgColor = 'text-rose-50';
     badgeColor = 'text-rose-700 bg-rose-100';
-  } else if (clamped < 85) {
+  } else if (clamped < RISK_RULES.attendance.warning) {
     strokeColor = '#f59e0b'; // amber-500
     bgColor = 'text-amber-50';
     badgeColor = 'text-amber-700 bg-amber-100';
@@ -76,7 +77,7 @@ export default function AttendanceRingChart({
           <p className="text-xs font-bold text-slate-800 line-clamp-1">{label}</p>
           {showThreshold && (
             <span className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${badgeColor}`}>
-              {clamped >= 75 ? 'Eligible' : 'Shortage Alert'}
+              {clamped >= RISK_RULES.attendance.shortage ? 'Eligible' : 'Shortage Alert'}
             </span>
           )}
         </div>

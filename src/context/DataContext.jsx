@@ -1552,6 +1552,48 @@ export function DataProvider({ children }) {
     }));
   };
 
+  // Student self-service (supabase/migrations/20261019000600_student_self_service.sql).
+  // These call server functions directly and then reload, so they bypass the diff sync,
+  // which would try a profile update that row-level security refuses for students.
+  const updateMyContact = async ({ phone, photo_url }) => {
+    const { error } = await supabase.rpc('update_my_contact', {
+      p_phone: phone || null,
+      p_photo_url: photo_url || null
+    });
+    if (error) throw new Error(error.message);
+    await refreshData();
+  };
+
+  const AVATAR_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const AVATAR_PREFIX = '/storage/v1/object/public/avatars/';
+
+  // Uploads a new photo into the caller's own folder and returns its public link.
+  const uploadProfilePhoto = async (file) => {
+    if (!currentProfileId) throw new Error('Sign in again to change your photo.');
+    const ext = AVATAR_TYPES[file.type];
+    if (!ext) throw new Error('Use a JPG, PNG or WebP image.');
+    if (file.size > 2 * 1024 * 1024) throw new Error('The photo must be 2 MB or smaller.');
+    const path = `${currentProfileId}/photo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type });
+    if (error) throw new Error(`Could not upload the photo: ${error.message}`);
+    return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  };
+
+  // Best effort: removes a photo this app uploaded. Links elsewhere are left alone.
+  const deleteProfilePhoto = async (url) => {
+    const at = url ? url.indexOf(AVATAR_PREFIX) : -1;
+    if (at < 0) return;
+    const path = decodeURIComponent(url.slice(at + AVATAR_PREFIX.length).split('?')[0]);
+    await supabase.storage.from('avatars').remove([path]);
+  };
+
+  // Class averages for the caller's own courses: aggregates only, never classmates' rows.
+  const fetchClassAverages = async () => {
+    const { data: rows, error } = await supabase.rpc('my_class_averages');
+    if (error) throw new Error(error.message);
+    return rows || [];
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1561,6 +1603,10 @@ export function DataProvider({ children }) {
         syncError,
         clearSyncError: () => setSyncError(null),
         refreshData,
+        updateMyContact,
+        uploadProfilePhoto,
+        deleteProfilePhoto,
+        fetchClassAverages,
         markBulkAttendance,
         saveIAMarks,
         createAssignment,

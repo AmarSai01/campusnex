@@ -8,6 +8,7 @@ import {
   Briefcase,
   RotateCcw,
   Menu,
+  UserRound,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
@@ -27,6 +28,7 @@ export default function Header({
   onOpenNotifications,
   onToggleMobileSidebar,
   currentTabTitle = 'Dashboard',
+  onOpenProfile,
 }) {
   const { currentUser, logout, isHod, hodDepartments } = useAuth()
   const { notifications, refreshData } = useData()
@@ -137,6 +139,15 @@ export default function Header({
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {onOpenProfile && (
+              <DropdownMenuItem
+                onClick={onOpenProfile}
+                className="gap-2 rounded-xl px-3 py-2"
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                My profile
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => refreshData()}
               className="gap-2 rounded-xl px-3 py-2"

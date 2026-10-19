@@ -10,6 +10,8 @@ import StudentAnnouncements from '../../components/student/StudentAnnouncements'
 import ExamManagement from '../../components/exams/ExamManagement';
 import StudentResults from '../../components/student/StudentResults';
 import SemesterCalendarView from '../../components/shared/SemesterCalendarView';
+import MyPerformance from '../../components/student/MyPerformance';
+import MyProfile from '../../components/student/MyProfile';
 
 export default function StudentDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -20,6 +22,8 @@ export default function StudentDashboard({ activeTab = 'overview', setActiveTab 
         return <AttendanceOverview />;
       case 'iamarks':
         return <IAMarksView />;
+      case 'performance':
+        return <MyPerformance onNavigateTab={setActiveTab} />;
       case 'results':
         return <StudentResults />;
       case 'assignments':
@@ -36,6 +40,8 @@ export default function StudentDashboard({ activeTab = 'overview', setActiveTab 
         return <FacultyDirectory />;
       case 'announcements':
         return <StudentAnnouncements />;
+      case 'profile':
+        return <MyProfile />;
       default:
         return <StudentHub onNavigateTab={setActiveTab} />;
     }

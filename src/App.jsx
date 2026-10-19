@@ -4,14 +4,16 @@ import { DataProvider, useData } from './context/DataContext'
 import SmoothScroll from './lib/smooth-scroll'
 import LandingPage from './views/landing/LandingPage'
 
-// Dev-only previews with sample data: http://localhost:5173/?preview=results or ?preview=analytics
+// Dev-only previews with sample data: http://localhost:5173/?preview=results, ?preview=analytics or ?preview=student
 const PREVIEW = import.meta.env.DEV ? new URLSearchParams(window.location.search).get('preview') : null
 const SHOW_RESULTS_PREVIEW = PREVIEW === 'results'
 const SHOW_ANALYTICS_PREVIEW = PREVIEW === 'analytics'
+const SHOW_STUDENT_PREVIEW = PREVIEW === 'student'
 
 // Everything behind sign-in is downloaded only when it is needed, so the landing page stays light.
 const ResultsPreview = lazy(() => import('./views/preview/ResultsPreview'))
 const AnalyticsPreview = lazy(() => import('./views/preview/AnalyticsPreview'))
+const StudentPreview = lazy(() => import('./views/preview/StudentPreview'))
 const LoginView = lazy(() => import('./views/auth/LoginView'))
 const ResetPasswordView = lazy(() => import('./views/auth/ResetPasswordView'))
 const AdminDashboard = lazy(() => import('./views/admin/AdminDashboard'))
@@ -83,6 +85,7 @@ function AppContent() {
 
   if (SHOW_RESULTS_PREVIEW) return <ResultsPreview />
   if (SHOW_ANALYTICS_PREVIEW) return <AnalyticsPreview />
+  if (SHOW_STUDENT_PREVIEW) return <StudentPreview />
 
   if (passwordRecovery) {
     return <ResetPasswordView />
@@ -123,6 +126,8 @@ function AppContent() {
       hod_student_analytics: 'Student Analytics',
       class_analytics: 'Class Analytics',
       hod_class_analytics: 'Class Analytics',
+      performance: 'My Performance',
+      profile: 'My Profile',
     }
     return titles[tab] || 'Workspace'
   }
@@ -178,6 +183,7 @@ function AppContent() {
       <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-6 lg:pl-64">
         <Header
           currentTabTitle={getTabTitle()}
+          onOpenProfile={currentUser.role === 'student' ? () => setActiveTab('profile') : undefined}
           onOpenNotifications={() => setIsNotifOpen(true)}
           onToggleMobileSidebar={() =>
             setIsMobileSidebarOpen(!isMobileSidebarOpen)

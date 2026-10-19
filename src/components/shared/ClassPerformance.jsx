@@ -17,10 +17,10 @@ const worst = (a, b) => (RISK_ORDER[a] <= RISK_ORDER[b] ? a : b);
 
 // Students in a class grouped by their attendance in it.
 const BANDS = [
-  { label: 'Below 65%', test: (p) => p < 65 },
-  { label: `65–${RISK_RULES.attendance.shortage - 1}%`, test: (p) => p >= 65 && p < RISK_RULES.attendance.shortage },
-  { label: `${RISK_RULES.attendance.shortage}–84%`, test: (p) => p >= RISK_RULES.attendance.shortage && p < 85 },
-  { label: '85% and above', test: (p) => p >= 85 }
+  { label: 'Below 75%', test: (p) => p < 75 },
+  { label: `75–${RISK_RULES.attendance.shortage - 1}%`, test: (p) => p >= 75 && p < RISK_RULES.attendance.shortage },
+  { label: `${RISK_RULES.attendance.shortage}–${RISK_RULES.attendance.warning - 1}%`, test: (p) => p >= RISK_RULES.attendance.shortage && p < RISK_RULES.attendance.warning },
+  { label: `${RISK_RULES.attendance.warning}% and above`, test: (p) => p >= RISK_RULES.attendance.warning }
 ];
 
 // Whole-class attendance and IA marks for one course at a time.

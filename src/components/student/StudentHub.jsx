@@ -19,6 +19,9 @@ import AttendanceRingChart from '../charts/AttendanceRingChart';
 import TrendChart from '../charts/TrendChart';
 import Badge from '../common/Badge';
 import { formatTime } from '../../utils/time';
+import { RISK_RULES } from '../../utils/risk';
+
+const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
 
 export default function StudentHub({ onNavigateTab }) {
   const { currentUser } = useAuth();
@@ -99,8 +102,8 @@ export default function StudentHub({ onNavigateTab }) {
         </div>
       </div>
 
-      {/* Attendance Shortage Warning Banner if < 75% */}
-      {overallAttendanceRate < 75 && (
+      {/* Attendance shortage banner below the SEE minimum */}
+      {overallAttendanceRate < MIN_ATTENDANCE && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs animate-slide-up">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -108,7 +111,7 @@ export default function StudentHub({ onNavigateTab }) {
               Low Attendance Warning ({overallAttendanceRate}% Overall)
             </h4>
             <p className="text-xs text-rose-700 mt-0.5">
-              Your overall attendance is currently below the mandatory 75% university examination threshold. Please attend upcoming sessions to regain eligibility.
+              Your overall attendance is currently below the mandatory {MIN_ATTENDANCE}% needed to sit the SEE. Please attend upcoming sessions to regain eligibility.
             </p>
           </div>
           <button
@@ -125,11 +128,11 @@ export default function StudentHub({ onNavigateTab }) {
         <StatCard
           title="Overall Attendance"
           value={`${overallAttendanceRate}%`}
-          subtitle={overallAttendanceRate >= 75 ? 'Meets 75% criteria' : 'Attendance shortage alert'}
+          subtitle={overallAttendanceRate >= MIN_ATTENDANCE ? `Meets ${MIN_ATTENDANCE}% criteria` : 'Attendance shortage alert'}
           icon={CheckSquare}
-          iconBg={overallAttendanceRate >= 75 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}
-          badgeText={overallAttendanceRate >= 75 ? 'Eligible' : 'Shortage'}
-          badgeVariant={overallAttendanceRate >= 75 ? 'success' : 'danger'}
+          iconBg={overallAttendanceRate >= MIN_ATTENDANCE ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}
+          badgeText={overallAttendanceRate >= MIN_ATTENDANCE ? 'Eligible' : 'Shortage'}
+          badgeVariant={overallAttendanceRate >= MIN_ATTENDANCE ? 'success' : 'danger'}
           onClick={() => onNavigateTab('attendance')}
         />
 
