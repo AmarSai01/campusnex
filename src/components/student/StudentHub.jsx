@@ -18,6 +18,7 @@ import StatCard from '../common/StatCard';
 import AttendanceRingChart from '../charts/AttendanceRingChart';
 import TrendChart from '../charts/TrendChart';
 import Badge from '../common/Badge';
+import { formatTime } from '../../utils/time';
 
 export default function StudentHub({ onNavigateTab }) {
   const { currentUser } = useAuth();
@@ -248,7 +249,7 @@ export default function StudentHub({ onNavigateTab }) {
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="p-2 rounded-lg bg-brand-50 text-brand-700 font-extrabold text-[11px] shrink-0 border border-brand-100">
-                          {slot.start_time}
+                          {formatTime(slot.start_time)}
                         </div>
                         <div className="truncate">
                           <p className="text-xs font-bold text-slate-900 truncate">

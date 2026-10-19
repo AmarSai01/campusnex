@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import { formatTimeRange } from '../../utils/time';
 
 export default function StudentExamView() {
   const { currentUser } = useAuth();
@@ -222,7 +223,7 @@ export default function StudentExamView() {
                     </span>
                     <span className="flex items-center gap-1.5 font-semibold text-slate-600">
                       <Clock className="w-4 h-4 text-slate-400" />
-                      {exam.start_time} – {exam.end_time}
+                      {formatTimeRange(exam.start_time, exam.end_time)}
                     </span>
                   </div>
                 </div>
@@ -354,7 +355,7 @@ export default function StudentExamView() {
                 {examsWithSeats.map((exam) => (
                   <tr key={exam.id} className="hover:bg-slate-50">
                     <td className="py-2.5 px-3 font-bold">{exam.exam_date}</td>
-                    <td className="py-2.5 px-3 text-slate-600">{exam.start_time} - {exam.end_time}</td>
+                    <td className="py-2.5 px-3 text-slate-600">{formatTimeRange(exam.start_time, exam.end_time)}</td>
                     <td className="py-2.5 px-3 font-extrabold text-slate-900">{exam.subject}</td>
                     <td className="py-2.5 px-3 font-semibold text-indigo-700">{exam.assignedRoomName}</td>
                     <td className="py-2.5 px-3 text-center">

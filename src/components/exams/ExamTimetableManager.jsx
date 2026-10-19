@@ -15,6 +15,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import { formatTimeRange } from '../../utils/time';
 
 export default function ExamTimetableManager() {
   const { currentUser } = useAuth();
@@ -382,7 +383,7 @@ export default function ExamTimetableManager() {
                     </span>
                     <span className="flex items-center gap-1 text-slate-600 font-semibold">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      {exam.start_time} – {exam.end_time}
+                      {formatTimeRange(exam.start_time, exam.end_time)}
                     </span>
                   </div>
 

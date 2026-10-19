@@ -1,4 +1,5 @@
 // Conflict Detection Utility for Timetable Builder
+import { formatTimeRange } from './time';
 
 /**
  * Checks if two time intervals overlap (e.g. "09:00" - "10:00" vs "09:30" - "10:30")
@@ -50,7 +51,7 @@ export function detectTimetableConflict(newSlot, existingTimetable, courses = []
         conflicts.push({
           type: 'faculty',
           title: 'Faculty Schedule Conflict',
-          message: `${facultyName} is already assigned to ${courseName} (Room ${slot.room}, Sec ${slot.section}) on ${slot.day_of_week} at ${slot.start_time} - ${slot.end_time}.`,
+          message: `${facultyName} is already assigned to ${courseName} (Room ${slot.room}, Sec ${slot.section}) on ${slot.day_of_week} at ${formatTimeRange(slot.start_time, slot.end_time)}.`,
           conflictingSlot: slot
         });
       }
@@ -63,7 +64,7 @@ export function detectTimetableConflict(newSlot, existingTimetable, courses = []
         conflicts.push({
           type: 'room',
           title: 'Room Double-Booking Conflict',
-          message: `Room "${slot.room}" is already booked for ${courseName} (Sec ${slot.section}) on ${slot.day_of_week} at ${slot.start_time} - ${slot.end_time}.`,
+          message: `Room "${slot.room}" is already booked for ${courseName} (Sec ${slot.section}) on ${slot.day_of_week} at ${formatTimeRange(slot.start_time, slot.end_time)}.`,
           conflictingSlot: slot
         });
       }
@@ -80,7 +81,7 @@ export function detectTimetableConflict(newSlot, existingTimetable, courses = []
         conflicts.push({
           type: 'section',
           title: 'Student Section Schedule Collision',
-          message: `Section ${slot.section} already has ${courseName} scheduled at ${slot.start_time} - ${slot.end_time}.`,
+          message: `Section ${slot.section} already has ${courseName} scheduled at ${formatTimeRange(slot.start_time, slot.end_time)}.`,
           conflictingSlot: slot
         });
       }

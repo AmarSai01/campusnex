@@ -14,6 +14,7 @@ import { classGroupKey, detectTimetableConflict } from '../../utils/conflictDete
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
+import { formatTimeRange } from '../../utils/time';
 
 const DEFAULT_ROOMS = ['LH-101', 'LH-102', 'Lab-CSE-2', 'Seminar-Hall-1'];
 
@@ -127,7 +128,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
   const handleDelete = (slot, course) => {
     setConfirmRequest({
       title: 'Remove this class?',
-      message: `${course ? `${course.code}: ${course.name}` : 'This class'} on ${slot.day_of_week}, ${slot.start_time} to ${slot.end_time}, will be removed from the timetable.`,
+      message: `${course ? `${course.code}: ${course.name}` : 'This class'} on ${slot.day_of_week}, ${formatTimeRange(slot.start_time, slot.end_time)}, will be removed from the timetable.`,
       confirmLabel: 'Remove class',
       onConfirm: () => deleteTimetableSlot(slot.id)
     });
@@ -244,12 +245,12 @@ export default function TimetableBuilder({ onNavigateTab }) {
                               className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-brand-300 hover:shadow-card transition-all flex flex-col justify-between"
                             >
                               <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">
+                                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 whitespace-nowrap tabular-nums">
                                     <Clock className="w-3 h-3" />
-                                    {slot.start_time} - {slot.end_time}
+                                    {formatTimeRange(slot.start_time, slot.end_time)}
                                   </span>
-                                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
+                                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 whitespace-nowrap">
                                     Room {slot.room}
                                   </span>
                                 </div>

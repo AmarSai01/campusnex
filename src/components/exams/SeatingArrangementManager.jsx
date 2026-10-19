@@ -17,6 +17,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import { formatTimeRange } from '../../utils/time';
 
 export default function SeatingArrangementManager() {
   const { currentUser } = useAuth();
@@ -380,7 +381,7 @@ export default function SeatingArrangementManager() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    {currentExam.start_time} – {currentExam.end_time}
+                    {formatTimeRange(currentExam.start_time, currentExam.end_time)}
                   </span>
                 </div>
               )}
@@ -634,7 +635,7 @@ export default function SeatingArrangementManager() {
               <option value="">-- Choose Exam --</option>
               {schedulableExams.map(exam => (
                 <option key={exam.id} value={exam.id}>
-                  {exam.subject} ({exam.exam_date} • {exam.start_time}-{exam.end_time})
+                  {exam.subject} ({exam.exam_date} • {formatTimeRange(exam.start_time, exam.end_time)})
                 </option>
               ))}
             </select>

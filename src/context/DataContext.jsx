@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { TABLES, toRow } from '../lib/db-schema';
 import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } from '../utils/enrollment';
 import { gpa } from '../utils/results';
+import { formatTimeRange } from '../utils/time';
 
 export const DataContext = createContext(null);
 
@@ -539,7 +540,7 @@ export function DataProvider({ children }) {
           type: 'timetable_changed',
           reference_id: slotId,
           title: `Timetable Updated: ${courseName}`,
-          message: `Scheduled on ${slotData.day_of_week} at ${slotData.start_time} - ${slotData.end_time} in ${slotData.room}.`
+          message: `Scheduled on ${slotData.day_of_week} at ${formatTimeRange(slotData.start_time, slotData.end_time)} in ${slotData.room}.`
         }));
       });
 
@@ -1180,7 +1181,7 @@ export function DataProvider({ children }) {
           type: 'exam_scheduled',
           reference_id: newId,
           title: `Exam Scheduled: ${newExam.subject}`,
-          message: `Scheduled on ${newExam.exam_date} (${newExam.start_time} - ${newExam.end_time}). Rooms: ${newExam.rooms.join(', ') || 'TBD'}.`
+          message: `Scheduled on ${newExam.exam_date} (${formatTimeRange(newExam.start_time, newExam.end_time)}). Rooms: ${newExam.rooms.join(', ') || 'TBD'}.`
         }));
       });
 
