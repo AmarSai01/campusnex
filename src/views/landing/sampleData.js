@@ -1,25 +1,25 @@
 // Illustrative data for the landing page demos. Every name and number here is fictional
 // and is labelled "sample data" wherever it is shown.
 
-export const SESSION_COUNT = 12;
+export const SESSION_COUNT = 10;
 
-// P = present, A = absent, L = late. One student sits exactly on 75% so a single
-// absence shows the shortage alert.
+// P = present, A = absent, L = late (half a class). The shortage line is 85%, the SEE
+// minimum. Rohan sits exactly on 85% (8.5 of 10) so a single absence shows the alert.
 export const REGISTER_STUDENTS = [
-  { id: 'r1', name: 'Ananya Rao', usn: '1CN23CS014', marks: 'PPPPPPLPPPPP' },
-  { id: 'r2', name: 'Rohan Shetty', usn: '1CN23CS027', marks: 'PPAPPPAPPAPP' },
-  { id: 'r3', name: 'Meera Iyer', usn: '1CN23CS031', marks: 'PPPPLPPPPPPP' },
-  { id: 'r4', name: 'Farhan Ali', usn: '1CN23CS042', marks: 'PAPPAPPLPPAP' },
-  { id: 'r5', name: 'Divya Nair', usn: '1CN23CS055', marks: 'PPPPPPPPPAPP' }
+  { id: 'r1', name: 'Ananya Rao', usn: '1CN23CS014', marks: 'PPPPPPLPPP' },
+  { id: 'r2', name: 'Rohan Shetty', usn: '1CN23CS027', marks: 'PPAPPPLPPP' },
+  { id: 'r3', name: 'Meera Iyer', usn: '1CN23CS031', marks: 'PPPPLPPPPP' },
+  { id: 'r4', name: 'Farhan Ali', usn: '1CN23CS042', marks: 'PAPPAPPLPP' },
+  { id: 'r5', name: 'Divya Nair', usn: '1CN23CS055', marks: 'PPPPPPPAPP' }
 ];
 
 export const ADMIN_DEPARTMENTS = [
-  { code: 'CSE', attendance: 88 },
-  { code: 'ISE', attendance: 84 },
-  { code: 'ECE', attendance: 79 },
-  { code: 'EEE', attendance: 76 },
-  { code: 'ME', attendance: 72 },
-  { code: 'CE', attendance: 81 }
+  { code: 'CSE', attendance: 92 },
+  { code: 'ISE', attendance: 89 },
+  { code: 'ECE', attendance: 86 },
+  { code: 'EEE', attendance: 83 },
+  { code: 'ME', attendance: 79 },
+  { code: 'CE', attendance: 87 }
 ];
 
 export const ADMIN_KPIS = [

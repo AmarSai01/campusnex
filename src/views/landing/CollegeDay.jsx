@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { BellRing, Check, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 import { useSectionBackdrop, useSetBackdrop } from './Backdrop'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -78,7 +79,7 @@ const HodScreen = () => (
   <Screen title="HOD, CSE department: needs attention">
     <ul className="space-y-3">
       {AT_RISK.map(([name, what, value]) => {
-        const limit = what.includes('IA') ? 40 : 75
+        const limit = what.includes('IA') ? RISK_RULES.marks.fail : RISK_RULES.attendance.shortage
         return (
           <li key={name + what}>
             <div className="flex justify-between text-sm">
@@ -129,7 +130,7 @@ const SeatScreen = () => (
 const STEPS = [
   { time: '8:45 am', who: 'Faculty', theme: 'dawn', title: 'Attendance for a full class in under a minute', body: 'The teacher marks CS301. Rohan is absent, which takes him to 67%.', Screen: AttendanceScreen },
   { time: '11:30 am', who: 'Faculty', theme: 'morning', title: 'IA-2 marks, published when ready', body: 'Marks stay hidden until the teacher publishes. Then all 60 students see their score.', Screen: MarksScreen },
-  { time: '2:30 pm', who: 'HOD', theme: 'afternoon', title: 'The HOD sees who is slipping', body: 'Every student below 75% attendance or a 40% IA average is already on the list.', Screen: HodScreen },
+  { time: '2:30 pm', who: 'HOD', theme: 'afternoon', title: 'The HOD sees who is slipping', body: `Every student below ${RISK_RULES.attendance.shortage}% attendance or a ${RISK_RULES.marks.fail}% IA average is already on the list.`, Screen: HodScreen },
   { time: '5:00 pm', who: 'Student', theme: 'dusk', title: 'Students know where they stand', body: 'Rohan sees his exam room and seat, and a nudge about his attendance.', Screen: SeatScreen },
 ]
 

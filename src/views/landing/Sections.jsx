@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 
 // Demo address for now (.example never delivers); replace with the real contact email.
 export const CONTACT_EMAIL = 'hello@campusnex.example'
@@ -172,9 +173,11 @@ export function Plans() {
   )
 }
 
+const SHORTAGE = RISK_RULES.attendance.shortage
+
 const FAQS = [
   ['Who can sign in?', 'Only people your administrator has added. There is no public sign-up. Each person chooses “Activate your account” on the login page and sets their own password using the email the college registered.'],
-  ['How does the 75% alert work?', 'Attendance is calculated per subject, with a late counting as half a class. Once at least four classes are held, a student who drops below 75% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below 40%.'],
+  [`How does the ${SHORTAGE}% alert work?`, `Attendance is calculated per subject, with a late counting as half a class. Students need ${SHORTAGE}% in each subject to sit the SEE. Once at least four classes are held, a student who drops below ${SHORTAGE}% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below ${RISK_RULES.marks.fail}%.`],
   ['Can we bring in our existing student list?', 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. Every row is checked before anything is saved, and students are enrolled in their courses automatically.'],
   ['How do semester results work?', 'The admin uploads the university result file as CSV. Grades follow the 10-point scale, and SGPA and CGPA are worked out automatically. Students see their results only after the admin publishes the semester, and they get a notification when that happens.'],
   ['What does an HOD see that faculty don’t?', 'A view-only overview of every student in their department, subject by subject, with at-risk students flagged, plus which classes are behind on attendance, IA publishing or grading. HODs can also add and edit students and post department notices.'],
@@ -270,8 +273,8 @@ export function Footer({ onSignIn }) {
           </span>
           <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
           <p className="mt-2 text-sm leading-relaxed text-mist">
-            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the 75%
-            attendance rule.
+            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the {SHORTAGE}%
+            attendance rule for SEE eligibility.
           </p>
           {HAS_CONTACT_EMAIL && (
             <a href={contactHref('Campusnex enquiry')} className="mt-3 inline-block text-sm text-white/80 hover:text-white">

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
+import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import CampusOverview from './CampusOverview'
@@ -22,7 +23,7 @@ function Section({ id, theme, className = '', children }) {
 // Words from an Indian college office, not a generic ERP brochure.
 const STRIP = [
   'Sem 5 Sec A', 'IA-2 published', 'Circular No. 42', 'HOD review', 'Seat S-07, LH-101',
-  'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', '75% attendance rule', 'Exam hall LH-102',
+  'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', `${RISK_RULES.attendance.shortage}% attendance rule`, 'Exam hall LH-102',
 ]
 
 const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
