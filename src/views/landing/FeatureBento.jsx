@@ -239,7 +239,7 @@ export default function FeatureBento() {
     <div className="grid gap-4 lg:grid-cols-3">
       <Tile
         className="px-2.5 sm:px-6 lg:col-span-3"
-        title={`Attendance with a ${SHORTAGE}% alert`}
+        title={`Attendance with an ${SHORTAGE}% alert`}
         body={`Mark a class in seconds. When a student drops below ${SHORTAGE}%, the student, the subject teacher and the HOD are told at once. Tap any cell to try it.`}
       >
         <HeroRegister />

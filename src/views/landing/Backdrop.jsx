@@ -58,7 +58,7 @@ const SUBJECTS = {
 // Spread over three screens (band) so only six or seven show at once, kept near the edges.
 // Real college terms (only things Campusnex actually handles).
 const VOCAB = [
-  'P', 'A', 'L', '74%', '85%', 'Shortage', 'USN', 'Sem 5', 'Sec A', 'Batch 2023',
+  'P', 'A', 'L', '84%', '85%', 'Shortage', 'USN', 'Sem 5', 'Sec A', 'Batch 2023',
   'IA-1', 'IA-2', 'IA-3', 'CIE', 'SEE', 'Viva', 'Quiz', 'Assignment', '38/50', 'Period 3',
   'Credits 4', 'Elective', 'Odd sem', 'Even sem', 'Sem 3', 'Sem 6', 'Sem 8', 'Sec B', 'Batch 2024', 'Exam hall',
   'LH-101', 'LH-102', 'Seat S-12', 'Invigilator', 'HOD', 'Principal', 'Registrar', 'Circular', 'Notice', 'Timetable',
