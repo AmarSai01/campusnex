@@ -90,7 +90,7 @@ export default function ExamManagement({ initialTab = 'seating' }) {
 
       {/* Sub-tab Content */}
       <div className="transition-all duration-200">
-        {activeSubTab === 'seating' && <SeatingArrangementManager />}
+        {activeSubTab === 'seating' && <SeatingArrangementManager onNavigate={setActiveSubTab} />}
         {activeSubTab === 'timetable' && <ExamTimetableManager />}
         {activeSubTab === 'rooms' && <RoomManagement />}
       </div>

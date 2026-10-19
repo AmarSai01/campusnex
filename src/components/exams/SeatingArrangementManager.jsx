@@ -17,9 +17,10 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import SeatingSetupChecklist from './SeatingSetupChecklist';
 import { formatTimeRange } from '../../utils/time';
 
-export default function SeatingArrangementManager() {
+export default function SeatingArrangementManager({ onNavigate }) {
   const { currentUser } = useAuth();
   const {
     departments = [],
@@ -37,6 +38,8 @@ export default function SeatingArrangementManager() {
   const schedulableExams = isFaculty
     ? exam_timetables.filter(e => e.department_id === facultyDeptId)
     : exam_timetables;
+  // A plan needs at least one exam room and one scheduled exam.
+  const setupReady = exam_rooms.length > 0 && schedulableExams.length > 0;
 
   const [selectedPlanId, setSelectedPlanId] = useState(
     exam_seating_plans[0]?.id || ''
@@ -215,6 +218,15 @@ export default function SeatingArrangementManager() {
   const selectedRoomsList = exam_rooms.filter(r => formData.room_ids.includes(r.id));
   const totalModalCapacity = selectedRoomsList.reduce((sum, r) => sum + (Number(r.capacity) || 0), 0);
 
+  const setupChecklist = (
+    <SeatingSetupChecklist
+      roomCount={exam_rooms.length}
+      examCount={schedulableExams.length}
+      canManageRooms={isAdmin}
+      onNavigate={onNavigate && ((tab) => { setIsGenerateModalOpen(false); onNavigate(tab); })}
+    />
+  );
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Toast Alert */}
@@ -316,7 +328,9 @@ export default function SeatingArrangementManager() {
 
           {visiblePlans.length === 0 && (
             <span className="text-xs text-slate-400 italic px-2">
-              No seating arrangements found. Click "Generate Seating Plan" to create one.
+              {setupReady
+                ? 'No seating plans yet. Use Generate Seating Plan to create one.'
+                : 'No seating plans yet. Add rooms and schedule an exam first.'}
             </span>
           )}
         </div>
@@ -587,6 +601,8 @@ export default function SeatingArrangementManager() {
             </div>
           )}
         </div>
+      ) : (isAdmin || isFaculty) && !setupReady ? (
+        setupChecklist
       ) : (
         <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-300">
           <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -613,6 +629,7 @@ export default function SeatingArrangementManager() {
         subtitle="Select a room and choose two branch+section groups. Capacity will be split proportionally with alternating seat numbers."
         maxWidth="max-w-2xl"
       >
+        {!setupReady ? setupChecklist : (
         <form onSubmit={handleGenerateSubmit} className="space-y-4">
           {formError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
@@ -847,6 +864,7 @@ export default function SeatingArrangementManager() {
             </button>
           </div>
         </form>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}
