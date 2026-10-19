@@ -70,7 +70,10 @@ export const TABLES = [
   {
     key: 'calendar_events',
     table: 'calendar_events',
-    columns: ['id', 'date', 'end_date', 'type', 'title', 'description', 'affects_section', 'created_by', 'created_at']
+    columns: [
+      'id', 'date', 'end_date', 'type', 'title', 'description', 'affects_department_id', 'affects_semester',
+      'affects_section', 'created_by', 'created_at'
+    ]
   },
   {
     key: 'notifications',

@@ -13,6 +13,7 @@ import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
+import { describeScope, eventAppliesTo } from '../../utils/calendarScope';
 
 // Parse 'YYYY-MM-DD' as a local date; new Date('YYYY-MM-DD') is UTC and can show the previous day.
 const parseLocalDate = (value) => {
@@ -26,9 +27,8 @@ const todayISO = () => {
 };
 
 export default function CalendarManager() {
-  const { calendar_events, users, createCalendarEvent, deleteCalendarEvent } = useData();
+  const { calendar_events, users, courses, departments, createCalendarEvent, deleteCalendarEvent } = useData();
   const [confirmRequest, setConfirmRequest] = useState(null);
-  const sections = [...new Set(users.filter(u => u.role === 'student' && u.section).map(u => u.section))].sort();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,7 +36,9 @@ export default function CalendarManager() {
     type: 'holiday', // 'holiday' | 'exam' | 'working_day'
     title: '',
     description: '',
-    affects_section: '' // '' for All, 'A', 'B'
+    affects_department_id: '',
+    affects_semester: '',
+    affects_section: ''
   });
 
   const [formError, setFormError] = useState('');
@@ -47,6 +49,8 @@ export default function CalendarManager() {
       type: 'holiday',
       title: '',
       description: '',
+      affects_department_id: '',
+      affects_semester: '',
       affects_section: ''
     });
     setFormError('');
@@ -66,10 +70,46 @@ export default function CalendarManager() {
 
     createCalendarEvent({
       ...formData,
+      affects_department_id: formData.affects_department_id || null,
+      affects_semester: formData.affects_semester ? Number(formData.affects_semester) : null,
       affects_section: formData.affects_section || null
     });
     setIsModalOpen(false);
   };
+
+  // Classes that exist, from students and courses, so the pickers only offer real options.
+  const classRows = [
+    ...users.filter(u => u.role === 'student' && u.status !== 'inactive'),
+    ...courses
+  ].filter(r => r.department_id && r.semester);
+  const scopeDept = formData.affects_department_id;
+  const scopeSem = formData.affects_semester;
+  const semesterOptions = scopeDept
+    ? [...new Set(classRows.filter(r => r.department_id === scopeDept).map(r => Number(r.semester)))].sort((a, b) => a - b)
+    : [1, 2, 3, 4, 5, 6, 7, 8];
+  const sectionOptions = scopeDept && scopeSem
+    ? [...new Set(classRows
+        .filter(r => r.department_id === scopeDept && Number(r.semester) === Number(scopeSem) && r.section)
+        .map(r => r.section))].sort()
+    : [];
+
+  const setScope = (field, value) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      // A narrower choice that may not exist under the new department or semester is cleared.
+      if (field === 'affects_department_id') { next.affects_semester = ''; next.affects_section = ''; }
+      if (field === 'affects_semester') next.affects_section = '';
+      return next;
+    });
+  };
+
+  const draftScope = {
+    affects_department_id: formData.affects_department_id || null,
+    affects_semester: formData.affects_semester ? Number(formData.affects_semester) : null,
+    affects_section: formData.affects_section || null
+  };
+  const scopeLabel = describeScope(draftScope, departments);
+  const reachedStudents = users.filter(u => u.role === 'student' && u.status !== 'inactive' && eventAppliesTo(draftScope, u)).length;
 
   const sortedEvents = [...calendar_events].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
@@ -155,17 +195,17 @@ export default function CalendarManager() {
                   {evt.description || 'No additional description provided.'}
                 </p>
 
-                {evt.affects_section && (
+                {describeScope(evt, departments) !== 'Whole institution' && (
                   <div className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                     <Tag className="w-3 h-3" />
-                    Section {evt.affects_section} Only
+                    {describeScope(evt, departments)}
                   </div>
                 )}
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-semibold">
-                  {evt.affects_section ? `Applies to Sec ${evt.affects_section}` : 'Campus-wide'}
+                  {describeScope(evt, departments) === 'Whole institution' ? 'Campus-wide' : 'Selected classes only'}
                 </span>
                 <button
                   onClick={() => setConfirmRequest({
@@ -191,7 +231,7 @@ export default function CalendarManager() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Create Academic Calendar Entry"
-        subtitle="Adds an official date to the institutional calendar and notifies students & faculty."
+        subtitle="Adds a date to the calendar and notifies the people it applies to."
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
@@ -243,21 +283,59 @@ export default function CalendarManager() {
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Section Scope (Optional)
-              </label>
-              <select
-                value={formData.affects_section}
-                onChange={(e) => setFormData({ ...formData, affects_section: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              >
-                <option value="">All Sections (Institution-Wide)</option>
-                {sections.map(s => (
-                  <option key={s} value={s}>Section {s} Only</option>
-                ))}
-              </select>
-            </div>
+            <fieldset className="sm:col-span-2 rounded-xl border border-brand-200 bg-brand-50/30 p-3.5">
+              <legend className="px-1 text-xs font-bold text-brand-700">Who it applies to</legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="block text-xs font-bold text-slate-700">
+                  Department
+                  <select
+                    value={formData.affects_department_id}
+                    onChange={(e) => setScope('affects_department_id', e.target.value)}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  >
+                    <option value="">All departments</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.code} · {d.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-bold text-slate-700">
+                  Semester
+                  <select
+                    value={formData.affects_semester}
+                    onChange={(e) => setScope('affects_semester', e.target.value)}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  >
+                    <option value="">All semesters</option>
+                    {semesterOptions.map(s => (
+                      <option key={s} value={s}>Semester {s}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-bold text-slate-700">
+                  Section
+                  <select
+                    value={formData.affects_section}
+                    onChange={(e) => setScope('affects_section', e.target.value)}
+                    disabled={sectionOptions.length === 0}
+                    title={sectionOptions.length === 0 ? 'Pick a department and semester to choose one section' : undefined}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    <option value="">All sections</option>
+                    {sectionOptions.map(s => (
+                      <option key={s} value={s}>Section {s}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-live="polite">
+                Applies to
+                <span className="rounded-md bg-brand-100 px-2 py-0.5 font-bold text-brand-800">{scopeLabel}</span>
+                <span>
+                  {reachedStudents} {reachedStudents === 1 ? 'student' : 'students'} and their teachers get notified
+                </span>
+              </p>
+            </fieldset>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1">

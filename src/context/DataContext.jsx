@@ -4,6 +4,7 @@ import { TABLES, toRow } from '../lib/db-schema';
 import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } from '../utils/enrollment';
 import { gpa } from '../utils/results';
 import { formatTimeRange } from '../utils/time';
+import { eventAppliesTo } from '../utils/calendarScope';
 
 export const DataContext = createContext(null);
 
@@ -475,13 +476,9 @@ export function DataProvider({ children }) {
 
     setData((prev) => {
       const newNotifs = [...prev.notifications];
-      // Notify all users about holiday / exam
+      // Notify the students and faculty the event applies to
       prev.users.forEach(u => {
-        if (u.role === 'student' || u.role === 'faculty') {
-          // If affects specific section, check student section
-          if (eventData.affects_section && u.section && u.section !== eventData.affects_section) {
-            return;
-          }
+        if ((u.role === 'student' || u.role === 'faculty') && u.status !== 'inactive' && eventAppliesTo(newEvt, u)) {
           newNotifs.unshift(addNotification({
             user_id: u.id,
             type: 'calendar_event_added',

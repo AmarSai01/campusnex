@@ -11,18 +11,17 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
+import { eventAppliesTo, describeScope } from '../../utils/calendarScope';
 
 export default function StudentCalendar() {
   const { currentUser } = useAuth();
-  const { calendar_events } = useData();
+  const { calendar_events, departments } = useData();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date('2026-08-01'));
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'month'
 
-  // Filter events relevant to this student's section
-  const relevantEvents = calendar_events.filter(e =>
-    !e.affects_section || e.affects_section === currentUser?.section
-  ).sort((a, b) => new Date(a.date) - new Date(b.date));
+  // Only events that apply to this student's department, semester and section
+  const relevantEvents = calendar_events.filter(e => eventAppliesTo(e, currentUser)).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const prevMonth = () => {
     setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1));
@@ -116,9 +115,9 @@ export default function StudentCalendar() {
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-900">{formatted}</span>
-                  {evt.affects_section && (
+                  {describeScope(evt, departments) !== 'Whole institution' && (
                     <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                      Sec {evt.affects_section}
+                      {describeScope(evt, departments)}
                     </span>
                   )}
                 </div>
