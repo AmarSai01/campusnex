@@ -46,7 +46,7 @@ const rolePresets = {
   hod: {
     title: 'HOD Console',
     description:
-      "Everything faculty can do, plus a view-only overview of your department's attendance, marks and at-risk students.",
+      "Your department panel for attendance, marks, at-risk students and faculty compliance. Switch to your teaching workspace anytime.",
     badgeClass: 'border-sky-200 bg-sky-50 text-sky-700',
   },
   admin: {

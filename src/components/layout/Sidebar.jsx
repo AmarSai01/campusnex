@@ -28,6 +28,8 @@ import { cn } from '@/lib/utils'
 export default function Sidebar({
   activeTab,
   setActiveTab,
+  hodView,
+  onSwitchView,
   mobileOpen,
   setMobileOpen,
 }) {
@@ -80,10 +82,16 @@ export default function Sidebar({
         { id: 'hod_compliance', label: 'Faculty Compliance', icon: ClipboardCheck, badge: 'HOD' },
       ]
     : []
-  const navItems = [...(navConfigs[role] || navConfigs.student), ...hodItems]
-  const workspaceLabel = isHod
+  // An HOD sees either the department tools or their teaching tools, never both.
+  const navItems = hodView ? hodItems : navConfigs[role] || navConfigs.student
+  const workspaceLabel = hodView
     ? `HOD · ${hodDepartments.map((d) => d.code).join(', ')}`
     : `${role} Workspace`
+
+  const handleSwitchView = (toHodPanel) => {
+    onSwitchView(toHodPanel)
+    if (setMobileOpen) setMobileOpen(false)
+  }
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId)
@@ -121,6 +129,40 @@ export default function Sidebar({
             </p>
           </div>
         </div>
+
+        {isHod && (
+          <div className="border-b border-sidebar-border px-3 py-3">
+            <div
+              role="group"
+              aria-label="Switch workspace"
+              className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1"
+            >
+              {[
+                { toHodPanel: true, label: 'HOD Panel', icon: ShieldCheck },
+                { toHodPanel: false, label: 'Teaching', icon: BookOpen },
+              ].map(({ toHodPanel, label, icon: Icon }) => {
+                const isActive = hodView === toHodPanel
+                return (
+                  <Button
+                    key={label}
+                    variant="ghost"
+                    aria-pressed={isActive}
+                    onClick={() => !isActive && handleSwitchView(toHodPanel)}
+                    className={cn(
+                      'h-8 gap-1.5 rounded-lg px-2 text-xs font-semibold',
+                      isActive
+                        ? 'bg-background font-bold text-foreground shadow-sm hover:bg-background'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <ScrollArea className="flex-1 px-3 py-4">
           <div className="space-y-1">

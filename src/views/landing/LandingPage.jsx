@@ -3,7 +3,7 @@ import { MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
-import HeroRegister from './HeroRegister'
+import CampusOverview from './CampusOverview'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
 import { ClosingCall, contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
@@ -13,7 +13,7 @@ function Section({ id, theme, className = '', children }) {
   const ref = useRef(null)
   useSectionBackdrop(ref, theme)
   return (
-    <section ref={ref} id={id} className={`scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32 ${className}`}>
+    <section ref={ref} id={id} className={`scroll-mt-20 px-4 py-16 sm:px-6 sm:py-32 ${className}`}>
       <div className="mx-auto max-w-6xl">{children}</div>
     </section>
   )
@@ -103,7 +103,7 @@ function Page({ onSignIn }) {
                 href={contactHref('Campusnex pilot request')}
                 borderRadius="0.75rem"
                 duration={3200}
-                containerClassName="h-12 w-44"
+                containerClassName="h-12 w-full max-w-64 sm:w-44"
                 borderClassName="bg-[radial-gradient(#ff5c00_40%,transparent_60%)]"
                 className="border-night-line bg-night-2 text-sm font-semibold text-white"
               >
@@ -116,7 +116,7 @@ function Page({ onSignIn }) {
                 borderRadius="0.75rem"
                 duration={3200}
                 reverse
-                containerClassName="h-12 w-52 cursor-pointer"
+                containerClassName="h-12 w-full max-w-64 cursor-pointer sm:w-52"
                 borderClassName="bg-[radial-gradient(#93c5fd_40%,transparent_60%)]"
                 className="border-night-line bg-night-2 text-sm font-semibold text-white"
               >
@@ -131,7 +131,7 @@ function Page({ onSignIn }) {
             transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative mt-16"
           >
-            <HeroRegister />
+            <CampusOverview />
           </motion.div>
         </section>
 

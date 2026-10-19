@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, BellRing, CheckCircle2, ListChecks, RotateCcw, Shuffle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseCsv, validateImport } from '@/utils/studentImport'
+import HeroRegister from './HeroRegister'
 import { IMPORT_SAMPLE_CSV, IMPORT_SAMPLE_DEPARTMENTS, SEATING_STUDENTS } from './sampleData'
 
 // A dark card with a soft light that follows the cursor across it.
@@ -64,12 +65,12 @@ function SeatingDemo() {
             layout
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className={cn(
-              'rounded-md py-1.5 text-center text-[10px] font-bold sm:text-[11px]',
+              'rounded-md py-1.5 text-center text-[11px] font-bold',
               s.branch === 'CSE' ? 'bg-white text-night' : 'border border-brand-400/40 bg-brand-500/20 text-brand-200'
             )}
           >
             {s.branch}
-            <span className="block text-[9px] font-medium opacity-70 tabular-nums">S-{String(i + 1).padStart(2, '0')}</span>
+            <span className="block text-[10px] font-medium opacity-70 tabular-nums sm:text-[9px]">S-{String(i + 1).padStart(2, '0')}</span>
           </motion.li>
         ))}
       </ol>
@@ -233,6 +234,13 @@ function ClashDemo() {
 export default function FeatureBento() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
+      <Tile
+        className="px-2.5 sm:px-6 lg:col-span-3"
+        title="Attendance with a 75% alert"
+        body="Mark a class in seconds. When a student drops below 75%, the student, the subject teacher and the HOD are told at once. Tap any cell to try it."
+      >
+        <HeroRegister />
+      </Tile>
       <Tile
         className="lg:col-span-2 lg:row-span-2"
         title="Exam seating in one click"
