@@ -3,7 +3,7 @@ import { MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
-import HeroRegister from './HeroRegister'
+import CampusOverview from './CampusOverview'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
 import { ClosingCall, contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
@@ -131,7 +131,7 @@ function Page({ onSignIn }) {
             transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative mt-16"
           >
-            <HeroRegister />
+            <CampusOverview />
           </motion.div>
         </section>
 

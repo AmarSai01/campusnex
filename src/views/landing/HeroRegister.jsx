@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion'
 import { Inbox, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { REGISTER_STUDENTS, SESSION_COUNT } from './sampleData'
@@ -14,7 +14,7 @@ const BEAM_LEFT = NAME_W + COL_GAP + CELLS_W + COL_GAP + BAR_W * 0.75
 
 // Phones show only the latest classes, so the percentage and status fit without swiping.
 const PHONE_SESSIONS = 3
-const PHONE_COLUMNS = `minmax(0,1fr) ${PHONE_SESSIONS * 24 + (PHONE_SESSIONS - 1) * 4}px 40px 66px`
+const PHONE_COLUMNS = `minmax(0,1fr) ${PHONE_SESSIONS * 24 + (PHONE_SESSIONS - 1) * 4}px 36px 62px`
 
 function usePhone() {
   const query = '(max-width: 639px)'
@@ -81,13 +81,16 @@ export default function HeroRegister() {
     }
   }, [])
 
-  // Play the key moment once on its own: Rohan, sitting on exactly 75%, misses one class.
+  // Play the key moment once on its own, when the register comes into view:
+  // Rohan, sitting on exactly 75%, misses one class.
+  const inView = useInView(cardRef, { once: true, amount: 0.5 })
   useEffect(() => {
+    if (!inView) return undefined
     const t = setTimeout(() => {
       if (!interacted.current) toggle(REGISTER_STUDENTS[1], SESSION_COUNT - 1)
-    }, reduceMotion ? 600 : 2200)
+    }, reduceMotion ? 300 : 1200)
     return () => clearTimeout(t)
-  }, [toggle, reduceMotion])
+  }, [inView, toggle, reduceMotion])
 
   const landed = () => {
     setInbox((n) => n + 1)
@@ -158,7 +161,7 @@ export default function HeroRegister() {
               </div>
             )}
 
-            <div role="row" className={cn('grid items-end pt-4 pb-1 text-[11px] text-mist', phone ? 'gap-2' : 'gap-4')} style={{ gridTemplateColumns: columns }}>
+            <div role="row" className={cn('grid items-end pt-4 pb-1 text-[11px] text-mist', phone ? 'gap-1.5' : 'gap-4')} style={{ gridTemplateColumns: columns }}>
               <span role="columnheader">Student</span>
               <span role="columnheader" className="flex gap-1">
                 {Array.from({ length: SESSION_COUNT - firstShown }, (_, i) => (
@@ -183,7 +186,7 @@ export default function HeroRegister() {
                   ref={(el) => { rowRefs.current[student.id] = el }}
                   role="row"
                   animate={{ backgroundColor: short ? 'rgba(229,72,77,0.08)' : 'rgba(0,0,0,0)' }}
-                  className={cn('-mx-2 grid items-center rounded-lg px-2 py-2', phone ? 'gap-2' : 'gap-4')}
+                  className={cn('-mx-2 grid items-center rounded-lg px-2 py-2', phone ? 'gap-1.5' : 'gap-4')}
                   style={{ gridTemplateColumns: columns }}
                 >
                   <div role="rowheader">
