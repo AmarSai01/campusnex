@@ -11,13 +11,28 @@ import {
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import ConfirmDialog from '../common/ConfirmDialog';
+import EmptyState from '../common/EmptyState';
+
+// Parse 'YYYY-MM-DD' as a local date; new Date('YYYY-MM-DD') is UTC and can show the previous day.
+const parseLocalDate = (value) => {
+  const [y, m, d] = String(value).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
+const todayISO = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
 
 export default function CalendarManager() {
-  const { calendar_events, createCalendarEvent, deleteCalendarEvent } = useData();
+  const { calendar_events, users, createCalendarEvent, deleteCalendarEvent } = useData();
+  const [confirmRequest, setConfirmRequest] = useState(null);
+  const sections = [...new Set(users.filter(u => u.role === 'student' && u.section).map(u => u.section))].sort();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    date: '2026-09-25',
+    date: todayISO(),
     type: 'holiday', // 'holiday' | 'exam' | 'working_day'
     title: '',
     description: '',
@@ -28,10 +43,10 @@ export default function CalendarManager() {
 
   const handleOpenAddModal = () => {
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       type: 'holiday',
-      title: 'University Founders Day',
-      description: 'Campus holiday honoring institutional founding.',
+      title: '',
+      description: '',
       affects_section: ''
     });
     setFormError('');
@@ -56,7 +71,7 @@ export default function CalendarManager() {
     setIsModalOpen(false);
   };
 
-  const sortedEvents = [...calendar_events].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sortedEvents = [...calendar_events].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   const getTypeBadge = (type) => {
     switch (type) {
@@ -94,11 +109,21 @@ export default function CalendarManager() {
         </button>
       </div>
 
+      {sortedEvents.length === 0 && (
+        <EmptyState
+          icon={CalendarDays}
+          title="No calendar events yet"
+          description="Add holidays, exam weeks and working days. Students and faculty are notified when you add one."
+          actionLabel="Add Calendar Event"
+          onAction={handleOpenAddModal}
+        />
+      )}
+
       {/* Events List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sortedEvents.map((evt) => {
-          const dateObj = new Date(evt.date);
-          const formattedDate = dateObj.toLocaleDateString('en-US', {
+          const dateObj = parseLocalDate(evt.date);
+          const formattedDate = dateObj.toLocaleDateString('en-IN', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
@@ -113,7 +138,7 @@ export default function CalendarManager() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-xl bg-slate-100 text-slate-700 font-extrabold text-xs">
-                      {dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                      {dateObj.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
                     </div>
                     <div>
                       <p className="text-xs font-extrabold text-slate-900">{formattedDate}</p>
@@ -143,7 +168,13 @@ export default function CalendarManager() {
                   {evt.affects_section ? `Applies to Sec ${evt.affects_section}` : 'Campus-wide'}
                 </span>
                 <button
-                  onClick={() => deleteCalendarEvent(evt.id)}
+                  onClick={() => setConfirmRequest({
+                    title: `Delete "${evt.title}"?`,
+                    message: `This removes the ${formattedDate} entry from everyone's academic calendar.`,
+                    confirmLabel: 'Delete event',
+                    onConfirm: () => deleteCalendarEvent(evt.id)
+                  })}
+                  aria-label={`Delete ${evt.title}`}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                   title="Delete Event"
                 >
@@ -222,8 +253,9 @@ export default function CalendarManager() {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               >
                 <option value="">All Sections (Institution-Wide)</option>
-                <option value="A">Section A Only</option>
-                <option value="B">Section B Only</option>
+                {sections.map(s => (
+                  <option key={s} value={s}>Section {s} Only</option>
+                ))}
               </select>
             </div>
 
@@ -258,6 +290,8 @@ export default function CalendarManager() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }

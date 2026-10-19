@@ -18,6 +18,11 @@ function parseTimeInMinutes(timeStr) {
   return hours * 60 + minutes;
 }
 
+// Students in the same department, semester and section attend the same classes.
+export function classGroupKey(course) {
+  return `${course.department_id || ''}|${course.semester ?? ''}|${course.section || ''}`;
+}
+
 /**
  * Detects timetable scheduling conflicts
  * @param {Object} newSlot - { id, course_id, faculty_id, room, day_of_week, start_time, end_time, section }
@@ -63,9 +68,13 @@ export function detectTimetableConflict(newSlot, existingTimetable, courses = []
         });
       }
 
-      // 3. Section Conflict: Same section has overlapping classes
-      if (newSlot.section && slot.section && newSlot.section === slot.section) {
-        const course = courses.find(c => c.id === slot.course_id);
+      // 3. Section Conflict: the same class (department, semester, section) has overlapping classes
+      const course = courses.find(c => c.id === slot.course_id);
+      const newCourse = courses.find(c => c.id === newSlot.course_id);
+      const sameClass = course && newCourse
+        ? classGroupKey(course) === classGroupKey(newCourse)
+        : Boolean(newSlot.section && slot.section && newSlot.section === slot.section);
+      if (sameClass) {
         const courseName = course ? `${course.code} - ${course.name}` : 'Another Course';
 
         conflicts.push({

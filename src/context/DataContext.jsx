@@ -1016,6 +1016,7 @@ export function DataProvider({ children }) {
     setData((prev) => {
       const newNotifs = [...prev.notifications];
       const targetUsers = prev.users.filter(u => {
+        if (u.status === 'inactive') return false;
         if (targetRole === 'all') return true;
         return u.role === targetRole;
       });

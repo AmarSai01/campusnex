@@ -15,6 +15,7 @@ import {
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import EmptyState from '../common/EmptyState';
 import { studentMatchesCourse } from '../../utils/enrollment';
 
 export default function CourseManagement() {
@@ -37,6 +38,7 @@ export default function CourseManagement() {
     description: ''
   });
 
+  const [formError, setFormError] = useState('');
   const [reassignModalCourse, setReassignModalCourse] = useState(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState('');
 
@@ -53,6 +55,7 @@ export default function CourseManagement() {
       color: '#4f46e5',
       description: ''
     });
+    setFormError('');
     setIsModalOpen(true);
   };
 
@@ -62,22 +65,44 @@ export default function CourseManagement() {
       code: course.code,
       name: course.name,
       department_id: course.department_id,
-      faculty_id: course.faculty_id,
+      faculty_id: course.faculty_id || '',
       semester: course.semester,
       section: course.section,
       credits: course.credits || 4,
       color: course.color || '#4f46e5',
       description: course.description || ''
     });
+    setFormError('');
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const code = formData.code.trim().toUpperCase();
+    if (!code || !formData.name.trim()) {
+      setFormError('Course code and title are required.');
+      return;
+    }
+    if (!formData.department_id) {
+      setFormError('Choose a department. Add one in Manage Departments first if the list is empty.');
+      return;
+    }
+    const duplicate = courses.find(c =>
+      c.id !== editingCourse?.id &&
+      (c.code || '').toUpperCase() === code &&
+      c.department_id === formData.department_id &&
+      Number(c.semester) === Number(formData.semester) &&
+      c.section === formData.section
+    );
+    if (duplicate) {
+      setFormError(`${code} already exists for Sem ${formData.semester} Sec ${formData.section} in this department.`);
+      return;
+    }
+    const payload = { ...formData, code, name: formData.name.trim() };
     if (editingCourse) {
-      updateCourse(editingCourse.id, formData);
+      updateCourse(editingCourse.id, payload);
     } else {
-      createCourse(formData);
+      createCourse(payload);
     }
     setIsModalOpen(false);
   };
@@ -160,6 +185,16 @@ export default function CourseManagement() {
         </button>
       </div>
 
+      {courses.length === 0 && (
+        <EmptyState
+          icon={BookOpen}
+          title="No courses yet"
+          description="Add a course with its department, semester and section. Matching students are enrolled automatically."
+          actionLabel="Add New Course"
+          onAction={handleOpenCreateModal}
+        />
+      )}
+
       {/* Courses Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {courses.map((course) => {
@@ -199,7 +234,7 @@ export default function CourseManagement() {
                 <div className="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400 font-medium">Department:</span>
-                    <span className="font-bold text-slate-700">{dept?.code || 'CSE'}</span>
+                    <span className="font-bold text-slate-700">{dept?.code || '—'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400 font-medium">Credits:</span>
@@ -268,6 +303,11 @@ export default function CourseManagement() {
         subtitle="Specify curriculum details, department ownership, and initial instructor."
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+              {formError}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -314,7 +354,7 @@ export default function CourseManagement() {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Assign Instructor *
+                Assign Instructor
               </label>
               <select
                 value={formData.faculty_id}

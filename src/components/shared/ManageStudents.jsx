@@ -210,9 +210,9 @@ export default function ManageStudents() {
   };
 
   const getCreatorName = (authorId) => {
-    if (!authorId) return 'Registrar Admin';
+    if (!authorId) return 'System import';
     const creator = users.find(u => u.id === authorId);
-    return creator ? creator.name : authorId;
+    return creator ? creator.name : 'Removed user';
   };
 
   return (

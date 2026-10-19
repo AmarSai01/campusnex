@@ -24,7 +24,7 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
       case 'courses':
         return <CourseManagement />;
       case 'timetable':
-        return <TimetableBuilder />;
+        return <TimetableBuilder onNavigateTab={setActiveTab} />;
       case 'exam_seating':
         return <ExamManagement />;
       case 'results':
