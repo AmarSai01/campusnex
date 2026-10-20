@@ -11,6 +11,13 @@ import { supabase } from '@/lib/supabase'
 const ROLES = ['Principal', 'Director', 'HOD', 'College office or admin', 'Faculty', 'Other']
 const PLANS = { pilot: 'Department pilot', institution: 'Whole institution' }
 
+// How a pilot actually runs, so nobody wonders what happens after they press Send.
+const NEXT_STEPS = [
+  'We call you to understand your college.',
+  'We set up a demo, and you use it for a few days.',
+  'We take your inputs and build it the way your institution needs.',
+]
+
 const PilotContext = createContext(() => {})
 export const useRequestPilot = () => useContext(PilotContext)
 
@@ -175,6 +182,20 @@ function PilotForm({ plan, onDone }) {
         <Field id="pilot-message" label="Anything we should know?" optional>
           <input {...field('message')} maxLength={1000} placeholder="We want to start with CSE" />
         </Field>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-sm font-semibold text-white">What happens next</p>
+        <ol className="mt-3 space-y-2.5">
+          {NEXT_STEPS.map((step, i) => (
+            <li key={step} className="flex gap-3 text-sm text-mist">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-400/50 text-[11px] font-semibold text-brand-300">
+                {i + 1}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
       </div>
 
       {sendError && (

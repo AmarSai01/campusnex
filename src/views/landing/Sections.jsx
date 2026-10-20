@@ -146,7 +146,7 @@ export function Plans() {
       <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-night-2/60 p-7 backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Department pilot</h3>
-          <p className="mt-2 text-sm text-mist">One department, one term, to prove it works for your college.</p>
+          <p className="mt-2 text-sm text-mist">Start with one department. Try a demo for a few days, then we shape it around your college.</p>
           <ul className="mt-6 space-y-2.5 text-sm text-white/85">
             <li>Attendance, IA marks and assignments</li>
             <li>Timetable with clash checks</li>
