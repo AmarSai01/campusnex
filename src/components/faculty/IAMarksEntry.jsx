@@ -62,10 +62,10 @@ export default function IAMarksEntry() {
         course_id: selectedCourseId,
         ia_name: selectedIAName,
         name: student.name,
-        roll_no: student.roll_no || 'N/A',
+        roll_no: student.usn || student.roll_no || 'N/A',
         section: student.section || 'A',
         photo_url: student.photo_url,
-        score: existing ? existing.score : 40,
+        score: existing && existing.score !== null && existing.score !== undefined ? existing.score : '',
         max_score: existing ? existing.max_score : maxScore,
         published: existing ? existing.published : false,
         date: existing ? existing.date : new Date().toISOString().split('T')[0]
@@ -80,7 +80,8 @@ export default function IAMarksEntry() {
   }, [selectedCourseId, selectedIAName, enrollments, users, ia_marks]);
 
   const handleScoreChange = (studentId, val) => {
-    const num = Math.max(0, Math.min(maxScore, Number(val) || 0));
+    // Clearing the box means "not entered yet".
+    const num = val === '' ? '' : Math.max(0, Math.min(maxScore, Number(val) || 0));
     setMarksRoster(prev => prev.map(item =>
       item.student_id === studentId ? { ...item, score: num } : item
     ));
@@ -102,7 +103,8 @@ export default function IAMarksEntry() {
   const handleSave = () => {
     if (!selectedCourseId || marksRoster.length === 0) return;
 
-    const payload = marksRoster.map(item => ({
+    // Only students with a mark entered are saved; blank rows stay "not entered".
+    const payload = marksRoster.filter(item => item.score !== '').map(item => ({
       id: item.id,
       student_id: item.student_id,
       course_id: selectedCourseId,
@@ -249,7 +251,7 @@ export default function IAMarksEntry() {
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {marksRoster.map((item, idx) => {
-                const pct = Math.round((item.score / maxScore) * 100);
+                const pct = item.score === '' ? null : Math.round((item.score / maxScore) * 100);
                 return (
                   <tr key={item.student_id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-6 py-4">
@@ -274,6 +276,8 @@ export default function IAMarksEntry() {
                           min={0}
                           max={maxScore}
                           value={item.score}
+                          placeholder="—"
+                          aria-label={`Marks for ${item.name}`}
                           onChange={(e) => handleScoreChange(item.student_id, e.target.value)}
                           className="w-20 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-extrabold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                         />
@@ -283,9 +287,9 @@ export default function IAMarksEntry() {
 
                     <td className="px-6 py-4">
                       <span className={`font-extrabold text-xs ${
-                        pct >= 80 ? 'text-emerald-600' : pct >= 60 ? 'text-brand-600' : 'text-rose-600'
+                        pct === null ? 'text-slate-400' : pct >= 80 ? 'text-emerald-600' : pct >= 60 ? 'text-brand-600' : 'text-rose-600'
                       }`}>
-                        {pct}%
+                        {pct === null ? 'Not entered' : `${pct}%`}
                       </span>
                     </td>
 

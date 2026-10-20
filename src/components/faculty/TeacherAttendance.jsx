@@ -428,7 +428,7 @@ function ClassPanel({ item, status, data, now, requested, onSave, onCancelClass,
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-slate-600">
-                  {item.batch ? `Batch ${item.batch}` : `Sec ${item.course.section}`} students only · {counts[0]} present · {counts[1]} late · {counts[2]} absent
+                  Sem {item.course.semester} · {item.batch ? `Batch ${item.batch}` : `Sec ${item.course.section}`} students only · {counts[0]} present · {counts[1]} late · {counts[2]} absent
                 </p>
                 <button
                   type="button"
