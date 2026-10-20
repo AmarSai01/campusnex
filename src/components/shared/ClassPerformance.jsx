@@ -93,7 +93,7 @@ export default function ClassPerformance({ scope = 'teaching' }) {
       counts: attendanceCounts(records),
       classIA,
       bands,
-      sessions: new Set(records.map((a) => a.date)).size,
+      sessions: new Set(records.map((a) => a.session_id || a.date)).size,
       atRisk: rows.filter((r) => r.level === 'high').length,
       warning: rows.filter((r) => r.level === 'warning').length
     };

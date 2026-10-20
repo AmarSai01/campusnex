@@ -27,6 +27,8 @@ import {
   Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useData } from '../../context/DataContext'
+import { nowHHMM, todayISO, unmarkedClasses } from '../../utils/classSessions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -41,6 +43,13 @@ export default function Sidebar({
   setMobileOpen,
 }) {
   const { currentUser, logout, isHod, hodDepartments } = useAuth()
+  const data = useData()
+  // Classes from the last 7 days a teacher still has to mark.
+  const pending =
+    currentUser?.role === 'faculty'
+      ? unmarkedClasses(currentUser.id, data, { date: todayISO(), time: nowHHMM() }).length
+      : 0
+  const pendingBadge = pending ? `${pending} pending` : undefined
   const role = currentUser?.role || 'student'
 
   const navConfigs = {
@@ -62,7 +71,7 @@ export default function Sidebar({
     ],
     faculty: [
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },
-      { id: 'attendance', label: 'Mark Attendance', icon: CheckSquare, badge: 'Bulk' },
+      { id: 'attendance', label: 'Mark Attendance', icon: CheckSquare, badge: pendingBadge },
       { id: 'iamarks', label: 'IA Marks Entry', icon: Award, badge: 'Publish' },
       { id: 'student_analytics', label: 'Student Analytics', icon: UserRoundSearch },
       { id: 'class_analytics', label: 'Class Analytics', icon: ChartColumn },

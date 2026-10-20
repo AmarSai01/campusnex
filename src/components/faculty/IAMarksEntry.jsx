@@ -151,23 +151,43 @@ export default function IAMarksEntry() {
         </div>
       )}
 
-      {/* Selectors Bar */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-            Course *
-          </label>
-          <select
-            value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-            {myCourses.map(c => (
-              <option key={c.id} value={c.id}>{c.code} - {c.name} (Sec {c.section})</option>
-            ))}
-          </select>
-        </div>
+      {/* Class picker: one card per class (subject + semester + section) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Class">
+        {[...myCourses]
+          .sort((a, b) => a.code.localeCompare(b.code) || String(a.section).localeCompare(String(b.section)))
+          .map(c => {
+            const enrolled = enrollments.filter(e => e.course_id === c.id).length;
+            const entered = ia_marks.filter(
+              m => m.course_id === c.id && m.ia_name === selectedIAName && m.score !== null && m.score !== undefined
+            ).length;
+            const isSelected = c.id === selectedCourseId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => setSelectedCourseId(c.id)}
+                className={`text-left p-4 rounded-2xl border transition-colors ${
+                  isSelected
+                    ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
+                }`}
+              >
+                <span className="block text-sm font-extrabold text-slate-900">
+                  {c.code} · Sem {c.semester} · Sec {c.section}
+                </span>
+                <span className="block text-xs text-slate-500 truncate">{c.name}</span>
+                <span className="block mt-2 text-[11px] font-semibold text-slate-600">
+                  {enrolled} students · {entered} of {enrolled} marks entered for {selectedIAName.split(' ')[0]}
+                </span>
+              </button>
+            );
+          })}
+      </div>
 
+      {/* Selectors Bar */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5">
             Assessment Cycle *

@@ -6,6 +6,14 @@ import { gpa } from '../utils/results';
 import { formatTimeRange } from '../utils/time';
 import { eventAppliesTo } from '../utils/calendarScope';
 import { calendarAppliesTo } from '../utils/semesterCalendar';
+import {
+  addExtraClass,
+  cancelSession,
+  markSession,
+  requestUnlock,
+  restoreSession,
+  unlockSession
+} from '../utils/classSessions';
 
 export const DataContext = createContext(null);
 
@@ -185,46 +193,16 @@ export function DataProvider({ children }) {
     return newNotif;
   };
 
-  // 1. Bulk Attendance Marking
-  const markBulkAttendance = (courseId, date, attendanceList) => {
-    setData((prev) => {
-      const course = prev.courses.find(c => c.id === courseId);
-      const courseName = course ? course.name : 'Class';
-
-      // Remove existing attendance records for same course and date
-      const filtered = prev.attendance.filter(
-        a => !(a.course_id === courseId && a.date === date)
-      );
-
-      const newRecords = attendanceList.map((item) => ({
-        id: `att_${Date.now()}_${item.student_id}`,
-        course_id: courseId,
-        student_id: item.student_id,
-        date: date,
-        status: item.status // 'present' | 'absent' | 'late'
-      }));
-
-      // Trigger notifications for absent students
-      const newNotifs = [...prev.notifications];
-      attendanceList.forEach(item => {
-        if (item.status === 'absent') {
-          newNotifs.unshift(addNotification({
-            user_id: item.student_id,
-            type: 'attendance_absent',
-            reference_id: courseId,
-            title: 'Attendance Alert: Marked Absent',
-            message: `You were marked absent in ${courseName} on ${date}. Please contact your instructor if this is an error.`
-          }));
-        }
-      });
-
-      return {
-        ...prev,
-        attendance: [...filtered, ...newRecords],
-        notifications: newNotifs
-      };
-    });
-  };
+  // 1. Attendance, one class session at a time (see utils/classSessions.js)
+  const markClassSession = (item, statuses) =>
+    setData((prev) => markSession(prev, item, statuses, currentProfileId));
+  const cancelClassSession = (item, reason) => setData((prev) => cancelSession(prev, item, reason));
+  const restoreClassSession = (item) => setData((prev) => restoreSession(prev, item));
+  const addExtraClassSession = (fields) => setData((prev) => addExtraClass(prev, fields));
+  const requestAttendanceUnlock = (item) =>
+    setData((prev) => requestUnlock(prev, item, prev.users.find((u) => u.id === currentProfileId) || { name: 'A teacher' }));
+  const unlockClassSession = (item, today) =>
+    setData((prev) => unlockSession(prev, item, currentProfileId, today));
 
   // 2. IA Marks Entry & Publish / Unpublish
   const saveIAMarks = (marksArray) => {
@@ -1730,7 +1708,12 @@ export function DataProvider({ children }) {
         createStudentRequest,
         withdrawStudentRequest,
         answerStudentRequest,
-        markBulkAttendance,
+        markClassSession,
+        cancelClassSession,
+        restoreClassSession,
+        addExtraClassSession,
+        requestAttendanceUnlock,
+        unlockClassSession,
         saveIAMarks,
         createAssignment,
         submitAssignment,

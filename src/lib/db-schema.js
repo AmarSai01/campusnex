@@ -32,9 +32,22 @@ export const TABLES = [
     columns: ['id', 'student_id', 'course_id', 'enrolled_at']
   },
   {
+    key: 'timetable',
+    table: 'timetable',
+    columns: ['id', 'course_id', 'section', 'day_of_week', 'start_time', 'end_time', 'room', 'faculty_id', 'created_at']
+  },
+  {
+    key: 'class_sessions',
+    table: 'class_sessions',
+    columns: [
+      'id', 'course_id', 'timetable_id', 'date', 'start_time', 'end_time', 'room', 'kind', 'status',
+      'cancel_reason', 'marked_by', 'marked_at', 'unlocked_until', 'unlocked_by', 'created_at', 'updated_at'
+    ]
+  },
+  {
     key: 'attendance',
     table: 'attendance',
-    columns: ['id', 'course_id', 'student_id', 'date', 'status', 'marked_by', 'created_at']
+    columns: ['id', 'course_id', 'student_id', 'date', 'status', 'marked_by', 'session_id', 'created_at']
   },
   {
     key: 'ia_marks',
@@ -56,11 +69,6 @@ export const TABLES = [
       'id', 'assignment_id', 'student_id', 'file_url', 'file_name', 'comments', 'submitted_at', 'marks',
       'max_marks', 'feedback', 'graded', 'graded_at', 'graded_by'
     ]
-  },
-  {
-    key: 'timetable',
-    table: 'timetable',
-    columns: ['id', 'course_id', 'section', 'day_of_week', 'start_time', 'end_time', 'room', 'faculty_id', 'created_at']
   },
   {
     key: 'announcements',
