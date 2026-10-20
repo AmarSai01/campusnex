@@ -11,7 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  MapPin
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -39,7 +40,8 @@ export default function DepartmentManagement() {
     code: '',
     name: '',
     head_faculty_id: '',
-    description: ''
+    description: '',
+    office_room: ''
   });
 
   const [formError, setFormError] = useState('');
@@ -53,6 +55,7 @@ export default function DepartmentManagement() {
       return (
         d.name.toLowerCase().includes(q) ||
         d.code.toLowerCase().includes(q) ||
+        (d.office_room && d.office_room.toLowerCase().includes(q)) ||
         (d.description && d.description.toLowerCase().includes(q))
       );
     }
@@ -65,7 +68,8 @@ export default function DepartmentManagement() {
       code: '',
       name: '',
       head_faculty_id: '',
-      description: ''
+      description: '',
+      office_room: ''
     });
     setFormError('');
     setIsModalOpen(true);
@@ -77,7 +81,8 @@ export default function DepartmentManagement() {
       code: dept.code,
       name: dept.name,
       head_faculty_id: dept.head_faculty_id || '',
-      description: dept.description || ''
+      description: dept.description || '',
+      office_room: dept.office_room || ''
     });
     setFormError('');
     setIsModalOpen(true);
@@ -110,7 +115,8 @@ export default function DepartmentManagement() {
           ...formData,
           code: formData.code.trim().toUpperCase(),
           name: formData.name.trim(),
-          head_faculty_id: formData.head_faculty_id || null
+          head_faculty_id: formData.head_faculty_id || null,
+          office_room: formData.office_room.trim() || null
         });
         setSuccessToast(`Department ${formData.code} updated successfully.`);
       } else {
@@ -182,7 +188,7 @@ export default function DepartmentManagement() {
           </div>
           <input
             type="text"
-            placeholder="Search departments by name or code..."
+            placeholder="Search by name, code or office"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-500 focus:outline-none"
@@ -241,15 +247,29 @@ export default function DepartmentManagement() {
                   </div>
                 </div>
 
+                {/* Office location */}
+                <p className="mt-3 flex items-center gap-1.5 text-xs">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                  {dept.office_room ? (
+                    <span className="font-semibold text-slate-700">{dept.office_room}</span>
+                  ) : (
+                    <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">Office not set</span>
+                  )}
+                </p>
+
                 {/* Stats summary */}
-                <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                    <span><strong>{deptFacultyCount}</strong> Faculty</span>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-xl bg-slate-50 px-2 py-2">
+                    <p className="text-lg font-extrabold text-slate-900 tabular-nums">{deptFacultyCount}</p>
+                    <p className="flex items-center justify-center gap-1 text-[11px] font-semibold text-slate-500">
+                      <Briefcase className="h-3 w-3" aria-hidden="true" /> Faculty
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Users className="w-3.5 h-3.5 text-slate-400" />
-                    <span><strong>{deptStudentCount}</strong> Students</span>
+                  <div className="rounded-xl bg-slate-50 px-2 py-2">
+                    <p className="text-lg font-extrabold text-slate-900 tabular-nums">{deptStudentCount}</p>
+                    <p className="flex items-center justify-center gap-1 text-[11px] font-semibold text-slate-500">
+                      <Users className="h-3 w-3" aria-hidden="true" /> Students
+                    </p>
                   </div>
                 </div>
               </div>
@@ -338,6 +358,24 @@ export default function DepartmentManagement() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="dept-office" className="block text-xs font-bold text-slate-700 mb-1">
+              Department Office <span className="font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              id="dept-office"
+              type="text"
+              value={formData.office_room}
+              onChange={(e) => setFormData({ ...formData, office_room: e.target.value })}
+              placeholder="e.g. Block A, Room 204"
+              aria-describedby="dept-office-hint"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
+            />
+            <p id="dept-office-hint" className="mt-1 text-[11px] text-slate-500">
+              Where students and staff can find the department office. Faculty and student counts fill in by themselves.
+            </p>
           </div>
 
           <div>

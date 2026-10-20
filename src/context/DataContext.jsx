@@ -938,7 +938,8 @@ export function DataProvider({ children }) {
       name: formattedName,
       code: formattedCode,
       head_faculty_id: deptData.head_faculty_id || null,
-      description: deptData.description || `Department of ${formattedName}`
+      description: deptData.description || `Department of ${formattedName}`,
+      office_room: deptData.office_room?.trim() || null
     };
 
     setData(prev => ({

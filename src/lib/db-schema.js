@@ -5,7 +5,10 @@ export const TABLES = [
   {
     key: 'departments',
     table: 'departments',
-    columns: ['id', 'name', 'code', 'head_faculty_id', 'description', 'created_by', 'updated_by', 'created_at', 'updated_at']
+    columns: [
+      'id', 'name', 'code', 'head_faculty_id', 'description', 'office_room', 'created_by', 'updated_by',
+      'created_at', 'updated_at'
+    ]
   },
   {
     key: 'users',
