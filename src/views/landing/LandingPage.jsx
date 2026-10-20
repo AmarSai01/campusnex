@@ -8,6 +8,7 @@ import CampusOverview from './CampusOverview'
 import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
+import TrustSection from './TrustSection'
 import { ClosingCall, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
 
 // A page section that sets the background mood while it fills the screen.
@@ -233,6 +234,10 @@ function Page({ onSignIn }) {
 
         <Section id="setup" theme="dawn" className="border-t border-white/10">
           <SetupSteps />
+        </Section>
+
+        <Section id="trust" theme="dusk" className="border-t border-white/10">
+          <TrustSection />
         </Section>
 
         <Section id="plans" theme="night" className="border-t border-white/10">
