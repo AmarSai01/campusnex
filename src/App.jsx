@@ -9,6 +9,9 @@ const PREVIEW = import.meta.env.DEV ? new URLSearchParams(window.location.search
 const SHOW_RESULTS_PREVIEW = PREVIEW === 'results'
 const SHOW_ANALYTICS_PREVIEW = PREVIEW === 'analytics'
 
+// Direct sign-in link that skips the landing page, e.g. /?signin=hod opens the HOD tab.
+const SIGNIN_ROLE = new URLSearchParams(window.location.search).get('signin')
+
 // Everything behind sign-in is downloaded only when it is needed, so the landing page stays light.
 const ResultsPreview = lazy(() => import('./views/preview/ResultsPreview'))
 const AnalyticsPreview = lazy(() => import('./views/preview/AnalyticsPreview'))
@@ -47,7 +50,7 @@ const Spinner = () => (
 function AppContent() {
   const { currentUser, isAuthenticated, authLoading, isHod, passwordRecovery } = useAuth()
   const { syncError, clearSyncError } = useData()
-  const [authScreen, setAuthScreen] = useState('landing')
+  const [authScreen, setAuthScreen] = useState(SIGNIN_ROLE ? 'login' : 'landing')
   const [activeTab, setActiveTab] = useState('overview')
   const [hodView, setHodView] = useState(true)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
@@ -90,7 +93,7 @@ function AppContent() {
 
   if (!isAuthenticated || !currentUser) {
     if (authScreen === 'login') {
-      return <LoginView onBack={() => setAuthScreen('landing')} />
+      return <LoginView initialRole={SIGNIN_ROLE} onBack={() => setAuthScreen('landing')} />
     }
     return landing
   }
