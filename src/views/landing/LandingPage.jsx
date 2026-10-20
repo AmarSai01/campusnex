@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react'
-import { MotionConfig, motion } from 'framer-motion'
+import React, { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
 import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
@@ -28,6 +28,51 @@ const STRIP = [
 ]
 
 const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
+
+// Phones only: once the hero is behind them, a slim bar keeps "Request a pilot" in reach.
+// It steps aside near the end of the page, where the closing section has the same button.
+function StickyPilotBar({ heroRef }) {
+  const requestPilot = useRequestPilot()
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const update = () => {
+      const hero = heroRef.current?.getBoundingClientRect()
+      const closing = document.getElementById('tomorrow')?.getBoundingClientRect()
+      const pastHero = hero ? hero.bottom < 0 : false
+      const nearEnd = closing ? closing.top < window.innerHeight : false
+      setShow(pastHero && !nearEnd)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [heroRef])
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ y: '110%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '110%' }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-night/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden"
+        >
+          <button
+            type="button"
+            onClick={() => requestPilot('pilot')}
+            className="w-full cursor-pointer rounded-lg bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+          >
+            Request a pilot
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
 
 function Page({ onSignIn }) {
   const requestPilot = useRequestPilot()
@@ -60,13 +105,23 @@ function Page({ onSignIn }) {
             <a href="#security" className="hover:text-white">Security</a>
             <a href="#faq" className="hover:text-white">FAQ</a>
           </nav>
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-night hover:bg-white/90 cursor-pointer"
-          >
-            Sign in
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Phones get the sticky bar at the bottom instead. */}
+            <button
+              type="button"
+              onClick={() => requestPilot('pilot')}
+              className="hidden rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 cursor-pointer sm:block"
+            >
+              Request a pilot
+            </button>
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-night hover:bg-white/90 cursor-pointer"
+            >
+              Sign in
+            </button>
+          </div>
         </div>
       </header>
 
@@ -193,6 +248,7 @@ function Page({ onSignIn }) {
         </Section>
       </main>
       <Footer onSignIn={onSignIn} />
+      <StickyPilotBar heroRef={heroRef} />
     </div>
   )
 }
