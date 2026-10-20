@@ -102,6 +102,7 @@ function AppContent({ initialScreen = 'landing' }) {
       users: 'Institutional User Directory',
       courses: 'Department Courses & Faculty Allocation',
       timetable: 'Academic Timetable & Schedule',
+      timetable_edit: 'Edit Class Timetables',
       exam_seating: 'Exam Timetable & Seating Arrangement',
       calendar: 'Institutional Calendar & Events',
       semester_calendar: 'Semester Calendar',
@@ -152,6 +153,8 @@ function AppContent({ initialScreen = 'landing' }) {
       openTab('announcements')
     } else if (notif.type === 'request_created' || notif.type === 'request_updated') {
       openTab('requests')
+    } else if (notif.type === 'timetable_edited') {
+      setActiveTab('timetable')
     } else if (notif.type === 'timetable_changed') {
       openTab('timetable')
     } else if (notif.type === 'calendar_event_added') {

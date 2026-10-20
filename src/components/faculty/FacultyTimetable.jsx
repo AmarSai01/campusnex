@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
 import { formatTimeRange } from '../../utils/time';
+import BatchTag from '../common/BatchTag';
 
 export default function FacultyTimetable() {
   const { currentUser } = useAuth();
@@ -75,6 +76,7 @@ export default function FacultyTimetable() {
                             <span className="text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-200 text-slate-800 whitespace-nowrap">
                               {slot.room}
                             </span>
+                            <BatchTag batch={slot.batch} />
                           </div>
 
                           <div className="flex items-center gap-2 mt-3">

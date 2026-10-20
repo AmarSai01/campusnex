@@ -75,13 +75,16 @@ export function detectTimetableConflict(newSlot, existingTimetable, courses = []
       const sameClass = course && newCourse
         ? classGroupKey(course) === classGroupKey(newCourse)
         : Boolean(newSlot.section && slot.section && newSlot.section === slot.section);
-      if (sameClass) {
+      // Two lab batches of one class can be in different labs at the same time.
+      const separateBatches = Boolean(newSlot.batch && slot.batch && newSlot.batch !== slot.batch);
+      if (sameClass && !separateBatches) {
         const courseName = course ? `${course.code} - ${course.name}` : 'Another Course';
+        const who = slot.batch ? `Batch ${slot.batch.slice(1)} of section ${slot.section}` : `Section ${slot.section}`;
 
         conflicts.push({
           type: 'section',
           title: 'Student Section Schedule Collision',
-          message: `Section ${slot.section} already has ${courseName} scheduled at ${formatTimeRange(slot.start_time, slot.end_time)}.`,
+          message: `${who} already has ${courseName} scheduled at ${formatTimeRange(slot.start_time, slot.end_time)}.`,
           conflictingSlot: slot
         });
       }

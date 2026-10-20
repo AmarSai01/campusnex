@@ -507,12 +507,34 @@ export function DataProvider({ children }) {
   };
 
   // 8. Timetable Management (Slot save & delete)
+  // Teachers and HODs may change their own slots; every such change alerts the admins.
+  const describeSlot = (slot, courses) => {
+    const course = courses.find(c => c.id === slot.course_id);
+    const batch = slot.batch ? ` (Batch ${slot.batch.slice(1)})` : '';
+    return `${course ? `${course.code} ${course.name}` : 'a class'}${batch}, ${slot.day_of_week.slice(0, 3)} ${formatTimeRange(slot.start_time, slot.end_time)}, Room ${slot.room}`;
+  };
+
+  const adminAlerts = (prev, title, message, referenceId) => {
+    const actor = prev.users.find(u => u.id === currentProfileId);
+    if (!actor || actor.role === 'admin') return [];
+    return prev.users
+      .filter(u => u.role === 'admin' && u.status !== 'inactive')
+      .map(admin => addNotification({
+        user_id: admin.id,
+        type: 'timetable_edited',
+        reference_id: referenceId,
+        title: `${title} by ${actor.name}`,
+        message
+      }));
+  };
+
   const saveTimetableSlot = (slotData) => {
     const slotId = slotData.id || `tt_${Date.now()}`;
     const newSlot = { ...slotData, id: slotId };
 
     setData((prev) => {
       const existsIndex = prev.timetable.findIndex(s => s.id === slotId);
+      const previousSlot = existsIndex >= 0 ? prev.timetable[existsIndex] : null;
       let updatedTimetable = [...prev.timetable];
 
       if (existsIndex >= 0) {
@@ -542,21 +564,48 @@ export function DataProvider({ children }) {
         }));
       });
 
+      const alerts = previousSlot
+        ? adminAlerts(prev, 'Timetable changed',
+            `Moved ${describeSlot(previousSlot, prev.courses)} to ${describeSlot(newSlot, prev.courses)}.`, slotId)
+        : adminAlerts(prev, 'Class added', `Added ${describeSlot(newSlot, prev.courses)}.`, slotId);
+
       return {
         ...prev,
         timetable: updatedTimetable,
-        notifications: newNotifs
+        notifications: [...alerts, ...newNotifs]
       };
     });
     return slotId;
   };
 
   const deleteTimetableSlot = (slotId) => {
+    setData(prev => {
+      const slot = prev.timetable.find(s => s.id === slotId);
+      const alerts = slot ? adminAlerts(prev, 'Class removed', `Removed ${describeSlot(slot, prev.courses)}.`, slotId) : [];
+      return {
+        ...prev,
+        timetable: prev.timetable.filter(s => s.id !== slotId),
+        notifications: [...alerts, ...prev.notifications]
+      };
+    });
+  };
+
+  // Lab batches for students: { studentId: 'B1' | 'B2' | ... | null }.
+  const setStudentBatches = (assignments) => {
+    const now = new Date().toISOString();
     setData(prev => ({
       ...prev,
-      timetable: prev.timetable.filter(s => s.id !== slotId)
+      users: prev.users.map(u =>
+        Object.prototype.hasOwnProperty.call(assignments, u.id) && (u.batch || null) !== (assignments[u.id] || null)
+          ? { ...u, batch: assignments[u.id] || null, updated_by: currentProfileId || u.updated_by, updated_at: now }
+          : u
+      )
     }));
   };
+
+  // Resolves once every edit made so far has been written to Supabase. The short wait lets
+  // React run the persist effect, which queues the write, before we wait on the queue.
+  const whenSynced = () => new Promise(resolve => setTimeout(() => queue.current.then(resolve, resolve), 300));
 
   // USN Validation Regex: 1XX00XX000 (1 digit + 2 letters + 2 digits + 2 letters + 3 digits)
   const USN_REGEX = /^1[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
@@ -1746,6 +1795,8 @@ export function DataProvider({ children }) {
         createStudentsBulk,
         importResults,
         setResultsPublished,
+        setStudentBatches,
+        whenSynced,
         createSemesterCalendar,
         publishSemesterCalendar,
         deleteSemesterCalendar,

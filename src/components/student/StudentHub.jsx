@@ -19,6 +19,7 @@ import AttendanceRingChart from '../charts/AttendanceRingChart';
 import TrendChart from '../charts/TrendChart';
 import Badge from '../common/Badge';
 import { formatTime } from '../../utils/time';
+import { slotVisibleToStudent } from '../../utils/batches';
 import { RISK_RULES } from '../../utils/risk';
 
 const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
@@ -62,7 +63,7 @@ export default function StudentHub({ onNavigateTab }) {
   // Today's classes
   const currentDayName = new Date().toLocaleDateString('en-IN', { weekday: 'long' });
   const todayClasses = timetable
-    .filter(t => myCourseIds.includes(t.course_id) && t.day_of_week === currentDayName)
+    .filter(t => myCourseIds.includes(t.course_id) && t.day_of_week === currentDayName && slotVisibleToStudent(t, currentUser))
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   // Recent announcements (Global / Dept / Enrolled courses)

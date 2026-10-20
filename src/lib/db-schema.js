@@ -15,7 +15,7 @@ export const TABLES = [
     table: 'profiles',
     columns: [
       'id', 'name', 'email', 'role', 'department_id', 'designation', 'office', 'phone', 'photo_url',
-      'usn', 'roll_no', 'semester', 'section', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at'
+      'usn', 'roll_no', 'semester', 'section', 'batch', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at'
     ]
   },
   {
@@ -60,7 +60,7 @@ export const TABLES = [
   {
     key: 'timetable',
     table: 'timetable',
-    columns: ['id', 'course_id', 'section', 'day_of_week', 'start_time', 'end_time', 'room', 'faculty_id', 'created_at']
+    columns: ['id', 'course_id', 'section', 'batch', 'day_of_week', 'start_time', 'end_time', 'room', 'faculty_id', 'created_at']
   },
   {
     key: 'announcements',

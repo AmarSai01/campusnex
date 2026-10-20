@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
 import { formatTimeRange } from '../../utils/time';
+import BatchTag from '../common/BatchTag';
+import { slotVisibleToStudent } from '../../utils/batches';
 
 export default function StudentTimetable() {
   const { currentUser } = useAuth();
@@ -14,7 +16,9 @@ export default function StudentTimetable() {
 
   // Filter slots for student's enrolled courses and section
   const mySlots = timetable.filter(
-    t => myCourseIds.includes(t.course_id) && (!currentUser?.section || t.section === currentUser?.section)
+    t => myCourseIds.includes(t.course_id) &&
+      (!currentUser?.section || t.section === currentUser?.section) &&
+      slotVisibleToStudent(t, currentUser)
   );
 
   // Saturday is a teaching day in most Indian colleges; it only shows when it has classes.
@@ -138,6 +142,7 @@ export default function StudentTimetable() {
                               <MapPin className="w-3 h-3 text-slate-500" />
                               {slot.room}
                             </span>
+                            <BatchTag batch={slot.batch} />
                           </div>
 
                           <div className="flex items-center gap-2 mt-3">

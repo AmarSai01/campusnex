@@ -10,6 +10,11 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
+import LabBatchesPanel from './LabBatchesPanel';
+import BatchTag from '../common/BatchTag';
+import TimetableChangeLog from './TimetableChangeLog';
+import { BATCHES, batchLabel } from '../../utils/batches';
 import { classGroupKey, detectTimetableConflict } from '../../utils/conflictDetector';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -37,8 +42,25 @@ const writeSelection = (value) => {
 
 const countLabel = (n, word, plural = `${word}es`) => `${n} ${n === 1 ? word : plural}`;
 
-export default function TimetableBuilder({ onNavigateTab }) {
-  const { timetable, courses, users, departments, exam_rooms = [], saveTimetableSlot, deleteTimetableSlot } = useData();
+// mode 'admin': every class. mode 'faculty': teachers edit slots of subjects they teach,
+// HODs any slot in their department; admins are alerted of every change.
+export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
+  const { timetable, courses: allCourses, users, departments: allDepartments, exam_rooms = [], saveTimetableSlot, deleteTimetableSlot } = useData();
+  const { currentUser, hodDepartments = [] } = useAuth();
+  const isAdminMode = mode === 'admin';
+  const hodDeptIds = new Set(hodDepartments.map(d => d.id));
+  const canEditCourse = (course) =>
+    Boolean(course) && (
+      isAdminMode ||
+      course.faculty_id === currentUser?.id ||
+      hodDeptIds.has(course.department_id)
+    );
+  // Teachers pick from the classes they can edit; the grid still shows the whole class.
+  const courses = isAdminMode ? allCourses : allCourses.filter(canEditCourse);
+  const departments = isAdminMode
+    ? allDepartments
+    : allDepartments.filter(d => courses.some(c => c.department_id === d.id));
+  const [logRefresh, setLogRefresh] = useState(0);
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -49,7 +71,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
   // Picked in three steps: department, then the semesters it has courses in, then their sections.
   const courseClassKey = new Map(courses.map(c => [c.id, classGroupKey(c)]));
   const slotsMatching = (deptId, sem, section) => timetable.filter(slot => {
-    const course = courses.find(c => c.id === slot.course_id);
+    const course = allCourses.find(c => c.id === slot.course_id);
     return course &&
       course.department_id === deptId &&
       (sem == null || Number(course.semester) === Number(sem)) &&
@@ -91,12 +113,14 @@ export default function TimetableBuilder({ onNavigateTab }) {
 
   const facultyList = users.filter(u => u.role === 'faculty' && u.status !== 'inactive');
   const groupCourses = courses.filter(c => classGroupKey(c) === activeGroup);
+  const classCourses = allCourses.filter(c => classGroupKey(c) === activeGroup);
   const [modalGroup, setModalGroup] = useState('');
   const modalCourses = courses.filter(c => classGroupKey(c) === modalGroup);
 
   const [formData, setFormData] = useState({
     course_id: '',
     faculty_id: '',
+    batch: '',
     day_of_week: 'Monday',
     start_time: '09:00',
     end_time: '10:00',
@@ -106,13 +130,17 @@ export default function TimetableBuilder({ onNavigateTab }) {
   const [conflictWarning, setConflictWarning] = useState(null);
   const [formError, setFormError] = useState('');
 
-  const courseById = (id) => courses.find(c => c.id === id);
+  const courseById = (id) => allCourses.find(c => c.id === id);
 
   // Section always follows the course, so a slot can't land in the wrong class grid.
-  const withSection = (data) => ({ ...data, section: courseById(data.course_id)?.section || null });
+  const withSection = (data) => ({
+    ...data,
+    section: courseById(data.course_id)?.section || null,
+    batch: data.batch || null
+  });
 
   const checkConflict = (candidate, slotId) => {
-    const result = detectTimetableConflict({ ...withSection(candidate), id: slotId }, timetable, courses, users);
+    const result = detectTimetableConflict({ ...withSection(candidate), id: slotId }, timetable, allCourses, users);
     setConflictWarning(result.hasConflict ? result.conflicts : null);
     return result.hasConflict;
   };
@@ -126,6 +154,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
       ? {
           course_id: slot.course_id,
           faculty_id: slot.faculty_id || '',
+          batch: slot.batch || '',
           day_of_week: slot.day_of_week,
           start_time: slot.start_time,
           end_time: slot.end_time,
@@ -134,6 +163,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
       : {
           course_id: initialCourse?.id || '',
           faculty_id: initialCourse?.faculty_id || '',
+          batch: '',
           day_of_week: selectedDay !== 'All' ? selectedDay : 'Monday',
           start_time: '09:00',
           end_time: '10:00',
@@ -149,7 +179,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
   const handleInputChange = (field, value) => {
     const updated = { ...formData, [field]: value };
     if (field === 'course_id') {
-      updated.faculty_id = courseById(value)?.faculty_id || formData.faculty_id;
+      updated.faculty_id = courseById(value)?.faculty_id || (isAdminMode ? formData.faculty_id : '');
     }
     setFormData(updated);
     setFormError('');
@@ -172,6 +202,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
     const course = courseById(formData.course_id);
     if (course) updateSelection({ dept: course.department_id, sem: Number(course.semester), sec: course.section });
     setIsModalOpen(false);
+    setLogRefresh(n => n + 1);
   };
 
   const handleDelete = (slot, course) => {
@@ -179,7 +210,10 @@ export default function TimetableBuilder({ onNavigateTab }) {
       title: 'Remove this class?',
       message: `${course ? `${course.code}: ${course.name}` : 'This class'} on ${slot.day_of_week}, ${formatTimeRange(slot.start_time, slot.end_time)}, will be removed from the timetable.`,
       confirmLabel: 'Remove class',
-      onConfirm: () => deleteTimetableSlot(slot.id)
+      onConfirm: () => {
+        deleteTimetableSlot(slot.id);
+        setLogRefresh(n => n + 1);
+      }
     });
   };
 
@@ -187,7 +221,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
     const course = courseById(s.course_id);
     return course && classGroupKey(course) === activeGroup;
   });
-  const teacherlessCount = groupCourses.filter(c => !users.some(u => u.id === c.faculty_id)).length;
+  const teacherlessCount = classCourses.filter(c => !users.some(u => u.id === c.faculty_id)).length;
   const modalClassLabel = modalCourses[0] ? classLabel(modalCourses[0]) : '';
 
   return (
@@ -197,10 +231,14 @@ export default function TimetableBuilder({ onNavigateTab }) {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Clock className="w-5 h-5 text-brand-600" />
-            Timetable Builder & Conflict Engine
+            {isAdminMode ? 'Timetable Builder & Conflict Engine' : 'Edit Class Timetables'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Build weekly class grids with real-time faculty double-booking and room overlap prevention.
+            {isAdminMode
+              ? 'Build weekly class grids with real-time faculty double-booking and room overlap prevention.'
+              : hodDepartments.length > 0
+                ? 'Change slots for your subjects and your department. Admins are notified of every change.'
+                : 'Change slots for the subjects you teach. Admins are notified of every change.'}
           </p>
         </div>
 
@@ -215,13 +253,21 @@ export default function TimetableBuilder({ onNavigateTab }) {
       </div>
 
       {courses.length === 0 ? (
-        <EmptyState
-          icon={BookOpen}
-          title="Add courses first"
-          description="Timetable slots are built from courses. Create a course with its department, semester and section, then schedule it here."
-          actionLabel={onNavigateTab ? 'Go to Curriculum & Courses' : undefined}
-          onAction={onNavigateTab ? () => onNavigateTab('courses') : undefined}
-        />
+        isAdminMode ? (
+          <EmptyState
+            icon={BookOpen}
+            title="Add courses first"
+            description="Timetable slots are built from courses. Create a course with its department, semester and section, then schedule it here."
+            actionLabel={onNavigateTab ? 'Go to Curriculum & Courses' : undefined}
+            onAction={onNavigateTab ? () => onNavigateTab('courses') : undefined}
+          />
+        ) : (
+          <EmptyState
+            icon={BookOpen}
+            title="No subjects assigned to you yet"
+            description="Once an admin assigns you a subject, you can change its timetable slots here."
+          />
+        )
       ) : (
         <>
           {/* Filters Bar */}
@@ -282,11 +328,15 @@ export default function TimetableBuilder({ onNavigateTab }) {
             {activeGroup && (
               <p className="text-xs text-slate-500" aria-live="polite">
                 <span className="font-bold text-slate-800">{activeGroupLabel}:</span>{' '}
-                {countLabel(groupSlots.length, 'class')} a week, {countLabel(groupCourses.length, 'subject', 'subjects')}
+                {countLabel(groupSlots.length, 'class')} a week, {countLabel(classCourses.length, 'subject', 'subjects')}
                 {teacherlessCount > 0 && (
                   <span className="font-semibold text-amber-700">, {teacherlessCount} without a teacher</span>
                 )}
               </p>
+            )}
+
+            {isAdminMode && activeGroup && (
+              <LabBatchesPanel deptId={deptId} semester={semester} section={section} classLabel={activeGroupLabel} />
             )}
 
             {/* Day Filter */}
@@ -322,7 +372,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
             <EmptyState
               icon={Calendar}
               title={`No classes scheduled for ${activeGroupLabel} yet`}
-              description={`This class has ${countLabel(groupCourses.length, 'subject', 'subjects')} ready to schedule.`}
+              description={`This class has ${countLabel(classCourses.length, 'subject', 'subjects')} ready to schedule.`}
               actionLabel="Schedule Class Slot"
               onAction={() => openModal(null)}
             />
@@ -374,6 +424,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
                                   <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 whitespace-nowrap">
                                     Room {slot.room}
                                   </span>
+                                  <BatchTag batch={slot.batch} />
                                 </div>
 
                                 <div className="flex items-center gap-2 mt-2">
@@ -392,6 +443,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
                                 </div>
                               </div>
 
+                              {canEditCourse(course) && (
                               <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => openModal(slot)}
@@ -410,6 +462,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
+                              )}
                             </div>
                           );
                         })}
@@ -424,12 +477,14 @@ export default function TimetableBuilder({ onNavigateTab }) {
         </>
       )}
 
+      {isAdminMode && <TimetableChangeLog refreshKey={logRefresh} />}
+
       {/* Add / Edit Slot Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingSlot ? 'Edit Timetable Slot' : 'Schedule Timetable Slot'}
-        subtitle={`For ${modalClassLabel}. Live conflict checking prevents double-booking faculty, classrooms and classes.`}
+        subtitle={`For ${modalClassLabel}. Live conflict checking prevents double-booking faculty, classrooms and classes.${isAdminMode ? '' : ' Admins are notified when you save.'}`}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
@@ -476,11 +531,30 @@ export default function TimetableBuilder({ onNavigateTab }) {
               <select
                 value={formData.faculty_id}
                 onChange={(e) => handleInputChange('faculty_id', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                disabled={!isAdminMode}
+                title={!isAdminMode ? 'The subject\'s teacher. An admin can change it.' : undefined}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="">-- Unassigned --</option>
                 {facultyList.map(f => (
                   <option key={f.id} value={f.id}>{f.name}{f.designation ? ` (${f.designation})` : ''}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="slot-batch" className="block text-xs font-bold text-slate-700 mb-1">
+                Who attends
+              </label>
+              <select
+                id="slot-batch"
+                value={formData.batch}
+                onChange={(e) => handleInputChange('batch', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              >
+                <option value="">Whole class</option>
+                {BATCHES.map(b => (
+                  <option key={b} value={b}>{batchLabel(b)} only (lab)</option>
                 ))}
               </select>
             </div>
