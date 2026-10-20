@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
+import { useRequestPilot } from './PilotRequest'
+import { RISK_RULES } from '@/utils/risk'
 
 // Demo address for now (.example never delivers); replace with the real contact email.
 export const CONTACT_EMAIL = 'hello@campusnex.example'
@@ -135,6 +137,7 @@ export function SetupSteps() {
 }
 
 export function Plans() {
+  const requestPilot = useRequestPilot()
   return (
     <>
       <SectionHeading title="Pilot it in one department. Roll it out when you're convinced." center>
@@ -143,16 +146,16 @@ export function Plans() {
       <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-night-2/60 p-7 backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Department pilot</h3>
-          <p className="mt-2 text-sm text-mist">One department, one term, to prove it works for your college.</p>
+          <p className="mt-2 text-sm text-mist">Start with one department. Try a demo for a few days, then we shape it around your college.</p>
           <ul className="mt-6 space-y-2.5 text-sm text-white/85">
             <li>Attendance, IA marks and assignments</li>
             <li>Timetable with clash checks</li>
             <li>HOD overview and risk alerts</li>
             <li>CSV student import</li>
           </ul>
-          <a href={contactHref('Campusnex department pilot')} className="mt-8 inline-block rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
+          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
             Request a pilot
-          </a>
+          </button>
         </div>
         <div className="relative rounded-2xl border border-brand-500/60 bg-night-2/60 p-7 shadow-[0_0_60px_-20px_rgba(255,92,0,0.5)] backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Whole institution</h3>
@@ -163,18 +166,20 @@ export function Plans() {
             <li>Semester results with SGPA and CGPA</li>
             <li>Help moving your existing records</li>
           </ul>
-          <a href={contactHref('Campusnex for our institution')} className="mt-8 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
             Talk to us
-          </a>
+          </button>
         </div>
       </div>
     </>
   )
 }
 
+const SHORTAGE = RISK_RULES.attendance.shortage
+
 const FAQS = [
   ['Who can sign in?', 'Only people your administrator has added. There is no public sign-up. Each person chooses “Activate your account” on the login page and sets their own password using the email the college registered.'],
-  ['How does the 75% alert work?', 'Attendance is calculated per subject, with a late counting as half a class. Once at least four classes are held, a student who drops below 75% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below 40%.'],
+  [`How does the ${SHORTAGE}% alert work?`, `Attendance is calculated per subject, with a late counting as half a class. Students need ${SHORTAGE}% in each subject to sit the SEE. Once at least four classes are held, a student who drops below ${SHORTAGE}% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below ${RISK_RULES.marks.fail}%.`],
   ['Can we bring in our existing student list?', 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. Every row is checked before anything is saved, and students are enrolled in their courses automatically.'],
   ['How do semester results work?', 'The admin uploads the university result file as CSV. Grades follow the 10-point scale, and SGPA and CGPA are worked out automatically. Students see their results only after the admin publishes the semester, and they get a notification when that happens.'],
   ['What does an HOD see that faculty don’t?', 'A view-only overview of every student in their department, subject by subject, with at-risk students flagged, plus which classes are behind on attendance, IA publishing or grading. HODs can also add and edit students and post department notices.'],
@@ -215,6 +220,7 @@ export function Faq() {
 
 // The day ends: the page closes at night, with tomorrow already planned.
 export function ClosingCall({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <div className="mx-auto max-w-3xl text-center">
       <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mist">
@@ -234,9 +240,9 @@ export function ClosingCall({ onSignIn }) {
         Timetable checked for clashes, seats allotted, shortage alerts sent. That could be your college tomorrow.
       </p>
       <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
+        <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
           Request a pilot
-        </a>
+        </button>
         <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
           Sign in to your campus
         </button>
@@ -258,6 +264,7 @@ const TRUST = [
 ]
 
 export function Footer({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <footer className="relative overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
@@ -270,8 +277,8 @@ export function Footer({ onSignIn }) {
           </span>
           <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
           <p className="mt-2 text-sm leading-relaxed text-mist">
-            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the 75%
-            attendance rule.
+            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the {SHORTAGE}%
+            attendance rule for SEE eligibility.
           </p>
           {HAS_CONTACT_EMAIL && (
             <a href={contactHref('Campusnex enquiry')} className="mt-3 inline-block text-sm text-white/80 hover:text-white">
@@ -279,9 +286,9 @@ export function Footer({ onSignIn }) {
             </a>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+            <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
               Request a pilot
-            </a>
+            </button>
             <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
               Sign in
             </button>

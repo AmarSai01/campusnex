@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { BookOpen, CalendarClock, ClipboardCheck, GraduationCap, MapPin, Megaphone, TriangleAlert, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 import { ADMIN_DEPARTMENTS, ADMIN_KPIS, HOD_AT_RISK, STUDENT_NEXT_EXAM } from './sampleData'
+
+const SHORTAGE = RISK_RULES.attendance.shortage
 
 const Card = ({ className, children }) => (
   <div className={cn('relative overflow-hidden rounded-2xl border border-night-line bg-night-2/90 shadow-[0_40px_120px_-40px_rgba(255,92,0,0.35)] backdrop-blur', className)}>
@@ -67,10 +70,10 @@ function Tile({ tile }) {
             <li key={d.label} className="grid grid-cols-[44px_minmax(0,1fr)_36px] items-center gap-2 text-xs">
               <span className="text-white/85">{d.label}</span>
               <span className="relative h-1.5 rounded-full bg-white/10">
-                <motion.span initial={{ width: 0 }} animate={{ width: `${d.value}%` }} transition={{ duration: 0.6 }} className={cn('absolute inset-y-0 left-0 rounded-full', d.value < 75 ? 'bg-absent' : 'bg-emerald-400')} />
-                <span className="absolute -inset-y-1 left-3/4 w-px bg-brand-500/70" aria-hidden="true" />
+                <motion.span initial={{ width: 0 }} animate={{ width: `${d.value}%` }} transition={{ duration: 0.6 }} className={cn('absolute inset-y-0 left-0 rounded-full', d.value < SHORTAGE ? 'bg-absent' : 'bg-emerald-400')} />
+                <span className="absolute -inset-y-1 w-px bg-brand-500/70" style={{ left: `${SHORTAGE}%` }} aria-hidden="true" />
               </span>
-              <span className={cn('text-right tabular-nums', d.value < 75 ? 'text-red-300' : 'text-white')}>{d.value}%</span>
+              <span className={cn('text-right tabular-nums', d.value < SHORTAGE ? 'text-red-300' : 'text-white')}>{d.value}%</span>
             </li>
           ))}
         </ul>

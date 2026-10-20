@@ -1,7 +1,8 @@
 // Academic risk rules shared by the HOD views and exports.
-// Keep in sync with the risk alert trigger in supabase/migrations/20261019000100_hod_role.sql.
+// Keep in sync with the risk alert trigger (supabase/migrations/20261019000700_attendance_minimum_85.sql).
+// 85% attendance is required to sit the SEE.
 export const RISK_RULES = {
-  attendance: { shortage: 75, warning: 80 },
+  attendance: { shortage: 85, warning: 90 },
   marks: { fail: 40, warning: 50 },
   // Attendance is only judged once enough classes have been held.
   minSessions: 4

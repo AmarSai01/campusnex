@@ -18,10 +18,74 @@ import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import { studentMatchesCourse } from '../../utils/enrollment';
 
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const FILTER_KEY = 'campusnex.curriculum.filter';
+
+// Remember the last department and semester while the admin moves between tabs.
+const readFilter = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(FILTER_KEY)) || {};
+  } catch {
+    return {};
+  }
+};
+const writeFilter = (value) => {
+  try {
+    sessionStorage.setItem(FILTER_KEY, JSON.stringify(value));
+  } catch {
+    // Storage unavailable (private mode); the filter just isn't remembered.
+  }
+};
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 export default function CourseManagement() {
   const { courses, users, departments, enrollments, createCourse, updateCourse, assignFacultyToCourse, setCourseEnrollments } = useData();
 
   const facultyList = users.filter(u => u.role === 'faculty' && u.status === 'active');
+
+  const inDept = (course, deptId) => deptId === 'all' || course.department_id === deptId;
+  const countFor = (deptId, sem) =>
+    courses.filter(c => inDept(c, deptId) && (sem === 'all' || Number(c.semester) === Number(sem))).length;
+  const semestersWithCourses = (deptId) =>
+    [...new Set(courses.filter(c => inDept(c, deptId)).map(c => Number(c.semester)))].sort((a, b) => a - b);
+
+  const [filter, setFilter] = useState(readFilter);
+  const fallbackDept = departments.find(d => countFor(d.id, 'all') > 0)?.id || departments[0]?.id || '';
+  const deptFilter = filter.dept === 'all' || departments.some(d => d.id === filter.dept) ? filter.dept : fallbackDept;
+  const deptCodeOf = (id) => departments.find(d => d.id === id)?.code || '—';
+  const semFilter = filter.sem === 'all' || SEMESTERS.includes(Number(filter.sem))
+    ? (filter.sem === 'all' ? 'all' : Number(filter.sem))
+    : (semestersWithCourses(deptFilter)[0] || 1);
+
+  const updateFilter = (next) => {
+    setFilter(next);
+    writeFilter(next);
+  };
+  const handleDeptChange = (deptId) => {
+    updateFilter({ dept: deptId, sem: semestersWithCourses(deptId)[0] || 1 });
+  };
+
+  const visibleCourses = courses
+    .filter(c => inDept(c, deptFilter) && (semFilter === 'all' || Number(c.semester) === semFilter))
+    .sort((a, b) =>
+      deptCodeOf(a.department_id).localeCompare(deptCodeOf(b.department_id)) ||
+      Number(a.semester) - Number(b.semester) ||
+      String(a.section).localeCompare(String(b.section)) ||
+      String(a.code).localeCompare(String(b.code))
+    );
+  const courseGroups = visibleCourses.reduce((groups, course) => {
+    const parts = [];
+    if (deptFilter === 'all') parts.push(deptCodeOf(course.department_id));
+    if (semFilter === 'all') parts.push(`Semester ${course.semester}`);
+    parts.push(`Section ${course.section || '—'}`);
+    const key = parts.join(' · ');
+    (groups[key] = groups[key] || []).push(course);
+    return groups;
+  }, {});
+  const unassignedCount = visibleCourses.filter(c => !users.some(u => u.id === c.faculty_id)).length;
+  const selectedDept = departments.find(d => d.id === deptFilter);
+  const deptLabel = deptFilter === 'all' ? 'All departments' : selectedDept?.code || 'this department';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -47,9 +111,9 @@ export default function CourseManagement() {
     setFormData({
       code: '',
       name: '',
-      department_id: departments[0]?.id || '',
+      department_id: deptFilter === 'all' ? departments[0]?.id || '' : deptFilter,
       faculty_id: '',
-      semester: 1,
+      semester: semFilter === 'all' ? (semestersWithCourses(deptFilter)[0] || 1) : semFilter,
       section: 'A',
       credits: 4,
       color: '#4f46e5',
@@ -68,7 +132,7 @@ export default function CourseManagement() {
       faculty_id: course.faculty_id || '',
       semester: course.semester,
       section: course.section,
-      credits: course.credits || 4,
+      credits: course.credits ?? '',
       color: course.color || '#4f46e5',
       description: course.description || ''
     });
@@ -87,6 +151,11 @@ export default function CourseManagement() {
       setFormError('Choose a department. Add one in Manage Departments first if the list is empty.');
       return;
     }
+    const credits = Number(formData.credits);
+    if (formData.credits === '' || !Number.isInteger(credits) || credits < 0 || credits > 10) {
+      setFormError('Credits must be a whole number from 0 to 10. Use 0 for non-credit courses like PE or NSS.');
+      return;
+    }
     const duplicate = courses.find(c =>
       c.id !== editingCourse?.id &&
       (c.code || '').toUpperCase() === code &&
@@ -98,7 +167,7 @@ export default function CourseManagement() {
       setFormError(`${code} already exists for Sem ${formData.semester} Sec ${formData.section} in this department.`);
       return;
     }
-    const payload = { ...formData, code, name: formData.name.trim() };
+    const payload = { ...formData, code, name: formData.name.trim(), credits };
     if (editingCourse) {
       updateCourse(editingCourse.id, payload);
     } else {
@@ -172,7 +241,7 @@ export default function CourseManagement() {
             Curriculum & Faculty Course Mapping
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Configure academic courses, credit weightings, and assign faculty instructor permissions.
+            Pick a department and semester to see and add its subjects.
           </p>
         </div>
 
@@ -181,23 +250,83 @@ export default function CourseManagement() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Course</span>
+          <span>Add Course</span>
         </button>
       </div>
 
-      {courses.length === 0 && (
+      {departments.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="No courses yet"
-          description="Add a course with its department, semester and section. Matching students are enrolled automatically."
-          actionLabel="Add New Course"
+          title="Add a department first"
+          description="Courses belong to a department and semester. Create departments in Manage Departments, then add their subjects here."
+        />
+      ) : (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-xs font-bold text-slate-700">
+              1 · Department
+              <select
+                value={deptFilter}
+                onChange={(e) => handleDeptChange(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All departments — {plural(courses.length, 'course')}</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} · {d.name} — {plural(countFor(d.id, 'all'), 'course')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs font-bold text-slate-700">
+              2 · Semester
+              <select
+                value={semFilter}
+                onChange={(e) => updateFilter({ dept: deptFilter, sem: e.target.value === 'all' ? 'all' : Number(e.target.value) })}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All semesters — {plural(countFor(deptFilter, 'all'), 'course')}</option>
+                {SEMESTERS.map(sem => {
+                  const n = countFor(deptFilter, sem);
+                  return (
+                    <option key={sem} value={sem}>
+                      Semester {sem} — {n ? plural(n, 'course') : 'no courses'}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          </div>
+          {visibleCourses.length > 0 && (
+            <p className="mt-3 text-xs text-slate-500" aria-live="polite">
+              <span className="font-bold text-slate-800">
+                {semFilter === 'all' ? 'All semesters' : `Sem ${semFilter}`} · {deptLabel}:
+              </span>{' '}
+              {plural(visibleCourses.length, 'course')}, {visibleCourses.length - unassignedCount} with a teacher
+              {unassignedCount > 0 && <span className="font-semibold text-amber-700">, {unassignedCount} unassigned</span>}
+            </p>
+          )}
+        </div>
+      )}
+
+      {departments.length > 0 && visibleCourses.length === 0 && (
+        <EmptyState
+          icon={BookOpen}
+          title={`No courses for ${deptLabel}${semFilter === 'all' ? '' : ` Sem ${semFilter}`} yet`}
+          description="Add the subjects this class takes. Matching students are enrolled automatically."
+          actionLabel="Add Course"
           onAction={handleOpenCreateModal}
         />
       )}
 
+      {Object.entries(courseGroups).map(([groupLabel, groupCourses]) => (
+      <section key={groupLabel} aria-label={groupLabel} className="space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          {groupLabel} · {plural(groupCourses.length, 'course')}
+        </h3>
       {/* Courses Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {courses.map((course) => {
+        {groupCourses.map((course) => {
           const faculty = users.find(u => u.id === course.faculty_id);
           const dept = departments.find(d => d.id === course.department_id);
           const enrolledCount = enrollments.filter(e => e.course_id === course.id).length;
@@ -237,10 +366,6 @@ export default function CourseManagement() {
                     <span className="font-bold text-slate-700">{dept?.code || '—'}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 font-medium">Credits:</span>
-                    <span className="font-bold text-slate-700">{course.credits || 4} Credits</span>
-                  </div>
-                  <div className="flex items-center justify-between">
                     <span className="text-slate-400 font-medium">Enrolled Students:</span>
                     <span className="font-bold text-emerald-700 px-2 py-0.5 rounded-md bg-emerald-50">
                       {enrolledCount} Active
@@ -257,9 +382,13 @@ export default function CourseManagement() {
                       className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-300 shrink-0"
                     />
                     <div className="truncate">
-                      <p className="text-xs font-bold text-slate-900 truncate">
-                        {faculty?.name || 'Unassigned'}
-                      </p>
+                      {faculty ? (
+                        <p className="text-xs font-bold text-slate-900 truncate">{faculty.name}</p>
+                      ) : (
+                        <span className="inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">
+                          No teacher yet
+                        </span>
+                      )}
                       <p className="text-[10px] text-slate-400 truncate">
                         {faculty?.designation || 'Instructor'}
                       </p>
@@ -294,6 +423,8 @@ export default function CourseManagement() {
           );
         })}
       </div>
+      </section>
+      ))}
 
       {/* Course Modal */}
       <Modal
@@ -344,7 +475,9 @@ export default function CourseManagement() {
               <select
                 value={formData.department_id}
                 onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                disabled={!editingCourse && deptFilter !== 'all'}
+                title={!editingCourse && deptFilter !== 'all' ? 'Set by the department picked above' : undefined}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
               >
                 {departments.map(d => (
                   <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
@@ -373,14 +506,17 @@ export default function CourseManagement() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Semester
                 </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={8}
+                <select
                   value={formData.semester}
                   onChange={(e) => setFormData({ ...formData, semester: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                />
+                  disabled={!editingCourse && semFilter !== 'all'}
+                  title={!editingCourse && semFilter !== 'all' ? 'Set by the semester picked above' : undefined}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  {SEMESTERS.map(sem => (
+                    <option key={sem} value={sem}>Semester {sem}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -399,19 +535,29 @@ export default function CourseManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Credits
+                <label htmlFor="course-credits" className="block text-xs font-bold text-slate-700 mb-1">
+                  Credits for this subject *
                 </label>
                 <input
+                  id="course-credits"
                   type="number"
-                  min={1}
-                  max={6}
+                  required
+                  min={0}
+                  max={10}
+                  step={1}
                   value={formData.credits}
-                  onChange={(e) => setFormData({ ...formData, credits: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, credits: e.target.value === '' ? '' : Number(e.target.value) })}
+                  aria-describedby="course-credits-hint"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
                 />
               </div>
             </div>
+
+            <p id="course-credits-hint" className="sm:col-span-2 -mt-2 text-[11px] text-slate-500">
+              {!editingCourse && deptFilter !== 'all' && semFilter !== 'all'
+                ? `Adding to ${selectedDept?.code} Semester ${semFilter}. Use 0 credits for non-credit courses like PE, NSS or Yoga.`
+                : 'Use 0 credits for non-credit courses like PE, NSS or Yoga.'}
+            </p>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1">

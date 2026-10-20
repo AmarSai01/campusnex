@@ -17,22 +17,66 @@ import EmptyState from '../common/EmptyState';
 import { formatTimeRange } from '../../utils/time';
 
 const DEFAULT_ROOMS = ['LH-101', 'LH-102', 'Lab-CSE-2', 'Seminar-Hall-1'];
+const CLASS_KEY = 'campusnex.timetable.class';
+
+// Remember the last class picked while the admin moves between tabs.
+const readSelection = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(CLASS_KEY)) || {};
+  } catch {
+    return {};
+  }
+};
+const writeSelection = (value) => {
+  try {
+    sessionStorage.setItem(CLASS_KEY, JSON.stringify(value));
+  } catch {
+    // Storage unavailable (private mode); the class just isn't remembered.
+  }
+};
+
+const countLabel = (n, word, plural = `${word}es`) => `${n} ${n === 1 ? word : plural}`;
 
 export default function TimetableBuilder({ onNavigateTab }) {
   const { timetable, courses, users, departments, exam_rooms = [], saveTimetableSlot, deleteTimetableSlot } = useData();
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  // A class is one department + semester + section; each gets its own weekly grid.
-  const classGroups = [...new Map(courses.map(c => {
-    const dept = departments.find(d => d.id === c.department_id);
-    return [classGroupKey(c), `${dept?.code || 'No dept'} · Sem ${c.semester ?? '—'} · Sec ${c.section || '—'}`];
-  })).entries()]
-    .map(([key, label]) => ({ key, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const deptCode = (id) => departments.find(d => d.id === id)?.code || 'No dept';
+  const classLabel = (c) => `${deptCode(c.department_id)} · Sem ${c.semester ?? '—'} · Sec ${c.section || '—'}`;
 
-  const [selectedGroup, setSelectedGroup] = useState('');
-  const activeGroup = classGroups.some(g => g.key === selectedGroup) ? selectedGroup : classGroups[0]?.key || '';
+  // A class is one department + semester + section; each gets its own weekly grid.
+  // Picked in three steps: department, then the semesters it has courses in, then their sections.
+  const courseClassKey = new Map(courses.map(c => [c.id, classGroupKey(c)]));
+  const slotsMatching = (deptId, sem, section) => timetable.filter(slot => {
+    const course = courses.find(c => c.id === slot.course_id);
+    return course &&
+      course.department_id === deptId &&
+      (sem == null || Number(course.semester) === Number(sem)) &&
+      (section == null || course.section === section);
+  }).length;
+  const semestersOf = (deptId) =>
+    [...new Set(courses.filter(c => c.department_id === deptId && c.semester != null).map(c => Number(c.semester)))]
+      .sort((a, b) => a - b);
+  const sectionsOf = (deptId, sem) =>
+    [...new Set(courses
+      .filter(c => c.department_id === deptId && Number(c.semester) === Number(sem) && c.section)
+      .map(c => c.section))].sort();
+
+  const [selection, setSelection] = useState(readSelection);
+  const fallbackDept = departments.find(d => semestersOf(d.id).length > 0)?.id || departments[0]?.id || '';
+  const deptId = departments.some(d => d.id === selection.dept) ? selection.dept : fallbackDept;
+  const semOptions = semestersOf(deptId);
+  const semester = semOptions.includes(Number(selection.sem)) ? Number(selection.sem) : semOptions[0] ?? null;
+  const sectionOptions = semester == null ? [] : sectionsOf(deptId, semester);
+  const section = sectionOptions.includes(selection.sec) ? selection.sec : sectionOptions[0] ?? null;
+  const activeGroup = section ? classGroupKey({ department_id: deptId, semester, section }) : '';
+  const activeGroupLabel = section ? `${deptCode(deptId)} · Sem ${semester} · Sec ${section}` : '';
+
+  const updateSelection = (next) => {
+    setSelection(next);
+    writeSelection(next);
+  };
   const [selectedDay, setSelectedDay] = useState('All');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,6 +91,8 @@ export default function TimetableBuilder({ onNavigateTab }) {
 
   const facultyList = users.filter(u => u.role === 'faculty' && u.status !== 'inactive');
   const groupCourses = courses.filter(c => classGroupKey(c) === activeGroup);
+  const [modalGroup, setModalGroup] = useState('');
+  const modalCourses = courses.filter(c => classGroupKey(c) === modalGroup);
 
   const [formData, setFormData] = useState({
     course_id: '',
@@ -72,7 +118,10 @@ export default function TimetableBuilder({ onNavigateTab }) {
   };
 
   const openModal = (slot) => {
-    const initialCourse = slot ? courseById(slot.course_id) : groupCourses[0] || courses[0];
+    const initialCourse = slot ? courseById(slot.course_id) : groupCourses[0];
+    if (!initialCourse) return;
+    // The form only offers the subjects of the class being scheduled.
+    setModalGroup(courseClassKey.get(initialCourse.id) || activeGroup);
     const next = slot
       ? {
           course_id: slot.course_id,
@@ -121,7 +170,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
 
     saveTimetableSlot({ ...withSection(formData), id: editingSlot?.id });
     const course = courseById(formData.course_id);
-    if (course) setSelectedGroup(classGroupKey(course));
+    if (course) updateSelection({ dept: course.department_id, sem: Number(course.semester), sec: course.section });
     setIsModalOpen(false);
   };
 
@@ -138,7 +187,8 @@ export default function TimetableBuilder({ onNavigateTab }) {
     const course = courseById(s.course_id);
     return course && classGroupKey(course) === activeGroup;
   });
-  const activeGroupLabel = classGroups.find(g => g.key === activeGroup)?.label;
+  const teacherlessCount = groupCourses.filter(c => !users.some(u => u.id === c.faculty_id)).length;
+  const modalClassLabel = modalCourses[0] ? classLabel(modalCourses[0]) : '';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -156,7 +206,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
 
         <button
           onClick={() => openModal(null)}
-          disabled={courses.length === 0}
+          disabled={groupCourses.length === 0}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" />
@@ -175,19 +225,69 @@ export default function TimetableBuilder({ onNavigateTab }) {
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-500">
-              Class:
-              <select
-                value={activeGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
-              >
-                {classGroups.map(g => (
-                  <option key={g.key} value={g.key}>{g.label}</option>
-                ))}
-              </select>
-            </label>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <label className="block text-xs font-bold text-slate-700">
+                1 · Department
+                <select
+                  value={deptId}
+                  onChange={(e) => updateSelection({ dept: e.target.value })}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
+                >
+                  {departments.map(d => {
+                    const hasCourses = semestersOf(d.id).length > 0;
+                    const n = slotsMatching(d.id);
+                    return (
+                      <option key={d.id} value={d.id}>
+                        {d.code} · {d.name} — {hasCourses ? `${countLabel(n, 'class')} a week` : 'no courses'}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className="block text-xs font-bold text-slate-700">
+                2 · Semester
+                <select
+                  value={semester ?? ''}
+                  onChange={(e) => updateSelection({ dept: deptId, sem: Number(e.target.value) })}
+                  disabled={semOptions.length === 0}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {semOptions.length === 0 && <option value="">No semesters with courses</option>}
+                  {semOptions.map(sem => (
+                    <option key={sem} value={sem}>
+                      Semester {sem} — {countLabel(slotsMatching(deptId, sem), 'class')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-bold text-slate-700">
+                3 · Section
+                <select
+                  value={section ?? ''}
+                  onChange={(e) => updateSelection({ dept: deptId, sem: semester, sec: e.target.value })}
+                  disabled={sectionOptions.length === 0}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {sectionOptions.length === 0 && <option value="">—</option>}
+                  {sectionOptions.map(sec => (
+                    <option key={sec} value={sec}>
+                      Section {sec} — {countLabel(slotsMatching(deptId, semester, sec), 'class')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {activeGroup && (
+              <p className="text-xs text-slate-500" aria-live="polite">
+                <span className="font-bold text-slate-800">{activeGroupLabel}:</span>{' '}
+                {countLabel(groupSlots.length, 'class')} a week, {countLabel(groupCourses.length, 'subject', 'subjects')}
+                {teacherlessCount > 0 && (
+                  <span className="font-semibold text-amber-700">, {teacherlessCount} without a teacher</span>
+                )}
+              </p>
+            )}
 
             {/* Day Filter */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
@@ -208,7 +308,28 @@ export default function TimetableBuilder({ onNavigateTab }) {
             </div>
           </div>
 
+          {!activeGroup && (
+            <EmptyState
+              icon={BookOpen}
+              title={`No courses in ${deptCode(deptId)} yet`}
+              description="Add this department's subjects with their semester and section, then schedule them here."
+              actionLabel={onNavigateTab ? 'Go to Curriculum & Courses' : undefined}
+              onAction={onNavigateTab ? () => onNavigateTab('courses') : undefined}
+            />
+          )}
+
+          {activeGroup && groupSlots.length === 0 && (
+            <EmptyState
+              icon={Calendar}
+              title={`No classes scheduled for ${activeGroupLabel} yet`}
+              description={`This class has ${countLabel(groupCourses.length, 'subject', 'subjects')} ready to schedule.`}
+              actionLabel="Schedule Class Slot"
+              onAction={() => openModal(null)}
+            />
+          )}
+
           {/* Timetable Weekly Grid / List */}
+          {groupSlots.length > 0 && (
           <div className="space-y-6">
             {(selectedDay === 'All' ? daysOfWeek : [selectedDay]).map((day) => {
               const daySlots = groupSlots
@@ -299,6 +420,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
               );
             })}
           </div>
+          )}
         </>
       )}
 
@@ -307,7 +429,7 @@ export default function TimetableBuilder({ onNavigateTab }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingSlot ? 'Edit Timetable Slot' : 'Schedule Timetable Slot'}
-        subtitle="Live conflict checking prevents double-booking faculty, classrooms and classes."
+        subtitle={`For ${modalClassLabel}. Live conflict checking prevents double-booking faculty, classrooms and classes.`}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
@@ -341,12 +463,8 @@ export default function TimetableBuilder({ onNavigateTab }) {
                 onChange={(e) => handleInputChange('course_id', e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               >
-                {classGroups.map(g => (
-                  <optgroup key={g.key} label={g.label}>
-                    {courses.filter(c => classGroupKey(c) === g.key).map(c => (
-                      <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                    ))}
-                  </optgroup>
+                {modalCourses.map(c => (
+                  <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
                 ))}
               </select>
             </div>

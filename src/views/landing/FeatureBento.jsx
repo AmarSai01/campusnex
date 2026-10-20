@@ -2,9 +2,12 @@ import React, { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, BellRing, CheckCircle2, ListChecks, RotateCcw, Shuffle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 import { parseCsv, validateImport } from '@/utils/studentImport'
 import HeroRegister from './HeroRegister'
 import { IMPORT_SAMPLE_CSV, IMPORT_SAMPLE_DEPARTMENTS, SEATING_STUDENTS } from './sampleData'
+
+const SHORTAGE = RISK_RULES.attendance.shortage
 
 // A dark card with a soft light that follows the cursor across it.
 function Tile({ title, body, className, children }) {
@@ -236,8 +239,8 @@ export default function FeatureBento() {
     <div className="grid gap-4 lg:grid-cols-3">
       <Tile
         className="px-2.5 sm:px-6 lg:col-span-3"
-        title="Attendance with a 75% alert"
-        body="Mark a class in seconds. When a student drops below 75%, the student, the subject teacher and the HOD are told at once. Tap any cell to try it."
+        title={`Attendance with an ${SHORTAGE}% alert`}
+        body={`Mark a class in seconds. When a student drops below ${SHORTAGE}%, the student, the subject teacher and the HOD are told at once. Tap any cell to try it.`}
       >
         <HeroRegister />
       </Tile>
@@ -255,7 +258,7 @@ export default function FeatureBento() {
       >
         <ImportDemo />
       </Tile>
-      <Tile title="Alerts before it's too late" body="Below 75% attendance or a 40% IA average, the right people hear about it.">
+      <Tile title="Alerts before it's too late" body={`Below ${SHORTAGE}% attendance or a ${RISK_RULES.marks.fail}% IA average, the right people hear about it.`}>
         <AlertsDemo />
       </Tile>
       <Tile title="Results, published when ready" body="SGPA and CGPA on the 10-point scale, visible to students only after you publish.">

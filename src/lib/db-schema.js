@@ -5,7 +5,10 @@ export const TABLES = [
   {
     key: 'departments',
     table: 'departments',
-    columns: ['id', 'name', 'code', 'head_faculty_id', 'description', 'created_by', 'updated_by', 'created_at', 'updated_at']
+    columns: [
+      'id', 'name', 'code', 'head_faculty_id', 'description', 'office_room', 'created_by', 'updated_by',
+      'created_at', 'updated_at'
+    ]
   },
   {
     key: 'users',
@@ -141,6 +144,14 @@ TABLES.push({
     'id', 'student_id', 'semester', 'course_code', 'course_name', 'credits', 'cie', 'see', 'total',
     'grade', 'grade_point', 'published', 'created_by', 'updated_by', 'created_at', 'updated_at'
   ]
+});
+
+// Student requests and grievances. The server sets created_at, and a trigger stamps
+// responded_by / responded_at, so neither is ever sent.
+TABLES.push({
+  key: 'student_requests',
+  table: 'student_requests',
+  columns: ['id', 'student_id', 'type', 'course_id', 'subject', 'details', 'status', 'response']
 });
 
 export function toRow(columns, record) {

@@ -938,7 +938,8 @@ export function DataProvider({ children }) {
       name: formattedName,
       code: formattedCode,
       head_faculty_id: deptData.head_faculty_id || null,
-      description: deptData.description || `Department of ${formattedName}`
+      description: deptData.description || `Department of ${formattedName}`,
+      office_room: deptData.office_room?.trim() || null
     };
 
     setData(prev => ({
@@ -1552,6 +1553,161 @@ export function DataProvider({ children }) {
     }));
   };
 
+  // Student self-service (supabase/migrations/20261019000600_student_self_service.sql).
+  // These call server functions directly and then reload, so they bypass the diff sync,
+  // which would try a profile update that row-level security refuses for students.
+  const updateMyContact = async ({ phone, photo_url }) => {
+    const { error } = await supabase.rpc('update_my_contact', {
+      p_phone: phone || null,
+      p_photo_url: photo_url || null
+    });
+    if (error) throw new Error(error.message);
+    await refreshData();
+  };
+
+  const AVATAR_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const AVATAR_PREFIX = '/storage/v1/object/public/avatars/';
+
+  // Uploads a new photo into the caller's own folder and returns its public link.
+  const uploadProfilePhoto = async (file) => {
+    if (!currentProfileId) throw new Error('Sign in again to change your photo.');
+    const ext = AVATAR_TYPES[file.type];
+    if (!ext) throw new Error('Use a JPG, PNG or WebP image.');
+    if (file.size > 2 * 1024 * 1024) throw new Error('The photo must be 2 MB or smaller.');
+    const path = `${currentProfileId}/photo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type });
+    if (error) throw new Error(`Could not upload the photo: ${error.message}`);
+    return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  };
+
+  // Best effort: removes a photo this app uploaded. Links elsewhere are left alone.
+  const deleteProfilePhoto = async (url) => {
+    const at = url ? url.indexOf(AVATAR_PREFIX) : -1;
+    if (at < 0) return;
+    const path = decodeURIComponent(url.slice(at + AVATAR_PREFIX.length).split('?')[0]);
+    await supabase.storage.from('avatars').remove([path]);
+  };
+
+  // Assignment files (supabase/migrations/20261020000000_submission_files.sql). The submission row
+  // stores `storage://submissions/<path>`; links are signed on demand because the bucket is private.
+  const SUBMISSION_PREFIX = 'storage://submissions/';
+  const SUBMISSION_MAX_BYTES = 10 * 1024 * 1024;
+
+  const uploadSubmissionFile = async (assignmentId, file) => {
+    if (!currentProfileId) throw new Error('Sign in again to upload your file.');
+    if (file.size > SUBMISSION_MAX_BYTES) throw new Error('The file must be 10 MB or smaller.');
+    const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-120) || 'submission';
+    const path = `${assignmentId}/${currentProfileId}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage
+      .from('submissions')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+    if (error) throw new Error(`Could not upload the file: ${error.message}`);
+    return { file_url: `${SUBMISSION_PREFIX}${path}`, file_name: file.name };
+  };
+
+  // Files teachers attach to assignments (20261020000100_assignment_files.sql).
+  const uploadAssignmentFile = async (courseId, file) => {
+    if (!courseId) throw new Error('Choose a course first.');
+    if (file.size > 20 * 1024 * 1024) throw new Error('The file must be 20 MB or smaller.');
+    const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-120) || 'attachment';
+    const path = `${courseId}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage
+      .from('assignment-files')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+    if (error) throw new Error(`Could not upload the file: ${error.message}`);
+    return { attachment_url: `storage://assignment-files/${path}`, attachment_name: file.name };
+  };
+
+  // A link that opens a stored file: a signed link for files in our private buckets, or an
+  // https link someone shared (a repository, say). Old placeholder links have no file.
+  const STORED_FILE = /^storage:\/\/(submissions|assignment-files)\/(.+)$/;
+  const getStoredFileLink = async (fileUrl) => {
+    if (!fileUrl) return null;
+    const stored = fileUrl.match(STORED_FILE);
+    if (stored) {
+      const { data: signed, error } = await supabase.storage.from(stored[1]).createSignedUrl(stored[2], 60 * 10);
+      if (error) throw new Error(`Could not open the file: ${error.message}`);
+      return signed.signedUrl;
+    }
+    if (/^https:\/\//i.test(fileUrl) && !/^https:\/\/(storage\.campusnex\.edu|raw\.githubusercontent\.com\/campusnex)\//.test(fileUrl)) {
+      return fileUrl;
+    }
+    return null;
+  };
+
+  // Anonymous course feedback (20261020000200_course_feedback.sql).
+  const fetchMyFeedbackCourses = async () => {
+    const { data: rows, error } = await supabase.rpc('my_feedback_courses');
+    if (error) throw new Error(error.message);
+    return (rows || []).map((r) => (typeof r === 'string' ? r : r.my_feedback_courses));
+  };
+
+  const submitCourseFeedback = async (courseId, ratings, comment) => {
+    const { error } = await supabase.rpc('submit_course_feedback', {
+      p_course_id: courseId,
+      p_ratings: ratings,
+      p_comment: comment || null
+    });
+    if (error) throw new Error(error.message);
+  };
+
+  const fetchCourseFeedbackSummary = async (courseId) => {
+    const { data: summary, error } = await supabase.rpc('course_feedback_summary', { p_course_id: courseId });
+    if (error) throw new Error(error.message);
+    return summary;
+  };
+
+  // Student requests and grievances (20261020000300_student_requests.sql). Plain table writes;
+  // row-level security decides who may raise, withdraw and answer.
+  const createStudentRequest = ({ type, course_id, subject, details }) => {
+    if (!currentProfileId) return;
+    setData((prev) => ({
+      ...prev,
+      student_requests: [
+        {
+          id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          student_id: currentProfileId,
+          type,
+          course_id: course_id || null,
+          subject: subject.trim(),
+          details: details.trim(),
+          status: 'open',
+          response: null,
+          created_at: new Date().toISOString()
+        },
+        ...prev.student_requests
+      ]
+    }));
+  };
+
+  const withdrawStudentRequest = (id) => {
+    setData((prev) => ({ ...prev, student_requests: prev.student_requests.filter((r) => r.id !== id) }));
+  };
+
+  const answerStudentRequest = (id, { status, response }) => {
+    setData((prev) => ({
+      ...prev,
+      student_requests: prev.student_requests.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status,
+              response: response?.trim() || null,
+              responded_by: currentProfileId,
+              responded_at: new Date().toISOString()
+            }
+          : r
+      )
+    }));
+  };
+
+  // Class averages for the caller's own courses: aggregates only, never classmates' rows.
+  const fetchClassAverages = async () => {
+    const { data: rows, error } = await supabase.rpc('my_class_averages');
+    if (error) throw new Error(error.message);
+    return rows || [];
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1561,6 +1717,19 @@ export function DataProvider({ children }) {
         syncError,
         clearSyncError: () => setSyncError(null),
         refreshData,
+        updateMyContact,
+        uploadProfilePhoto,
+        deleteProfilePhoto,
+        fetchClassAverages,
+        uploadSubmissionFile,
+        uploadAssignmentFile,
+        getStoredFileLink,
+        fetchMyFeedbackCourses,
+        submitCourseFeedback,
+        fetchCourseFeedbackSummary,
+        createStudentRequest,
+        withdrawStudentRequest,
+        answerStudentRequest,
         markBulkAttendance,
         saveIAMarks,
         createAssignment,

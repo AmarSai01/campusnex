@@ -9,6 +9,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import Modal from '../common/Modal';
+import SubmissionFileLink from '../shared/SubmissionFileLink';
 import Badge from '../common/Badge';
 
 export default function SubmissionGraderModal({
@@ -79,10 +80,7 @@ export default function SubmissionGraderModal({
 
           <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">Submitted Artifact:</span>
-            <div className="flex items-center gap-1.5 font-bold text-brand-600">
-              <FileText className="w-3.5 h-3.5" />
-              <span>{submission.file_name || 'project_submission.zip'}</span>
-            </div>
+            <SubmissionFileLink submission={submission} className="max-w-[60%]" />
           </div>
 
           <div className="text-[11px] text-slate-400">

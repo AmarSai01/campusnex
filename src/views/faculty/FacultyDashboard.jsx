@@ -12,6 +12,8 @@ import HodDepartmentOverview from '../../components/hod/HodDepartmentOverview';
 import HodFacultyCompliance from '../../components/hod/HodFacultyCompliance';
 import StudentAnalytics from '../../components/shared/StudentAnalytics';
 import ClassPerformance from '../../components/shared/ClassPerformance';
+import RequestsInbox from '../../components/shared/RequestsInbox';
+import FeedbackResults from '../../components/shared/FeedbackResults';
 import { useAuth } from '../../context/AuthContext';
 
 export default function FacultyDashboard({ activeTab = 'overview', setActiveTab }) {
@@ -48,6 +50,10 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
         return isHod ? <ClassPerformance scope="department" /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
       case 'hod_compliance':
         return isHod ? <HodFacultyCompliance /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
+      case 'requests':
+        return <RequestsInbox />;
+      case 'feedback_results':
+        return <FeedbackResults />;
       default:
         return <ClassAnalytics onNavigateTab={setActiveTab} />;
     }

@@ -2,15 +2,19 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion'
 import { Inbox, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 import { REGISTER_STUDENTS, SESSION_COUNT } from './sampleData'
 
-// Fixed column widths so the 75% line can run straight through every row's bar.
+const { shortage: SHORTAGE, warning: WARNING } = RISK_RULES.attendance
+
+// Fixed column widths so the shortage line can run straight through every row's bar.
 const NAME_W = 150
 const CELLS_W = SESSION_COUNT * 24 + (SESSION_COUNT - 1) * 4
 const BAR_W = 110
 const COL_GAP = 16
 const COLUMNS = `${NAME_W}px ${CELLS_W}px ${BAR_W}px 44px 78px`
-const BEAM_LEFT = NAME_W + COL_GAP + CELLS_W + COL_GAP + BAR_W * 0.75
+const BEAM_LEFT = NAME_W + COL_GAP + CELLS_W + COL_GAP + (BAR_W * SHORTAGE) / 100
+const ROW_MIN_W = 40 + NAME_W + CELLS_W + BAR_W + 44 + 78 + COL_GAP * 4
 
 // Phones show only the latest classes, so the percentage and status fit without swiping.
 const PHONE_SESSIONS = 3
@@ -63,8 +67,8 @@ export default function HeroRegister() {
     marksRef.current = { ...marksRef.current, [student.id]: after }
     setMarks(marksRef.current)
 
-    // First drop below 75%: send a signal from the row to the HOD inbox.
-    if (percentOf(before) >= 75 && percentOf(after) < 75 && cardRef.current && inboxRef.current) {
+    // First drop below the shortage line: send a signal from the row to the HOD inbox.
+    if (percentOf(before) >= SHORTAGE && percentOf(after) < SHORTAGE && cardRef.current && inboxRef.current) {
       const card = cardRef.current.getBoundingClientRect()
       const row = rowRefs.current[student.id]?.getBoundingClientRect()
       const target = inboxRef.current.getBoundingClientRect()
@@ -82,7 +86,7 @@ export default function HeroRegister() {
   }, [])
 
   // Play the key moment once on its own, when the register comes into view:
-  // Rohan, sitting on exactly 75%, misses one class.
+  // Rohan, sitting on exactly 85%, misses one class.
   const inView = useInView(cardRef, { once: true, amount: 0.5 })
   useEffect(() => {
     if (!inView) return undefined
@@ -152,12 +156,12 @@ export default function HeroRegister() {
         </div>
 
         <div className="overflow-x-auto">
-          <div className={cn('relative py-2', phone ? 'px-4' : 'min-w-[818px] px-5')} role="table" aria-label="Sample attendance register">
-            {/* The 75% line */}
+          <div className={cn('relative py-2', phone ? 'px-4' : 'px-5')} style={phone ? undefined : { minWidth: ROW_MIN_W }} role="table" aria-label="Sample attendance register">
+            {/* The shortage line */}
             {!phone && (
               <div aria-hidden="true" className="pointer-events-none absolute top-0 bottom-0" style={{ left: 20 + BEAM_LEFT }}>
                 <div className="absolute inset-y-2 w-px bg-brand-500 shadow-[0_0_14px_3px_rgba(255,92,0,0.55)]" />
-                <span className="absolute -top-0 -translate-x-1/2 rounded-sm bg-brand-500 px-1 text-[10px] font-bold text-white">75%</span>
+                <span className="absolute -top-0 -translate-x-1/2 rounded-sm bg-brand-500 px-1 text-[10px] font-bold text-white">{SHORTAGE}%</span>
               </div>
             )}
 
@@ -179,7 +183,7 @@ export default function HeroRegister() {
 
             {REGISTER_STUDENTS.map((student, row) => {
               const pct = percentOf(marks[student.id])
-              const short = pct < 75
+              const short = pct < SHORTAGE
               return (
                 <motion.div
                   key={student.id}
@@ -231,7 +235,7 @@ export default function HeroRegister() {
                   {!phone && (
                     <div role="cell" className="relative h-1.5 rounded-full bg-white/10" aria-hidden="true">
                       <motion.div
-                        className={cn('absolute inset-y-0 left-0 rounded-full', short ? 'bg-absent' : pct < 80 ? 'bg-late' : 'bg-emerald-400')}
+                        className={cn('absolute inset-y-0 left-0 rounded-full', short ? 'bg-absent' : pct < WARNING ? 'bg-late' : 'bg-emerald-400')}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.6 + row * 0.07 }}
@@ -245,10 +249,10 @@ export default function HeroRegister() {
                     role="cell"
                     className={cn(
                       'rounded-md px-1.5 py-0.5 text-center text-[11px] font-semibold',
-                      short ? 'bg-absent text-white' : pct < 80 ? 'bg-amber-300/15 text-amber-200' : 'bg-emerald-400/10 text-emerald-300'
+                      short ? 'bg-absent text-white' : pct < WARNING ? 'bg-amber-300/15 text-amber-200' : 'bg-emerald-400/10 text-emerald-300'
                     )}
                   >
-                    {short ? 'Shortage' : pct < 80 ? 'Warning' : 'On track'}
+                    {short ? 'Shortage' : pct < WARNING ? 'Warning' : 'On track'}
                   </span>
                 </motion.div>
               )

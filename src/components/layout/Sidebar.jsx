@@ -20,6 +20,11 @@ import {
   Trophy,
   UserRoundSearch,
   ChartColumn,
+  TrendingUp,
+  UserRound,
+  LifeBuoy,
+  MessageSquareHeart,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -51,6 +56,9 @@ export default function Sidebar({
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
       { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
+      { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
+      { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
+      { id: 'pilot_requests', label: 'Pilot Requests', icon: Handshake, badge: 'Website' },
     ],
     faculty: [
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },
@@ -63,19 +71,25 @@ export default function Sidebar({
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
       { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone },
+      { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
+      { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
     ],
     student: [
       { id: 'overview', label: 'Student Hub', icon: LayoutDashboard },
       { id: 'attendance', label: 'My Attendance', icon: CheckSquare },
       { id: 'iamarks', label: 'IA Marks & Trends', icon: Award },
-      { id: 'results', label: 'Results', icon: Trophy, badge: 'SGPA' },
+      { id: 'performance', label: 'My Performance', icon: TrendingUp },
       { id: 'assignments', label: 'Assignments & Submissions', icon: FileText },
       { id: 'timetable', label: 'Class Timetable', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
       { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'directory', label: 'Faculty Directory', icon: Contact },
+      { id: 'results', label: 'Results', icon: Trophy, badge: 'SGPA' },
       { id: 'announcements', label: 'Campus Bulletins', icon: Megaphone },
+      { id: 'feedback', label: 'Course Feedback', icon: MessageSquareHeart },
+      { id: 'requests', label: 'Requests & Grievances', icon: LifeBuoy },
+      { id: 'profile', label: 'My Profile', icon: UserRound },
     ],
   }
 
