@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
 import { RISK_RULES } from '@/utils/risk'
@@ -6,20 +6,28 @@ import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import CampusOverview from './CampusOverview'
 import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
-import CollegeDay from './CollegeDay'
-import FeatureBento from './FeatureBento'
-import TrustSection from './TrustSection'
-import { ClosingCall, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
 
-// A page section that sets the background mood while it fills the screen.
-function Section({ id, theme, className = '', children }) {
-  const ref = useRef(null)
-  useSectionBackdrop(ref, theme)
-  return (
-    <section ref={ref} id={id} className={`scroll-mt-20 px-4 py-16 sm:px-6 sm:py-32 ${className}`}>
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </section>
-  )
+// The hero loads first; everything below it comes as a separate file a moment later.
+const BelowFold = lazy(() => import('./BelowFold'))
+const Footer = lazy(() => import('./Sections').then((m) => ({ default: m.Footer })))
+
+// Mount the lower sections once the browser is idle after the first paint, on the first
+// scroll or touch, or straight away when the link points into the page (#faq and so on).
+function useShowBelow() {
+  const [show, setShow] = useState(() => window.location.hash.length > 1)
+  useEffect(() => {
+    if (show) return undefined
+    const go = () => setShow(true)
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(go, { timeout: 2000 }) : window.setTimeout(go, 500)
+    const events = ['scroll', 'wheel', 'touchstart', 'keydown', 'pointerdown']
+    events.forEach((e) => window.addEventListener(e, go, { once: true, passive: true }))
+    return () => {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idle)
+      else window.clearTimeout(idle)
+      events.forEach((e) => window.removeEventListener(e, go))
+    }
+  }, [show])
+  return show
 }
 
 // Words from an Indian college office, not a generic ERP brochure.
@@ -79,6 +87,7 @@ function Page({ onSignIn }) {
   const requestPilot = useRequestPilot()
   const heroRef = useRef(null)
   useSectionBackdrop(heroRef, 'night')
+  const showBelow = useShowBelow()
 
   // The page itself is night-coloured while the landing page is open, so nothing flashes white
   // and readers and audit tools see the real dark background behind the text.
@@ -214,45 +223,11 @@ function Page({ onSignIn }) {
           </motion.ul>
         </section>
 
-        <div id="day">
-          <CollegeDay />
-        </div>
-
-        <Section id="features" theme="night">
-          <SectionHeading title="Built for IA week, exam week and results day.">
-            Close the registers and the Excel sheets. Try it right here: every card below works the way it does inside
-            Campusnex.
-          </SectionHeading>
-          <div className="mt-12">
-            <FeatureBento />
-          </div>
-        </Section>
-
-        <Section id="security" theme="dusk" className="border-t border-white/10">
-          <SecuritySection />
-        </Section>
-
-        <Section id="setup" theme="dawn" className="border-t border-white/10">
-          <SetupSteps />
-        </Section>
-
-        <Section id="trust" theme="dusk" className="border-t border-white/10">
-          <TrustSection />
-        </Section>
-
-        <Section id="plans" theme="night" className="border-t border-white/10">
-          <Plans />
-        </Section>
-
-        <Section id="faq" theme="night" className="border-t border-white/10">
-          <Faq />
-        </Section>
-
-        <Section id="tomorrow" theme="night" className="border-t border-white/10">
-          <ClosingCall onSignIn={onSignIn} />
-        </Section>
+        <Suspense fallback={<div className="min-h-[200vh]" aria-hidden="true" />}>
+          {showBelow ? <BelowFold onSignIn={onSignIn} /> : <div className="min-h-[200vh]" aria-hidden="true" />}
+        </Suspense>
       </main>
-      <Footer onSignIn={onSignIn} />
+      <Suspense fallback={null}>{showBelow && <Footer onSignIn={onSignIn} />}</Suspense>
       <StickyPilotBar heroRef={heroRef} />
     </div>
   )

@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider, useData } from './context/DataContext'
 import SmoothScroll from './lib/smooth-scroll'
+import { MAY_HAVE_SESSION } from './lib/session-hint'
 import LandingPage from './views/landing/LandingPage'
 
 // Dev-only previews with sample data: http://localhost:5173/?preview=results, ?preview=analytics or ?preview=student
@@ -24,16 +25,6 @@ const Sidebar = lazy(() => import('./components/layout/Sidebar'))
 const MobileNav = lazy(() => import('./components/layout/MobileNav'))
 const NotificationDrawer = lazy(() => import('./components/notifications/NotificationDrawer'))
 
-// A visitor with no saved session (and not arriving from an email link) cannot be signed in,
-// so the landing page can show at once instead of waiting for the sign-in check.
-const MAY_HAVE_SESSION = (() => {
-  try {
-    if (/access_token|type=recovery|code=/.test(window.location.hash + window.location.search)) return true
-    return Object.keys(window.localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
-  } catch {
-    return true
-  }
-})()
 
 // The tabs in an HOD's department panel (see Sidebar and MobileNav).
 const HOD_TABS = ['hod_overview', 'students', 'hod_student_analytics', 'hod_class_analytics', 'hod_compliance']
@@ -46,10 +37,10 @@ const Spinner = () => (
   </div>
 )
 
-function AppContent() {
+function AppContent({ initialScreen = 'landing' }) {
   const { currentUser, isAuthenticated, authLoading, isHod, passwordRecovery } = useAuth()
   const { syncError, clearSyncError } = useData()
-  const [authScreen, setAuthScreen] = useState('landing')
+  const [authScreen, setAuthScreen] = useState(initialScreen)
   const [activeTab, setActiveTab] = useState('overview')
   const [hodView, setHodView] = useState(true)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
@@ -249,12 +240,13 @@ function AppContent() {
   )
 }
 
-export default function App() {
+// initialScreen is "login" when the visitor pressed Sign in on the landing page (see Root).
+export default function App({ initialScreen }) {
   return (
     <DataProvider>
       <AuthProvider>
         <Suspense fallback={<Spinner />}>
-          <AppContent />
+          <AppContent initialScreen={initialScreen} />
         </Suspense>
       </AuthProvider>
     </DataProvider>
