@@ -24,6 +24,7 @@ import {
   UserRound,
   LifeBuoy,
   MessageSquareHeart,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -57,6 +58,7 @@ export default function Sidebar({
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
       { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
       { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
+      { id: 'pilot_requests', label: 'Pilot Requests', icon: Handshake, badge: 'Website' },
     ],
     faculty: [
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },

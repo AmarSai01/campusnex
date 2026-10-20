@@ -122,6 +122,7 @@ function AppContent() {
       hod_overview: 'Department Overview',
       results: currentUser.role === 'admin' ? 'Semester Results' : 'Results: SGPA and CGPA',
       hod_compliance: 'Faculty Compliance',
+      pilot_requests: 'Pilot Requests from the Website',
       student_analytics: 'Student Analytics',
       hod_student_analytics: 'Student Analytics',
       class_analytics: 'Class Analytics',

@@ -5,9 +5,10 @@ import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import CampusOverview from './CampusOverview'
+import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
-import { ClosingCall, contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
+import { ClosingCall, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
 
 // A page section that sets the background mood while it fills the screen.
 function Section({ id, theme, className = '', children }) {
@@ -29,6 +30,7 @@ const STRIP = [
 const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
 
 function Page({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   const heroRef = useRef(null)
   useSectionBackdrop(heroRef, 'night')
 
@@ -100,8 +102,9 @@ function Page({ onSignIn }) {
               className="mt-9 flex flex-wrap items-center justify-center gap-3"
             >
               <MovingBorderButton
-                as="a"
-                href={contactHref('Campusnex pilot request')}
+                as="button"
+                type="button"
+                onClick={() => requestPilot('pilot')}
                 borderRadius="0.75rem"
                 duration={3200}
                 containerClassName="h-12 w-full max-w-64 sm:w-44"
@@ -198,7 +201,9 @@ export default function LandingPage({ onSignIn }) {
   return (
     <MotionConfig reducedMotion="user">
       <BackdropProvider>
-        <Page onSignIn={onSignIn} />
+        <PilotRequestProvider>
+          <Page onSignIn={onSignIn} />
+        </PilotRequestProvider>
       </BackdropProvider>
     </MotionConfig>
   )

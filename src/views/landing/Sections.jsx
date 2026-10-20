@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
+import { useRequestPilot } from './PilotRequest'
 import { RISK_RULES } from '@/utils/risk'
 
 // Demo address for now (.example never delivers); replace with the real contact email.
@@ -136,6 +137,7 @@ export function SetupSteps() {
 }
 
 export function Plans() {
+  const requestPilot = useRequestPilot()
   return (
     <>
       <SectionHeading title="Pilot it in one department. Roll it out when you're convinced." center>
@@ -151,9 +153,9 @@ export function Plans() {
             <li>HOD overview and risk alerts</li>
             <li>CSV student import</li>
           </ul>
-          <a href={contactHref('Campusnex department pilot')} className="mt-8 inline-block rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
+          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
             Request a pilot
-          </a>
+          </button>
         </div>
         <div className="relative rounded-2xl border border-brand-500/60 bg-night-2/60 p-7 shadow-[0_0_60px_-20px_rgba(255,92,0,0.5)] backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Whole institution</h3>
@@ -164,9 +166,9 @@ export function Plans() {
             <li>Semester results with SGPA and CGPA</li>
             <li>Help moving your existing records</li>
           </ul>
-          <a href={contactHref('Campusnex for our institution')} className="mt-8 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
             Talk to us
-          </a>
+          </button>
         </div>
       </div>
     </>
@@ -218,6 +220,7 @@ export function Faq() {
 
 // The day ends: the page closes at night, with tomorrow already planned.
 export function ClosingCall({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <div className="mx-auto max-w-3xl text-center">
       <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mist">
@@ -237,9 +240,9 @@ export function ClosingCall({ onSignIn }) {
         Timetable checked for clashes, seats allotted, shortage alerts sent. That could be your college tomorrow.
       </p>
       <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
+        <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
           Request a pilot
-        </a>
+        </button>
         <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
           Sign in to your campus
         </button>
@@ -261,6 +264,7 @@ const TRUST = [
 ]
 
 export function Footer({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <footer className="relative overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
@@ -282,9 +286,9 @@ export function Footer({ onSignIn }) {
             </a>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+            <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
               Request a pilot
-            </a>
+            </button>
             <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
               Sign in
             </button>
