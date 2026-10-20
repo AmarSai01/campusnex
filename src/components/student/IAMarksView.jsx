@@ -31,7 +31,7 @@ export default function IAMarksView() {
 
   // Calculate student overall IA average
   const totalEarned = myPublishedMarks.reduce((acc, m) => acc + (m.score / m.max_score) * 100, 0);
-  const avgOverall = myPublishedMarks.length > 0 ? Math.round(totalEarned / myPublishedMarks.length) : 0;
+  const avgOverall = myPublishedMarks.length > 0 ? Math.round(totalEarned / myPublishedMarks.length) : null;
 
   const getGradeBracket = (percentage) => {
     if (percentage >= 90) return { grade: 'O', label: 'Outstanding', variant: 'success' };
@@ -69,7 +69,7 @@ export default function IAMarksView() {
 
         <div className="flex items-center gap-2">
           <Badge variant="primary" size="lg">
-            Cumulative IA Avg: {avgOverall}%
+            {avgOverall === null ? 'No IA marks published yet' : `Cumulative IA Avg: ${avgOverall}%`}
           </Badge>
         </div>
       </div>
@@ -122,12 +122,12 @@ export default function IAMarksView() {
                 <div className="mt-4 pt-4 border-t border-slate-100 flex items-baseline justify-between">
                   <div>
                     <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                      {totalScored}
+                      {courseMarks.length ? totalScored : '—'}
                     </span>
-                    <span className="text-xs font-bold text-slate-400"> / {totalPossible || 100}</span>
+                    {courseMarks.length > 0 && <span className="text-xs font-bold text-slate-400"> / {totalPossible}</span>}
                   </div>
                   <span className="text-sm font-extrabold text-brand-600">
-                    {pct}%
+                    {courseMarks.length ? `${pct}%` : '—'}
                   </span>
                 </div>
               </div>

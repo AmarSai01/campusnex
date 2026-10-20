@@ -1,35 +1,93 @@
-import React, { useEffect, useRef } from 'react'
-import { MotionConfig, motion } from 'framer-motion'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { GraduationCap } from 'lucide-react'
+import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
-import HeroRegister from './HeroRegister'
-import CollegeDay from './CollegeDay'
-import FeatureBento from './FeatureBento'
-import { ClosingCall, contactHref, Faq, Footer, Plans, SectionHeading, SecuritySection, SetupSteps } from './Sections'
+import CampusOverview from './CampusOverview'
+import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 
-// A page section that sets the background mood while it fills the screen.
-function Section({ id, theme, className = '', children }) {
-  const ref = useRef(null)
-  useSectionBackdrop(ref, theme)
-  return (
-    <section ref={ref} id={id} className={`scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32 ${className}`}>
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </section>
-  )
+// The hero loads first; everything below it comes as a separate file a moment later.
+const BelowFold = lazy(() => import('./BelowFold'))
+const Footer = lazy(() => import('./Sections').then((m) => ({ default: m.Footer })))
+
+// Mount the lower sections once the browser is idle after the first paint, on the first
+// scroll or touch, or straight away when the link points into the page (#faq and so on).
+function useShowBelow() {
+  const [show, setShow] = useState(() => window.location.hash.length > 1)
+  useEffect(() => {
+    if (show) return undefined
+    const go = () => setShow(true)
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(go, { timeout: 2000 }) : window.setTimeout(go, 500)
+    const events = ['scroll', 'wheel', 'touchstart', 'keydown', 'pointerdown']
+    events.forEach((e) => window.addEventListener(e, go, { once: true, passive: true }))
+    return () => {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idle)
+      else window.clearTimeout(idle)
+      events.forEach((e) => window.removeEventListener(e, go))
+    }
+  }, [show])
+  return show
 }
 
 // Words from an Indian college office, not a generic ERP brochure.
 const STRIP = [
   'Sem 5 Sec A', 'IA-2 published', 'Circular No. 42', 'HOD review', 'Seat S-07, LH-101',
-  'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', '75% attendance rule', 'Exam hall LH-102',
+  'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', `${RISK_RULES.attendance.shortage}% attendance rule`, 'Exam hall LH-102',
 ]
 
 const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
 
+// Phones only: once the hero is behind them, a slim bar keeps "Request a pilot" in reach.
+// It steps aside near the end of the page, where the closing section has the same button.
+function StickyPilotBar({ heroRef }) {
+  const requestPilot = useRequestPilot()
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const update = () => {
+      const hero = heroRef.current?.getBoundingClientRect()
+      const closing = document.getElementById('tomorrow')?.getBoundingClientRect()
+      const pastHero = hero ? hero.bottom < 0 : false
+      const nearEnd = closing ? closing.top < window.innerHeight : false
+      setShow(pastHero && !nearEnd)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [heroRef])
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ y: '110%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '110%' }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-night/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden"
+        >
+          <button
+            type="button"
+            onClick={() => requestPilot('pilot')}
+            className="w-full cursor-pointer rounded-lg bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+          >
+            Request a pilot
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 function Page({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   const heroRef = useRef(null)
   useSectionBackdrop(heroRef, 'night')
+  const showBelow = useShowBelow()
 
   // The page itself is night-coloured while the landing page is open, so nothing flashes white
   // and readers and audit tools see the real dark background behind the text.
@@ -57,13 +115,23 @@ function Page({ onSignIn }) {
             <a href="#security" className="hover:text-white">Security</a>
             <a href="#faq" className="hover:text-white">FAQ</a>
           </nav>
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-night hover:bg-white/90 cursor-pointer"
-          >
-            Sign in
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Phones get the sticky bar at the bottom instead. */}
+            <button
+              type="button"
+              onClick={() => requestPilot('pilot')}
+              className="hidden rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 cursor-pointer sm:block"
+            >
+              Request a pilot
+            </button>
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-night hover:bg-white/90 cursor-pointer"
+            >
+              Sign in
+            </button>
+          </div>
         </div>
       </header>
 
@@ -99,11 +167,12 @@ function Page({ onSignIn }) {
               className="mt-9 flex flex-wrap items-center justify-center gap-3"
             >
               <MovingBorderButton
-                as="a"
-                href={contactHref('Campusnex pilot request')}
+                as="button"
+                type="button"
+                onClick={() => requestPilot('pilot')}
                 borderRadius="0.75rem"
                 duration={3200}
-                containerClassName="h-12 w-44"
+                containerClassName="h-12 w-full max-w-64 sm:w-44"
                 borderClassName="bg-[radial-gradient(#ff5c00_40%,transparent_60%)]"
                 className="border-night-line bg-night-2 text-sm font-semibold text-white"
               >
@@ -116,7 +185,7 @@ function Page({ onSignIn }) {
                 borderRadius="0.75rem"
                 duration={3200}
                 reverse
-                containerClassName="h-12 w-52 cursor-pointer"
+                containerClassName="h-12 w-full max-w-64 cursor-pointer sm:w-52"
                 borderClassName="bg-[radial-gradient(#93c5fd_40%,transparent_60%)]"
                 className="border-night-line bg-night-2 text-sm font-semibold text-white"
               >
@@ -131,7 +200,7 @@ function Page({ onSignIn }) {
             transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative mt-16"
           >
-            <HeroRegister />
+            <CampusOverview />
           </motion.div>
         </section>
 
@@ -154,41 +223,12 @@ function Page({ onSignIn }) {
           </motion.ul>
         </section>
 
-        <div id="day">
-          <CollegeDay />
-        </div>
-
-        <Section id="features" theme="night">
-          <SectionHeading title="Built for IA week, exam week and results day.">
-            Close the registers and the Excel sheets. Try it right here: every card below works the way it does inside
-            Campusnex.
-          </SectionHeading>
-          <div className="mt-12">
-            <FeatureBento />
-          </div>
-        </Section>
-
-        <Section id="security" theme="dusk" className="border-t border-white/10">
-          <SecuritySection />
-        </Section>
-
-        <Section id="setup" theme="dawn" className="border-t border-white/10">
-          <SetupSteps />
-        </Section>
-
-        <Section id="plans" theme="night" className="border-t border-white/10">
-          <Plans />
-        </Section>
-
-        <Section id="faq" theme="night" className="border-t border-white/10">
-          <Faq />
-        </Section>
-
-        <Section id="tomorrow" theme="night" className="border-t border-white/10">
-          <ClosingCall onSignIn={onSignIn} />
-        </Section>
+        <Suspense fallback={<div className="min-h-[200vh]" aria-hidden="true" />}>
+          {showBelow ? <BelowFold onSignIn={onSignIn} /> : <div className="min-h-[200vh]" aria-hidden="true" />}
+        </Suspense>
       </main>
-      <Footer onSignIn={onSignIn} />
+      <Suspense fallback={null}>{showBelow && <Footer onSignIn={onSignIn} />}</Suspense>
+      <StickyPilotBar heroRef={heroRef} />
     </div>
   )
 }
@@ -197,7 +237,9 @@ export default function LandingPage({ onSignIn }) {
   return (
     <MotionConfig reducedMotion="user">
       <BackdropProvider>
-        <Page onSignIn={onSignIn} />
+        <PilotRequestProvider>
+          <Page onSignIn={onSignIn} />
+        </PilotRequestProvider>
       </BackdropProvider>
     </MotionConfig>
   )

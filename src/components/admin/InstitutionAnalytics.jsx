@@ -17,6 +17,9 @@ import AttendanceRingChart from '../charts/AttendanceRingChart';
 import TrendChart from '../charts/TrendChart';
 import DistributionBarChart from '../charts/DistributionBarChart';
 import Badge from '../common/Badge';
+import { RISK_RULES } from '../../utils/risk';
+
+const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
 
 export default function InstitutionAnalytics({ onNavigateTab }) {
   const { users, courses, attendance, ia_marks, departments, assignments, submissions } = useData();
@@ -32,7 +35,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
     ? Math.round(((presentCount + lateCount * 0.5) / totalAttendanceRecords) * 100)
     : 0;
 
-  // At-risk students (< 75% attendance)
+  // At-risk students (below the SEE attendance minimum)
   const studentAttendanceStats = students.map(st => {
     const stRecords = attendance.filter(a => a.student_id === st.id);
     const stPresent = stRecords.filter(a => a.status === 'present').length;
@@ -44,7 +47,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
   });
 
   // Students with no marked classes yet are not at risk.
-  const atRiskStudents = studentAttendanceStats.filter(s => s.totalClasses > 0 && s.attendanceRate < 75);
+  const atRiskStudents = studentAttendanceStats.filter(s => s.totalClasses > 0 && s.attendanceRate < MIN_ATTENDANCE);
   const studentsWithAttendance = studentAttendanceStats.filter(s => s.totalClasses > 0);
   const eligibleCount = studentsWithAttendance.length - atRiskStudents.length;
   const eligibleRate = studentsWithAttendance.length > 0
@@ -190,7 +193,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
               Attendance Health
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Students meeting 75% minimum eligibility
+              Students meeting {MIN_ATTENDANCE}% minimum eligibility
             </p>
             <div className="py-2">
               {studentsWithAttendance.length > 0 ? (
@@ -214,7 +217,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
             <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
               <span className="flex items-center gap-1.5 text-rose-600">
                 <AlertTriangle className="w-4 h-4" />
-                At-Risk Students (&lt;75%):
+                At-Risk Students (&lt;{MIN_ATTENDANCE}%):
               </span>
               <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-extrabold">
                 {atRiskStudents.length} Students
@@ -314,7 +317,7 @@ export default function InstitutionAnalytics({ onNavigateTab }) {
                         <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
-                              course.attendanceRate >= 75 ? 'bg-emerald-500' : 'bg-rose-500'
+                              course.attendanceRate >= MIN_ATTENDANCE ? 'bg-emerald-500' : 'bg-rose-500'
                             }`}
                             style={{ width: `${course.attendanceRate}%` }}
                           />

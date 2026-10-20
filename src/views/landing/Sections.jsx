@@ -2,6 +2,9 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { cn } from '@/lib/utils'
+import { useRequestPilot } from './PilotRequest'
+import { RISK_RULES } from '@/utils/risk'
 
 // Demo address for now (.example never delivers); replace with the real contact email.
 export const CONTACT_EMAIL = 'hello@campusnex.example'
@@ -35,6 +38,8 @@ const ACCESS = [
   ['Deleting records', 'Yes', 'No', 'No', 'No'],
 ]
 
+const ROLES = ['Admin', 'HOD', 'Faculty', 'Student']
+
 export function SecuritySection() {
   return (
     <>
@@ -42,13 +47,29 @@ export function SecuritySection() {
         Admin, HOD, teacher, student: each sees only what's theirs, and marks stay locked until they're published. These
         rules run inside the database, so they hold even if someone tampers with the browser.
       </SectionHeading>
-      <div className="mt-12 overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm">
+      {/* Phones and small tablets: one card per role, so nothing hides off-screen. */}
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 md:hidden">
+        {ROLES.map((role, r) => (
+          <div key={role} className="rounded-2xl border border-white/10 bg-night-2/60 p-5 backdrop-blur-sm">
+            <h3 className="font-display text-lg font-semibold text-white">{role}</h3>
+            <dl className="mt-3 divide-y divide-white/5 text-sm">
+              {ACCESS.map(([item, ...cells]) => (
+                <div key={item} className="flex justify-between gap-4 py-2">
+                  <dt className="text-white/85">{item}</dt>
+                  <dd className={cn('text-right', cells[r] === 'No' || cells[r] === 'No access' ? 'text-white/55' : 'text-mist')}>{cells[r]}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <div className="mt-12 hidden overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm md:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <caption className="sr-only">What each role can see and change</caption>
           <thead>
             <tr className="border-b border-white/10">
               <td className="px-5 py-4" />
-              {['Admin', 'HOD', 'Faculty', 'Student'].map((r) => (
+              {ROLES.map((r) => (
                 <th key={r} scope="col" className="px-5 py-4 font-display text-base font-semibold text-white">{r}</th>
               ))}
             </tr>
@@ -116,6 +137,7 @@ export function SetupSteps() {
 }
 
 export function Plans() {
+  const requestPilot = useRequestPilot()
   return (
     <>
       <SectionHeading title="Pilot it in one department. Roll it out when you're convinced." center>
@@ -124,16 +146,16 @@ export function Plans() {
       <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-night-2/60 p-7 backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Department pilot</h3>
-          <p className="mt-2 text-sm text-mist">One department, one term, to prove it works for your college.</p>
+          <p className="mt-2 text-sm text-mist">Start with one department. Try a demo for a few days, then we shape it around your college.</p>
           <ul className="mt-6 space-y-2.5 text-sm text-white/85">
             <li>Attendance, IA marks and assignments</li>
             <li>Timetable with clash checks</li>
             <li>HOD overview and risk alerts</li>
             <li>CSV student import</li>
           </ul>
-          <a href={contactHref('Campusnex department pilot')} className="mt-8 inline-block rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
+          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
             Request a pilot
-          </a>
+          </button>
         </div>
         <div className="relative rounded-2xl border border-brand-500/60 bg-night-2/60 p-7 shadow-[0_0_60px_-20px_rgba(255,92,0,0.5)] backdrop-blur-sm">
           <h3 className="font-display text-2xl font-semibold text-white">Whole institution</h3>
@@ -144,18 +166,20 @@ export function Plans() {
             <li>Semester results with SGPA and CGPA</li>
             <li>Help moving your existing records</li>
           </ul>
-          <a href={contactHref('Campusnex for our institution')} className="mt-8 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
             Talk to us
-          </a>
+          </button>
         </div>
       </div>
     </>
   )
 }
 
+const SHORTAGE = RISK_RULES.attendance.shortage
+
 const FAQS = [
   ['Who can sign in?', 'Only people your administrator has added. There is no public sign-up. Each person chooses “Activate your account” on the login page and sets their own password using the email the college registered.'],
-  ['How does the 75% alert work?', 'Attendance is calculated per subject, with a late counting as half a class. Once at least four classes are held, a student who drops below 75% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below 40%.'],
+  [`How does the ${SHORTAGE}% alert work?`, `Attendance is calculated per subject, with a late counting as half a class. Students need ${SHORTAGE}% in each subject to sit the SEE. Once at least four classes are held, a student who drops below ${SHORTAGE}% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below ${RISK_RULES.marks.fail}%.`],
   ['Can we bring in our existing student list?', 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. Every row is checked before anything is saved, and students are enrolled in their courses automatically.'],
   ['How do semester results work?', 'The admin uploads the university result file as CSV. Grades follow the 10-point scale, and SGPA and CGPA are worked out automatically. Students see their results only after the admin publishes the semester, and they get a notification when that happens.'],
   ['What does an HOD see that faculty don’t?', 'A view-only overview of every student in their department, subject by subject, with at-risk students flagged, plus which classes are behind on attendance, IA publishing or grading. HODs can also add and edit students and post department notices.'],
@@ -196,6 +220,7 @@ export function Faq() {
 
 // The day ends: the page closes at night, with tomorrow already planned.
 export function ClosingCall({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <div className="mx-auto max-w-3xl text-center">
       <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mist">
@@ -215,9 +240,9 @@ export function ClosingCall({ onSignIn }) {
         Timetable checked for clashes, seats allotted, shortage alerts sent. That could be your college tomorrow.
       </p>
       <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
+        <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
           Request a pilot
-        </a>
+        </button>
         <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
           Sign in to your campus
         </button>
@@ -239,10 +264,11 @@ const TRUST = [
 ]
 
 export function Footer({ onSignIn }) {
+  const requestPilot = useRequestPilot()
   return (
     <footer className="relative overflow-hidden border-t border-white/10">
-      <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pt-16 pb-12 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))]">
-        <div className="max-w-md">
+      <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
+        <div className="col-span-2 max-w-md sm:col-span-3 lg:col-span-1">
           <span className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 shadow-[0_0_30px_-6px_rgba(255,92,0,0.6)]">
               <GraduationCap className="h-6 w-6" aria-hidden="true" />
@@ -251,8 +277,8 @@ export function Footer({ onSignIn }) {
           </span>
           <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
           <p className="mt-2 text-sm leading-relaxed text-mist">
-            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the 75%
-            attendance rule.
+            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the {SHORTAGE}%
+            attendance rule for SEE eligibility.
           </p>
           {HAS_CONTACT_EMAIL && (
             <a href={contactHref('Campusnex enquiry')} className="mt-3 inline-block text-sm text-white/80 hover:text-white">
@@ -260,9 +286,9 @@ export function Footer({ onSignIn }) {
             </a>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href={contactHref('Campusnex department pilot')} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+            <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
               Request a pilot
-            </a>
+            </button>
             <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
               Sign in
             </button>
@@ -271,15 +297,15 @@ export function Footer({ onSignIn }) {
         {FOOTER_LINKS.map(([group, links]) => (
           <nav key={group} aria-label={group} className="text-sm">
             <p className="font-semibold text-white">{group}</p>
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-3 space-y-1 lg:space-y-2.5">
               {links.map(([label, href]) => (
                 <li key={label}>
-                  <a href={href ?? contactHref('Campusnex enquiry')} className="text-mist hover:text-white">{label}</a>
+                  <a href={href ?? contactHref('Campusnex enquiry')} className="inline-block py-1.5 text-mist hover:text-white lg:py-0">{label}</a>
                 </li>
               ))}
               {group === 'Help' && (
                 <li>
-                  <button type="button" onClick={onSignIn} className="cursor-pointer text-mist hover:text-white">Sign in</button>
+                  <button type="button" onClick={onSignIn} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Sign in</button>
                 </li>
               )}
             </ul>

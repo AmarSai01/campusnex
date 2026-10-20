@@ -18,6 +18,13 @@ import {
   ShieldCheck,
   ClipboardCheck,
   Trophy,
+  UserRoundSearch,
+  ChartColumn,
+  TrendingUp,
+  UserRound,
+  LifeBuoy,
+  MessageSquareHeart,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,6 +35,8 @@ import { cn } from '@/lib/utils'
 export default function Sidebar({
   activeTab,
   setActiveTab,
+  hodView,
+  onSwitchView,
   mobileOpen,
   setMobileOpen,
 }) {
@@ -47,27 +56,40 @@ export default function Sidebar({
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
       { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Global Broadcasts', icon: Megaphone },
+      { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
+      { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
+      { id: 'pilot_requests', label: 'Pilot Requests', icon: Handshake, badge: 'Website' },
     ],
     faculty: [
       { id: 'overview', label: 'Teaching Overview', icon: LayoutDashboard },
       { id: 'attendance', label: 'Mark Attendance', icon: CheckSquare, badge: 'Bulk' },
       { id: 'iamarks', label: 'IA Marks Entry', icon: Award, badge: 'Publish' },
+      { id: 'student_analytics', label: 'Student Analytics', icon: UserRoundSearch },
+      { id: 'class_analytics', label: 'Class Analytics', icon: ChartColumn },
       { id: 'assignments', label: 'Assignments & Grading', icon: FileText },
       { id: 'timetable', label: 'My Teaching Schedule', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone },
+      { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
+      { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
     ],
     student: [
       { id: 'overview', label: 'Student Hub', icon: LayoutDashboard },
       { id: 'attendance', label: 'My Attendance', icon: CheckSquare },
       { id: 'iamarks', label: 'IA Marks & Trends', icon: Award },
-      { id: 'results', label: 'Results', icon: Trophy, badge: 'SGPA' },
+      { id: 'performance', label: 'My Performance', icon: TrendingUp },
       { id: 'assignments', label: 'Assignments & Submissions', icon: FileText },
       { id: 'timetable', label: 'Class Timetable', icon: Clock },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
       { id: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
+      { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
       { id: 'directory', label: 'Faculty Directory', icon: Contact },
+      { id: 'results', label: 'Results', icon: Trophy, badge: 'SGPA' },
       { id: 'announcements', label: 'Campus Bulletins', icon: Megaphone },
+      { id: 'feedback', label: 'Course Feedback', icon: MessageSquareHeart },
+      { id: 'requests', label: 'Requests & Grievances', icon: LifeBuoy },
+      { id: 'profile', label: 'My Profile', icon: UserRound },
     ],
   }
 
@@ -75,13 +97,21 @@ export default function Sidebar({
     ? [
         { id: 'hod_overview', label: 'Department Overview', icon: ShieldCheck, badge: 'HOD' },
         { id: 'students', label: 'Manage Students', icon: GraduationCap, badge: 'HOD' },
+        { id: 'hod_student_analytics', label: 'Student Analytics', icon: UserRoundSearch, badge: 'HOD' },
+        { id: 'hod_class_analytics', label: 'Class Analytics', icon: ChartColumn, badge: 'HOD' },
         { id: 'hod_compliance', label: 'Faculty Compliance', icon: ClipboardCheck, badge: 'HOD' },
       ]
     : []
-  const navItems = [...(navConfigs[role] || navConfigs.student), ...hodItems]
-  const workspaceLabel = isHod
+  // An HOD sees either the department tools or their teaching tools, never both.
+  const navItems = hodView ? hodItems : navConfigs[role] || navConfigs.student
+  const workspaceLabel = hodView
     ? `HOD · ${hodDepartments.map((d) => d.code).join(', ')}`
     : `${role} Workspace`
+
+  const handleSwitchView = (toHodPanel) => {
+    onSwitchView(toHodPanel)
+    if (setMobileOpen) setMobileOpen(false)
+  }
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId)
@@ -119,6 +149,40 @@ export default function Sidebar({
             </p>
           </div>
         </div>
+
+        {isHod && (
+          <div className="border-b border-sidebar-border px-3 py-3">
+            <div
+              role="group"
+              aria-label="Switch workspace"
+              className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1"
+            >
+              {[
+                { toHodPanel: true, label: 'HOD Panel', icon: ShieldCheck },
+                { toHodPanel: false, label: 'Teaching', icon: BookOpen },
+              ].map(({ toHodPanel, label, icon: Icon }) => {
+                const isActive = hodView === toHodPanel
+                return (
+                  <Button
+                    key={label}
+                    variant="ghost"
+                    aria-pressed={isActive}
+                    onClick={() => !isActive && handleSwitchView(toHodPanel)}
+                    className={cn(
+                      'h-8 gap-1.5 rounded-lg px-2 text-xs font-semibold',
+                      isActive
+                        ? 'bg-background font-bold text-foreground shadow-sm hover:bg-background'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <ScrollArea className="flex-1 px-3 py-4">
           <div className="space-y-1">

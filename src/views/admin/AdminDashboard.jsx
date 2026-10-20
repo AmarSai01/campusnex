@@ -9,7 +9,10 @@ import CalendarManager from '../../components/admin/CalendarManager';
 import BroadcastModal from '../../components/admin/BroadcastModal';
 import ExamManagement from '../../components/exams/ExamManagement';
 import ResultsManager from '../../components/admin/ResultsManager';
+import RequestsInbox from '../../components/shared/RequestsInbox';
+import FeedbackResults from '../../components/shared/FeedbackResults';
 import SemesterCalendarManager from '../../components/admin/SemesterCalendarManager';
+import PilotRequests from '../../components/admin/PilotRequests';
 
 export default function AdminDashboard({ activeTab = 'overview', setActiveTab }) {
   const renderActiveTabContent = () => {
@@ -36,6 +39,12 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
         return <SemesterCalendarManager />;
       case 'announcements':
         return <BroadcastModal />;
+      case 'requests':
+        return <RequestsInbox />;
+      case 'feedback_results':
+        return <FeedbackResults />;
+      case 'pilot_requests':
+        return <PilotRequests />;
       default:
         return <InstitutionAnalytics onNavigateTab={setActiveTab} />;
     }

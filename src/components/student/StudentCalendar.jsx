@@ -31,7 +31,7 @@ export default function StudentCalendar() {
     setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
   };
 
-  const monthName = currentMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = currentMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   const getTypeBadge = (type) => {
     switch (type) {
@@ -85,7 +85,7 @@ export default function StudentCalendar() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {relevantEvents.map((evt) => {
             const dateObj = new Date(evt.date);
-            const formatted = dateObj.toLocaleDateString('en-US', {
+            const formatted = dateObj.toLocaleDateString('en-IN', {
               weekday: 'short',
               month: 'short',
               day: 'numeric',
@@ -100,7 +100,7 @@ export default function StudentCalendar() {
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div className="p-2 rounded-xl bg-slate-100 text-slate-700 font-extrabold text-xs">
-                      {dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                      {dateObj.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
                     </div>
                     {getTypeBadge(evt.type)}
                   </div>

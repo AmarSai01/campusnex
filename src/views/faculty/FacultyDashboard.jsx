@@ -7,8 +7,13 @@ import AssignmentManager from '../../components/faculty/AssignmentManager';
 import FacultyTimetable from '../../components/faculty/FacultyTimetable';
 import CourseAnnouncementModal from '../../components/faculty/CourseAnnouncementModal';
 import ExamManagement from '../../components/exams/ExamManagement';
+import SemesterCalendarView from '../../components/shared/SemesterCalendarView';
 import HodDepartmentOverview from '../../components/hod/HodDepartmentOverview';
 import HodFacultyCompliance from '../../components/hod/HodFacultyCompliance';
+import StudentAnalytics from '../../components/shared/StudentAnalytics';
+import ClassPerformance from '../../components/shared/ClassPerformance';
+import RequestsInbox from '../../components/shared/RequestsInbox';
+import FeedbackResults from '../../components/shared/FeedbackResults';
 import { useAuth } from '../../context/AuthContext';
 
 export default function FacultyDashboard({ activeTab = 'overview', setActiveTab }) {
@@ -23,18 +28,32 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
         return <BulkAttendanceMarker />;
       case 'iamarks':
         return <IAMarksEntry />;
+      case 'student_analytics':
+        return <StudentAnalytics scope="teaching" />;
+      case 'class_analytics':
+        return <ClassPerformance scope="teaching" />;
       case 'assignments':
         return <AssignmentManager />;
       case 'timetable':
         return <FacultyTimetable />;
       case 'exam_seating':
         return <ExamManagement />;
+      case 'semester_calendar':
+        return <SemesterCalendarView />;
       case 'announcements':
         return <CourseAnnouncementModal />;
       case 'hod_overview':
         return isHod ? <HodDepartmentOverview /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
+      case 'hod_student_analytics':
+        return isHod ? <StudentAnalytics scope="department" /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
+      case 'hod_class_analytics':
+        return isHod ? <ClassPerformance scope="department" /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
       case 'hod_compliance':
         return isHod ? <HodFacultyCompliance /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
+      case 'requests':
+        return <RequestsInbox />;
+      case 'feedback_results':
+        return <FeedbackResults />;
       default:
         return <ClassAnalytics onNavigateTab={setActiveTab} />;
     }

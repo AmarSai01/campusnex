@@ -19,6 +19,9 @@ import AttendanceRingChart from '../charts/AttendanceRingChart';
 import TrendChart from '../charts/TrendChart';
 import Badge from '../common/Badge';
 import { formatTime } from '../../utils/time';
+import { RISK_RULES } from '../../utils/risk';
+
+const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
 
 export default function StudentHub({ onNavigateTab }) {
   const { currentUser } = useAuth();
@@ -33,9 +36,12 @@ export default function StudentHub({ onNavigateTab }) {
   const myAttendance = attendance.filter(a => a.student_id === currentUser?.id);
   const presentCount = myAttendance.filter(a => a.status === 'present').length;
   const lateCount = myAttendance.filter(a => a.status === 'late').length;
+  // null until a class is marked, so an empty record never reads as 100% or a shortage.
   const overallAttendanceRate = myAttendance.length > 0
     ? Math.round(((presentCount + lateCount * 0.5) / myAttendance.length) * 100)
-    : 100;
+    : null;
+  const hasAttendance = overallAttendanceRate !== null;
+  const attendanceOk = hasAttendance && overallAttendanceRate >= MIN_ATTENDANCE;
 
   // Published IA Marks only (Strict student permission scoping)
   const myPublishedMarks = ia_marks.filter(
@@ -45,7 +51,7 @@ export default function StudentHub({ onNavigateTab }) {
   const totalEarned = myPublishedMarks.reduce((acc, m) => acc + (m.score / m.max_score) * 100, 0);
   const avgIAMark = myPublishedMarks.length > 0
     ? Math.round(totalEarned / myPublishedMarks.length)
-    : 0;
+    : null;
 
   // Assignments & Submissions
   const myAssignments = assignments.filter(a => myCourseIds.includes(a.course_id));
@@ -54,9 +60,9 @@ export default function StudentHub({ onNavigateTab }) {
   const pendingAssignments = myAssignments.filter(a => !submittedAsgIds.includes(a.id));
 
   // Today's classes
-  const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const currentDayName = new Date().toLocaleDateString('en-IN', { weekday: 'long' });
   const todayClasses = timetable
-    .filter(t => myCourseIds.includes(t.course_id) && (t.day_of_week === currentDayName || t.day_of_week === 'Monday'))
+    .filter(t => myCourseIds.includes(t.course_id) && t.day_of_week === currentDayName)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   // Recent announcements (Global / Dept / Enrolled courses)
@@ -99,8 +105,8 @@ export default function StudentHub({ onNavigateTab }) {
         </div>
       </div>
 
-      {/* Attendance Shortage Warning Banner if < 75% */}
-      {overallAttendanceRate < 75 && (
+      {/* Attendance shortage banner below the SEE minimum */}
+      {hasAttendance && !attendanceOk && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs animate-slide-up">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -108,7 +114,7 @@ export default function StudentHub({ onNavigateTab }) {
               Low Attendance Warning ({overallAttendanceRate}% Overall)
             </h4>
             <p className="text-xs text-rose-700 mt-0.5">
-              Your overall attendance is currently below the mandatory 75% university examination threshold. Please attend upcoming sessions to regain eligibility.
+              Your overall attendance is currently below the mandatory {MIN_ATTENDANCE}% needed to sit the SEE. Please attend upcoming sessions to regain eligibility.
             </p>
           </div>
           <button
@@ -124,19 +130,19 @@ export default function StudentHub({ onNavigateTab }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Overall Attendance"
-          value={`${overallAttendanceRate}%`}
-          subtitle={overallAttendanceRate >= 75 ? 'Meets 75% criteria' : 'Attendance shortage alert'}
+          value={hasAttendance ? `${overallAttendanceRate}%` : '—'}
+          subtitle={!hasAttendance ? 'No classes marked yet' : attendanceOk ? `Meets ${MIN_ATTENDANCE}% criteria` : 'Attendance shortage alert'}
           icon={CheckSquare}
-          iconBg={overallAttendanceRate >= 75 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}
-          badgeText={overallAttendanceRate >= 75 ? 'Eligible' : 'Shortage'}
-          badgeVariant={overallAttendanceRate >= 75 ? 'success' : 'danger'}
+          iconBg={!hasAttendance ? 'bg-slate-50 text-slate-500 border-slate-100' : attendanceOk ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}
+          badgeText={!hasAttendance ? undefined : attendanceOk ? 'Eligible' : 'Shortage'}
+          badgeVariant={attendanceOk ? 'success' : 'danger'}
           onClick={() => onNavigateTab('attendance')}
         />
 
         <StatCard
           title="Average IA Score"
-          value={`${avgIAMark}%`}
-          subtitle={`${myPublishedMarks.length} tests published`}
+          value={avgIAMark === null ? '—' : `${avgIAMark}%`}
+          subtitle={myPublishedMarks.length ? `${myPublishedMarks.length} tests published` : 'No tests published yet'}
           icon={Award}
           iconBg="bg-purple-50 text-purple-600 border-purple-100"
           onClick={() => onNavigateTab('iamarks')}
@@ -189,7 +195,7 @@ export default function StudentHub({ onNavigateTab }) {
               const cAtt = attendance.filter(a => a.course_id === c.id && a.student_id === currentUser?.id);
               const cPres = cAtt.filter(a => a.status === 'present').length;
               const cLate = cAtt.filter(a => a.status === 'late').length;
-              const pct = cAtt.length > 0 ? Math.round(((cPres + cLate * 0.5) / cAtt.length) * 100) : 100;
+              const pct = cAtt.length > 0 ? Math.round(((cPres + cLate * 0.5) / cAtt.length) * 100) : null;
 
               return (
                 <div

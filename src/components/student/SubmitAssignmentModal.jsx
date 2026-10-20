@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import Modal from '../common/Modal';
+import { useData } from '../../context/DataContext';
+
+const MAX_BYTES = 10 * 1024 * 1024;
 
 export default function SubmitAssignmentModal({
   isOpen,
@@ -17,37 +20,49 @@ export default function SubmitAssignmentModal({
   course,
   onSubmit
 }) {
-  const [fileName, setFileName] = useState('');
-  const [fileUrl, setFileUrl] = useState('');
+  const { uploadSubmissionFile } = useData();
+  const [file, setFile] = useState(null);
+  const [link, setLink] = useState('');
   const [comments, setComments] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!assignment) return null;
 
-  const handleSimulateFileUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFileName(file.name);
-      setFileUrl(`https://storage.campusnex.edu/submissions/${encodeURIComponent(file.name)}`);
-      setError('');
+  const handlePickFile = (e) => {
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    if (!picked) return;
+    if (picked.size > MAX_BYTES) {
+      setError('The file must be 10 MB or smaller. Zip large projects, or share a repository link instead.');
+      return;
     }
+    setFile(picked);
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!fileName.trim()) {
-      setError('Please upload a submission file or provide an artifact name.');
+    const trimmedLink = link.trim();
+    if (!file && !trimmedLink) {
+      setError('Choose a file to upload, or paste a link to your work.');
+      return;
+    }
+    if (!file && !/^https:\/\/\S+$/i.test(trimmedLink)) {
+      setError('Links must start with https://');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Upload first; the submission row only points at a file that really exists.
+      const stored = file
+        ? await uploadSubmissionFile(assignment.id, file)
+        : { file_url: trimmedLink, file_name: trimmedLink };
       await onSubmit({
         assignment_id: assignment.id,
-        file_name: fileName,
-        file_url: fileUrl || `https://storage.campusnex.edu/submissions/${fileName}`,
+        ...stored,
         comments: comments
       });
 
@@ -84,7 +99,7 @@ export default function SubmitAssignmentModal({
           <div className="flex items-center justify-between">
             <span className="font-bold text-slate-800">Max Points: {assignment.max_marks} Pts</span>
             <span className="text-amber-700 font-bold">
-              Due: {new Date(assignment.due_date).toLocaleDateString()}
+              Due: {new Date(assignment.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
           <p className="text-slate-500 line-clamp-2 mt-1">{assignment.description}</p>
@@ -99,42 +114,51 @@ export default function SubmitAssignmentModal({
         {/* Upload Box */}
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5">
-            Artifact Upload (ZIP, PDF, Source Code) *
+            Upload your work (PDF, ZIP, document or source file)
           </label>
-          <div className="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-6 text-center transition-colors bg-slate-50/50 relative cursor-pointer group">
+          <div className="border-2 border-dashed border-slate-300 hover:border-brand-500 focus-within:border-brand-500 rounded-2xl p-6 text-center transition-colors bg-slate-50/50 relative cursor-pointer group">
             <input
               type="file"
-              onChange={handleSimulateFileUpload}
+              onChange={handlePickFile}
+              aria-label="Choose a file to submit"
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <div className="flex flex-col items-center justify-center">
               <div className="p-3 rounded-2xl bg-white border border-slate-200 text-brand-600 mb-2 group-hover:scale-105 transition-transform shadow-xs">
-                <UploadCloud className="w-6 h-6" />
+                {file ? <FileText className="w-6 h-6" /> : <UploadCloud className="w-6 h-6" />}
               </div>
-              <p className="text-xs font-bold text-slate-800">
-                {fileName ? fileName : 'Click or Drag & Drop File'}
+              <p className="text-xs font-bold text-slate-800 break-all">
+                {file ? file.name : 'Click or drag a file here'}
               </p>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                Supports PDF, ZIP, C++, Java, Python (up to 25MB)
+                {file ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : 'Up to 10 MB'}
               </p>
             </div>
           </div>
+          {file && (
+            <button type="button" onClick={() => setFile(null)} className="mt-1.5 text-[11px] font-bold text-rose-600 hover:underline">
+              Remove file
+            </button>
+          )}
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            Or Type Custom File Name / Repository Link
+          <label htmlFor="submission-link" className="block text-xs font-bold text-slate-700 mb-1">
+            Or share a link instead (GitHub, Google Drive…)
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Link2 className="w-3.5 h-3.5" />
             </div>
             <input
-              type="text"
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="e.g. alice_smith_final_project.zip"
-              className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              id="submission-link"
+              type="url"
+              inputMode="url"
+              value={link}
+              disabled={!!file}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="https://github.com/your-name/project"
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
             />
           </div>
         </div>

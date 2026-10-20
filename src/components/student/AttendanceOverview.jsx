@@ -14,10 +14,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import AttendanceRingChart from '../charts/AttendanceRingChart';
 import Badge from '../common/Badge';
+import AttendancePlanner from './AttendancePlanner';
+import { RISK_RULES } from '../../utils/risk';
+
+const MIN = RISK_RULES.attendance.shortage;
 
 export default function AttendanceOverview() {
   const { currentUser } = useAuth();
-  const { courses, enrollments, attendance, users } = useData();
+  const { courses, enrollments, attendance, users, timetable } = useData();
 
   const myEnrollments = enrollments.filter(e => e.student_id === currentUser?.id);
   const myCourseIds = myEnrollments.map(e => e.course_id);
@@ -35,9 +39,10 @@ export default function AttendanceOverview() {
   const lateCount = myAttendance.filter(a => a.status === 'late').length;
   const absentCount = myAttendance.filter(a => a.status === 'absent').length;
 
+  // null until a class is marked, so an empty record never reads as 100%.
   const overallRate = totalClasses > 0
     ? Math.round(((presentCount + lateCount * 0.5) / totalClasses) * 100)
-    : 100;
+    : null;
 
   // Filtered log
   const filteredRecords = myAttendance
@@ -58,16 +63,24 @@ export default function AttendanceOverview() {
             My Attendance Records & Compliance
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Track daily classroom presence, subject-wise eligibility, and 75% examination thresholds.
+            Track daily classroom presence and subject-wise eligibility for the SEE (minimum {MIN}%).
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant={overallRate >= 75 ? 'success' : 'danger'} size="lg" dot>
-            Overall: {overallRate}% {overallRate >= 75 ? 'Eligible' : 'Shortage'}
-          </Badge>
+          {overallRate === null ? (
+            <Badge variant="neutral" size="lg" dot>
+              No classes marked yet
+            </Badge>
+          ) : (
+            <Badge variant={overallRate >= MIN ? 'success' : 'danger'} size="lg" dot>
+              Overall: {overallRate}% {overallRate >= MIN ? 'Eligible' : 'Shortage'}
+            </Badge>
+          )}
         </div>
       </div>
+
+      <AttendancePlanner courses={myCourses} attendance={myAttendance} timetable={timetable} />
 
       {/* Subject Rings Card Grid */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
@@ -75,7 +88,7 @@ export default function AttendanceOverview() {
           Subject Compliance Breakdown
         </h3>
         <p className="text-xs text-slate-500 mb-6">
-          Minimum 75% attendance in each course is required to sit for end-semester examinations.
+          Minimum {MIN}% attendance in each course is required to sit for the SEE.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -87,7 +100,7 @@ export default function AttendanceOverview() {
             const ab = records.filter(a => a.status === 'absent').length;
             const rate = records.length > 0
               ? Math.round(((p + l * 0.5) / records.length) * 100)
-              : 100;
+              : null;
 
             return (
               <div
@@ -204,7 +217,7 @@ export default function AttendanceOverview() {
                   return (
                     <tr key={rec.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">
-                        {dateObj.toLocaleDateString('en-US', {
+                        {dateObj.toLocaleDateString('en-IN', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',

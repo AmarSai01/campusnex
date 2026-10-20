@@ -2,8 +2,12 @@ import React, { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, BellRing, CheckCircle2, ListChecks, RotateCcw, Shuffle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RISK_RULES } from '@/utils/risk'
 import { parseCsv, validateImport } from '@/utils/studentImport'
+import HeroRegister from './HeroRegister'
 import { IMPORT_SAMPLE_CSV, IMPORT_SAMPLE_DEPARTMENTS, SEATING_STUDENTS } from './sampleData'
+
+const SHORTAGE = RISK_RULES.attendance.shortage
 
 // A dark card with a soft light that follows the cursor across it.
 function Tile({ title, body, className, children }) {
@@ -64,12 +68,12 @@ function SeatingDemo() {
             layout
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className={cn(
-              'rounded-md py-1.5 text-center text-[10px] font-bold sm:text-[11px]',
+              'rounded-md py-1.5 text-center text-[11px] font-bold',
               s.branch === 'CSE' ? 'bg-white text-night' : 'border border-brand-400/40 bg-brand-500/20 text-brand-200'
             )}
           >
             {s.branch}
-            <span className="block text-[9px] font-medium opacity-70 tabular-nums">S-{String(i + 1).padStart(2, '0')}</span>
+            <span className="block text-[10px] font-medium opacity-70 tabular-nums sm:text-[9px]">S-{String(i + 1).padStart(2, '0')}</span>
           </motion.li>
         ))}
       </ol>
@@ -234,6 +238,13 @@ export default function FeatureBento() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <Tile
+        className="px-2.5 sm:px-6 lg:col-span-3"
+        title={`Attendance with an ${SHORTAGE}% alert`}
+        body={`Mark a class in seconds. When a student drops below ${SHORTAGE}%, the student, the subject teacher and the HOD are told at once. Tap any cell to try it.`}
+      >
+        <HeroRegister />
+      </Tile>
+      <Tile
         className="lg:col-span-2 lg:row-span-2"
         title="Exam seating in one click"
         body="Pick the hall and the branches sharing it. Campusnex seats them so nobody sits beside or behind someone from their own branch."
@@ -247,7 +258,7 @@ export default function FeatureBento() {
       >
         <ImportDemo />
       </Tile>
-      <Tile title="Alerts before it's too late" body="Below 75% attendance or a 40% IA average, the right people hear about it.">
+      <Tile title="Alerts before it's too late" body={`Below ${SHORTAGE}% attendance or a ${RISK_RULES.marks.fail}% IA average, the right people hear about it.`}>
         <AlertsDemo />
       </Tile>
       <Tile title="Results, published when ready" body="SGPA and CGPA on the 10-point scale, visible to students only after you publish.">

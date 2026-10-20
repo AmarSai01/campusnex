@@ -17,8 +17,11 @@ export default function StudentTimetable() {
     t => myCourseIds.includes(t.course_id) && (!currentUser?.section || t.section === currentUser?.section)
   );
 
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  // Saturday is a teaching day in most Indian colleges; it only shows when it has classes.
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].filter(
+    (d) => d !== 'Saturday' || mySlots.some((s) => s.day_of_week === 'Saturday')
+  );
+  const todayName = new Date().toLocaleDateString('en-IN', { weekday: 'long' });
 
   const [activeDay, setActiveDay] = useState('All'); // 'All' or specific day
 

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import SubmitAssignmentModal from './SubmitAssignmentModal';
+import SubmissionFileLink from '../shared/SubmissionFileLink';
 import Badge from '../common/Badge';
 
 export default function AssignmentSubmissionList() {
@@ -182,11 +183,23 @@ export default function AssignmentSubmissionList() {
                   <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-slate-400 font-medium">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
-                      Due {dueDate.toLocaleDateString()} at {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      Due {dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {dueDate.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
                     </span>
                     <span>•</span>
                     <span>Instructor: {item.faculty?.name || 'Faculty'}</span>
                   </div>
+
+                  {item.attachment_url && (
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                      Task file: <SubmissionFileLink url={item.attachment_url} name={item.attachment_name} />
+                    </div>
+                  )}
+
+                  {item.submission && (
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                      Your submission: <SubmissionFileLink submission={item.submission} />
+                    </div>
+                  )}
 
                   {/* If Graded: Show Marks and Written Teacher Feedback */}
                   {item.submission?.graded && (
@@ -219,7 +232,7 @@ export default function AssignmentSubmissionList() {
                       <Upload className="w-4 h-4" />
                       <span>Submit Solution</span>
                     </button>
-                  ) : (
+                  ) : item.status === 'submitted' ? (
                     <button
                       onClick={() => handleOpenSubmitModal(item)}
                       className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
@@ -227,7 +240,7 @@ export default function AssignmentSubmissionList() {
                       <Upload className="w-3.5 h-3.5" />
                       <span>Resubmit Solution</span>
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );
