@@ -99,6 +99,7 @@ function AppContent({ initialScreen = 'landing' }) {
             : 'Student Hub',
       students: 'Student Roster & USN Directory',
       departments: 'Academic Departments Directory',
+      faculty: 'Faculty Directory & Responsibilities',
       users: 'Institutional User Directory',
       courses: 'Department Courses & Faculty Allocation',
       timetable: 'Academic Timetable & Schedule',

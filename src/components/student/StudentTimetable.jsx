@@ -5,11 +5,13 @@ import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
 import { formatTimeRange } from '../../utils/time';
 import BatchTag from '../common/BatchTag';
-import { slotVisibleToStudent } from '../../utils/batches';
+import { slotVisibleToStudent, batchLabel } from '../../utils/batches';
+import { classContactsText } from '../../utils/faculty';
 
 export default function StudentTimetable() {
   const { currentUser } = useAuth();
-  const { timetable, courses, enrollments, users } = useData();
+  const { timetable, courses, enrollments, users, class_roles: classRoles = [] } = useData();
+  const classContacts = currentUser ? classContactsText(classRoles, users, currentUser) : '';
 
   const myEnrollments = enrollments.filter(e => e.student_id === currentUser?.id);
   const myCourseIds = myEnrollments.map(e => e.course_id);
@@ -39,8 +41,12 @@ export default function StudentTimetable() {
             Weekly Academic Class Timetable
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Lectures, tutorial sessions, and laboratory slots for Section {currentUser?.section || 'A'}.
+            Lectures, tutorial sessions, and laboratory slots for Section {currentUser?.section || 'A'}
+            {currentUser?.batch ? ` (${batchLabel(currentUser.batch)} for labs)` : ''}.
           </p>
+          {classContacts && (
+            <p className="text-xs font-semibold text-slate-700 mt-1">{classContacts}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

@@ -590,6 +590,63 @@ export function DataProvider({ children }) {
     });
   };
 
+  // Class Teacher / Class Coordinator. A class has at most one of each, so assigning
+  // replaces whoever held it.
+  const assignClassRole = ({ department_id, semester, section, role, faculty_id }) => {
+    const now = new Date().toISOString();
+    setData(prev => {
+      const rest = (prev.class_roles || []).filter(r =>
+        !(r.department_id === department_id && Number(r.semester) === Number(semester) && r.section === section && r.role === role)
+      );
+      return {
+        ...prev,
+        class_roles: [...rest, {
+          id: `crole_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+          department_id,
+          semester: Number(semester),
+          section,
+          role,
+          faculty_id,
+          created_by: currentProfileId,
+          created_at: now
+        }]
+      };
+    });
+  };
+
+  const removeClassRole = (roleId) => {
+    setData(prev => ({ ...prev, class_roles: (prev.class_roles || []).filter(r => r.id !== roleId) }));
+  };
+
+  // Faculty from a validated CSV (utils/faculty.js): new emails are added, existing teachers updated.
+  const importFaculty = (rows) => {
+    const now = new Date().toISOString();
+    setData(prev => {
+      const byId = new Map(rows.filter(r => r.existingId).map(r => [r.existingId, r]));
+      const users = prev.users.map(u => {
+        const r = byId.get(u.id);
+        if (!r) return u;
+        return { ...u, name: r.name, department_id: r.department_id, designation: r.designation, updated_by: currentProfileId || u.updated_by, updated_at: now };
+      });
+      const fresh = rows.filter(r => !r.existingId).map(r => ({
+        id: `faculty_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+        name: r.name,
+        email: r.email,
+        role: 'faculty',
+        department_id: r.department_id,
+        designation: r.designation,
+        status: 'active',
+        photo_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.name)}`,
+        created_by: currentProfileId,
+        updated_by: currentProfileId,
+        created_at: now,
+        updated_at: now
+      }));
+      return { ...prev, users: [...users, ...fresh] };
+    });
+    return { added: rows.filter(r => !r.existingId).length, updated: rows.filter(r => r.existingId).length };
+  };
+
   // Lab batches for students: { studentId: 'B1' | 'B2' | ... | null }.
   const setStudentBatches = (assignments) => {
     const now = new Date().toISOString();
@@ -1796,6 +1853,9 @@ export function DataProvider({ children }) {
         importResults,
         setResultsPublished,
         setStudentBatches,
+        assignClassRole,
+        removeClassRole,
+        importFaculty,
         whenSynced,
         createSemesterCalendar,
         publishSemesterCalendar,

@@ -23,14 +23,7 @@ import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
 
-const FACULTY_DESIGNATIONS = [
-  'Professor',
-  'Associate Professor',
-  'Assistant Professor',
-  'Professor & Head of Department',
-  'Lecturer',
-  'Lab Instructor'
-];
+import { FACULTY_DESIGNATIONS } from '../../utils/faculty';
 const OTHER_DESIGNATION = '__other__';
 
 export default function UserManagement() {

@@ -15,6 +15,7 @@ import LabBatchesPanel from './LabBatchesPanel';
 import BatchTag from '../common/BatchTag';
 import TimetableChangeLog from './TimetableChangeLog';
 import { BATCHES, batchLabel } from '../../utils/batches';
+import { classContactsText } from '../../utils/faculty';
 import { classGroupKey, detectTimetableConflict } from '../../utils/conflictDetector';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -45,7 +46,7 @@ const countLabel = (n, word, plural = `${word}es`) => `${n} ${n === 1 ? word : p
 // mode 'admin': every class. mode 'faculty': teachers edit slots of subjects they teach,
 // HODs any slot in their department; admins are alerted of every change.
 export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
-  const { timetable, courses: allCourses, users, departments: allDepartments, exam_rooms = [], saveTimetableSlot, deleteTimetableSlot } = useData();
+  const { timetable, courses: allCourses, users, departments: allDepartments, exam_rooms = [], class_roles: classRoles = [], saveTimetableSlot, deleteTimetableSlot } = useData();
   const { currentUser, hodDepartments = [] } = useAuth();
   const isAdminMode = mode === 'admin';
   const hodDeptIds = new Set(hodDepartments.map(d => d.id));
@@ -331,6 +332,11 @@ export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
                 {countLabel(groupSlots.length, 'class')} a week, {countLabel(classCourses.length, 'subject', 'subjects')}
                 {teacherlessCount > 0 && (
                   <span className="font-semibold text-amber-700">, {teacherlessCount} without a teacher</span>
+                )}
+                {classContactsText(classRoles, users, { department_id: deptId, semester, section }) && (
+                  <span className="block mt-0.5 font-semibold text-slate-600">
+                    {classContactsText(classRoles, users, { department_id: deptId, semester, section })}
+                  </span>
                 )}
               </p>
             )}

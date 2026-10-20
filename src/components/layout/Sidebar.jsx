@@ -4,6 +4,7 @@ import {
   Users,
   BookOpen,
   CalendarDays,
+  Briefcase,
   CalendarRange,
   CalendarCog,
   Megaphone,
@@ -48,6 +49,7 @@ export default function Sidebar({
     admin: [
       { id: 'overview', label: 'Analytics & Insights', icon: LayoutDashboard },
       { id: 'students', label: 'Manage Students', icon: GraduationCap, badge: 'USN' },
+      { id: 'faculty', label: 'Manage Faculty', icon: Briefcase },
       { id: 'departments', label: 'Manage Departments', icon: Building2, badge: 'Programs' },
       { id: 'users', label: 'User Directory', icon: Users, badge: 'Staff' },
       { id: 'courses', label: 'Curriculum & Courses', icon: BookOpen },

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import InstitutionAnalytics from '../../components/admin/InstitutionAnalytics';
 import UserManagement from '../../components/admin/UserManagement';
+import ManageFaculty from '../../components/admin/ManageFaculty';
 import ManageStudents from '../../components/shared/ManageStudents';
 import DepartmentManagement from '../../components/admin/DepartmentManagement';
 import CourseManagement from '../../components/admin/CourseManagement';
@@ -21,6 +22,8 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
         return <InstitutionAnalytics onNavigateTab={setActiveTab} />;
       case 'students':
         return <ManageStudents />;
+      case 'faculty':
+        return <ManageFaculty />;
       case 'departments':
         return <DepartmentManagement />;
       case 'users':

@@ -135,6 +135,13 @@ TABLES.push(
   }
 );
 
+// Class Teacher and Class Coordinator of each class; references departments and profiles.
+TABLES.push({
+  key: 'class_roles',
+  table: 'class_roles',
+  columns: ['id', 'department_id', 'semester', 'section', 'role', 'faculty_id', 'created_by', 'created_at']
+});
+
 // Keep only known columns; empty strings become null so date/number columns accept them.
 // Appended after the original list: results reference profiles only.
 TABLES.push({
