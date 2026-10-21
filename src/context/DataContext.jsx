@@ -6,6 +6,7 @@ import { gpa } from '../utils/results';
 import { formatTimeRange } from '../utils/time';
 import { eventAppliesTo } from '../utils/calendarScope';
 import { calendarAppliesTo } from '../utils/semesterCalendar';
+import { courseDeleteBlockers } from '../utils/courses';
 import {
   addExtraClass,
   cancelSession,
@@ -1135,6 +1136,30 @@ export function DataProvider({ children }) {
     });
   };
 
+  // The database cascades a course delete to every child table, so refuse while the course
+  // holds academic records that would be wiped with it. (Student feedback is checked by the
+  // caller, since it is only readable through a database function.)
+  const deleteCourse = (courseId, actorRole) => {
+    if (actorRole !== 'admin') {
+      throw new Error('Only administrators can delete courses.');
+    }
+
+    const blockers = courseDeleteBlockers(data, courseId);
+    if (blockers) {
+      throw new Error(`Can't delete this course: it has ${blockers}. Deleting it would erase them.`);
+    }
+
+    setData(prev => ({
+      ...prev,
+      courses: prev.courses.filter(c => c.id !== courseId),
+      enrollments: prev.enrollments.filter(e => e.course_id !== courseId),
+      timetable: prev.timetable.filter(s => s.course_id !== courseId),
+      class_sessions: (prev.class_sessions || []).filter(s => s.course_id !== courseId),
+      assignments: prev.assignments.filter(a => a.course_id !== courseId),
+      announcements: prev.announcements.filter(a => a.course_id !== courseId)
+    }));
+  };
+
   // Set exactly which students are enrolled in a course. Attendance and marks history is kept.
   const setCourseEnrollments = (courseId, studentIds) => {
     setData(prev => ({
@@ -1857,6 +1882,7 @@ export function DataProvider({ children }) {
         deleteDepartment,
         createCourse,
         updateCourse,
+        deleteCourse,
         assignFacultyToCourse,
         setCourseEnrollments,
         markNotificationAsRead,

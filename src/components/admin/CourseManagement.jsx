@@ -10,13 +10,19 @@ import {
   Sparkles,
   CheckCircle2,
   Search,
-  UserPlus
+  UserPlus,
+  Trash2,
+  X
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
+import ConfirmDialog from '../common/ConfirmDialog';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import { studentMatchesCourse } from '../../utils/enrollment';
+import { courseDeleteBlockers } from '../../utils/courses';
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const FILTER_KEY = 'campusnex.curriculum.filter';
@@ -40,7 +46,9 @@ const writeFilter = (value) => {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 export default function CourseManagement() {
-  const { courses, users, departments, enrollments, createCourse, updateCourse, assignFacultyToCourse, setCourseEnrollments } = useData();
+  const data = useData();
+  const { courses, users, departments, enrollments, timetable, createCourse, updateCourse, deleteCourse, assignFacultyToCourse, setCourseEnrollments } = data;
+  const { currentUser } = useAuth();
 
   const facultyList = users.filter(u => u.role === 'faculty' && u.status === 'active');
 
@@ -103,6 +111,37 @@ export default function CourseManagement() {
   });
 
   const [formError, setFormError] = useState('');
+  const [confirmRequest, setConfirmRequest] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleDeleteCourse = async (course) => {
+    setDeleteError('');
+    const blockers = courseDeleteBlockers(data, course.id);
+    if (blockers) {
+      setDeleteError(`Can't delete ${course.code}: it has ${blockers}. Deleting it would erase them.`);
+      return;
+    }
+    // Student feedback is only readable through this database function.
+    const { data: feedback } = await supabase.rpc('course_feedback_summary', { p_course_id: course.id });
+    if (feedback?.responses > 0) {
+      setDeleteError(`Can't delete ${course.code}: students have left ${feedback.responses} feedback ${feedback.responses === 1 ? 'response' : 'responses'} on it. Deleting it would erase them.`);
+      return;
+    }
+    const slotCount = timetable.filter(s => s.course_id === course.id).length;
+    const enrolledCount = enrollments.filter(e => e.course_id === course.id).length;
+    setConfirmRequest({
+      title: `Delete ${course.code}?`,
+      message: `${course.name} (Sem ${course.semester}, Sec ${course.section}) will be removed with its ${slotCount} timetable slot${slotCount === 1 ? '' : 's'} and ${enrolledCount} student enrolment${enrolledCount === 1 ? '' : 's'}. This can't be undone.`,
+      confirmLabel: 'Delete course',
+      onConfirm: () => {
+        try {
+          deleteCourse(course.id, currentUser?.role);
+        } catch (err) {
+          setDeleteError(err.message);
+        }
+      }
+    });
+  };
   const [reassignModalCourse, setReassignModalCourse] = useState(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState('');
 
@@ -253,6 +292,20 @@ export default function CourseManagement() {
           <span>Add Course</span>
         </button>
       </div>
+
+      {deleteError && (
+        <div role="alert" className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+          <span>{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError('')}
+            className="shrink-0 rounded-md p-0.5 text-rose-500 hover:bg-rose-100 hover:text-rose-700 cursor-pointer"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {departments.length === 0 ? (
         <EmptyState
@@ -417,6 +470,14 @@ export default function CourseManagement() {
                   title="Edit Course Details"
                 >
                   <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteCourse(course)}
+                  className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  title="Delete Course"
+                  aria-label={`Delete ${course.code}`}
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -755,6 +816,8 @@ export default function CourseManagement() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }
