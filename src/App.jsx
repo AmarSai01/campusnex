@@ -5,12 +5,13 @@ import SmoothScroll from './lib/smooth-scroll'
 import { MAY_HAVE_SESSION } from './lib/session-hint'
 import LandingPage from './views/landing/LandingPage'
 
-// Dev-only previews with sample data: http://localhost:5173/?preview=results, ?preview=analytics, ?preview=student or ?preview=attendance
+// Dev-only previews with sample data: http://localhost:5173/?preview=results, ?preview=analytics, ?preview=student, ?preview=attendance or ?preview=assignments
 const PREVIEW = import.meta.env.DEV ? new URLSearchParams(window.location.search).get('preview') : null
 const SHOW_RESULTS_PREVIEW = PREVIEW === 'results'
 const SHOW_ANALYTICS_PREVIEW = PREVIEW === 'analytics'
 const SHOW_STUDENT_PREVIEW = PREVIEW === 'student'
 const SHOW_ATTENDANCE_PREVIEW = PREVIEW === 'attendance'
+const SHOW_ASSIGNMENTS_PREVIEW = PREVIEW === 'assignments'
 
 // Role tab for a direct sign-in link (/?signin=hod); Root opens the sign-in screen for it.
 const SIGNIN_ROLE = new URLSearchParams(window.location.search).get('signin')
@@ -20,6 +21,7 @@ const ResultsPreview = lazy(() => import('./views/preview/ResultsPreview'))
 const AnalyticsPreview = lazy(() => import('./views/preview/AnalyticsPreview'))
 const StudentPreview = lazy(() => import('./views/preview/StudentPreview'))
 const AttendancePreview = lazy(() => import('./views/preview/AttendancePreview'))
+const AssignmentsPreview = lazy(() => import('./views/preview/AssignmentsPreview'))
 const LoginView = lazy(() => import('./views/auth/LoginView'))
 const ResetPasswordView = lazy(() => import('./views/auth/ResetPasswordView'))
 const AdminDashboard = lazy(() => import('./views/admin/AdminDashboard'))
@@ -83,6 +85,7 @@ function AppContent({ initialScreen = 'landing' }) {
   if (SHOW_ANALYTICS_PREVIEW) return <AnalyticsPreview />
   if (SHOW_STUDENT_PREVIEW) return <StudentPreview />
   if (SHOW_ATTENDANCE_PREVIEW) return <AttendancePreview />
+  if (SHOW_ASSIGNMENTS_PREVIEW) return <AssignmentsPreview />
 
   if (passwordRecovery) {
     return <ResetPasswordView />
@@ -152,7 +155,8 @@ function AppContent({ initialScreen = 'landing' }) {
       notif.type === 'assignment_due' ||
       notif.type === 'assignment_graded' ||
       notif.type === 'assignment_created' ||
-      notif.type === 'assignment_submitted'
+      notif.type === 'assignment_submitted' ||
+      notif.type === 'assignment_reminder'
     ) {
       openTab('assignments')
     } else if (

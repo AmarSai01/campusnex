@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import SubmitAssignmentModal from './SubmitAssignmentModal';
 import SubmissionFileLink from '../shared/SubmissionFileLink';
+import { isLate } from '../../utils/assignments';
 import Badge from '../common/Badge';
 
 export default function AssignmentSubmissionList() {
@@ -37,7 +38,7 @@ export default function AssignmentSubmissionList() {
     const now = Date.now();
     const diff = due - now;
 
-    if (diff <= 0) return { text: 'Overdue', isUrgent: true };
+    if (diff <= 0) return { text: 'Past due: you can still submit (marked Late)', isUrgent: true };
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
@@ -76,7 +77,8 @@ export default function AssignmentSubmissionList() {
       faculty,
       submission,
       countdown,
-      status
+      status,
+      late: isLate(submission, asg)
     };
   });
 
@@ -162,11 +164,10 @@ export default function AssignmentSubmissionList() {
                     </span>
 
                     {/* Status Badge */}
-                    {item.status === 'graded' ? (
-                      <Badge variant="success" dot>Graded</Badge>
-                    ) : item.status === 'submitted' ? (
-                      <Badge variant="info" dot>Submitted & Awaiting Grade</Badge>
-                    ) : (
+                    {item.status === 'graded' && <Badge variant="success" dot>Graded</Badge>}
+                    {item.status === 'submitted' && <Badge variant="info" dot>Submitted & Awaiting Grade</Badge>}
+                    {item.late && <Badge variant="warning" dot>Submitted late</Badge>}
+                    {item.status === 'pending' && (
                       <Badge variant={item.countdown.isUrgent ? 'danger' : 'warning'} dot>
                         {item.countdown.text}
                       </Badge>

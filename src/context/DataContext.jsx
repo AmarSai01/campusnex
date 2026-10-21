@@ -14,6 +14,7 @@ import {
   restoreSession,
   unlockSession
 } from '../utils/classSessions';
+import { remindStudents } from '../utils/assignments';
 
 export const DataContext = createContext(null);
 
@@ -261,7 +262,8 @@ export function DataProvider({ children }) {
 
   // 3. Assignment Management (Create / Update / Delete)
   const createAssignment = (assignmentData) => {
-    const newId = `asg_${Date.now()}`;
+    // Random ids: one assignment can be posted to several classes in the same moment.
+    const newId = `asg_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
     const newAsg = {
       id: newId,
       ...assignmentData,
@@ -296,6 +298,10 @@ export function DataProvider({ children }) {
     });
     return newId;
   };
+
+  // Notify students in an assignment's class who haven't submitted it.
+  const remindAssignment = (assignment, studentIds) =>
+    setData((prev) => remindStudents(prev, assignment, studentIds));
 
   // 4. Student Assignment Submission
   const submitAssignment = (submissionData) => {
@@ -1708,6 +1714,7 @@ export function DataProvider({ children }) {
         createStudentRequest,
         withdrawStudentRequest,
         answerStudentRequest,
+        remindAssignment,
         markClassSession,
         cancelClassSession,
         restoreClassSession,

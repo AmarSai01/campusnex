@@ -1,478 +1,596 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  FileText,
-  Plus,
-  Calendar,
-  Clock,
-  Award,
-  Users,
+  ArrowLeft,
+  BellRing,
   CheckCircle2,
-  AlertCircle,
-  Eye,
+  Clock,
+  FileText,
   Paperclip,
-  Check
+  Plus,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import EmptyState from '../common/EmptyState';
 import SubmissionFileLink from '../shared/SubmissionFileLink';
-import SubmissionGraderModal from './SubmissionGraderModal';
+import {
+  assignmentRoster,
+  classAssignmentSummary,
+  isPastDue,
+  rosterCounts
+} from '../../utils/assignments';
+import { cn } from '@/lib/utils';
 
+const classLabel = (c) => `${c.code} · Sem ${c.semester} · Sec ${c.section}`;
+const fmtDue = (iso) => {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}`;
+};
+
+// One week from now at 11:59 PM, as the local "YYYY-MM-DDTHH:MM" a date-time box expects.
+const inAWeekLocal = () => {
+  const d = new Date(Date.now() + 7 * 86400000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T23:59`;
+};
+
+const STATUS = {
+  missing: { label: 'Not submitted', variant: 'danger' },
+  submitted: { label: 'Submitted', variant: 'success' },
+  late: { label: 'Late', variant: 'warning' },
+  graded: { label: 'Graded', variant: 'primary' }
+};
+const FILTERS = [
+  ['all', 'All'],
+  ['missing', 'Not submitted'],
+  ['submitted', 'Submitted'],
+  ['late', 'Late'],
+  ['graded', 'Graded']
+];
+
+// Assignments for a teacher with several classes: pick a class, open an assignment, see every
+// student in that class, grade in place and remind the ones who haven't submitted.
 export default function AssignmentManager() {
   const { currentUser } = useAuth();
-  const { courses, assignments, submissions, users, createAssignment, gradeSubmission, uploadAssignmentFile } = useData();
+  const data = useData();
+  const { courses, assignments, createAssignment, uploadAssignmentFile } = data;
 
-  // Scoped to courses assigned to this faculty
-  const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);
-  const myCourseIds = myCourses.map(c => c.id);
+  const myCourses = useMemo(
+    () =>
+      courses
+        .filter((c) => c.faculty_id === currentUser?.id)
+        .sort((a, b) => a.code.localeCompare(b.code) || Number(a.semester) - Number(b.semester) || String(a.section).localeCompare(String(b.section))),
+    [courses, currentUser]
+  );
 
-  const [activeTab, setActiveTab] = useState('assignments'); // 'assignments' | 'submissions'
-  const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+  const [courseId, setCourseId] = useState('');
+  const [openId, setOpenId] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [flash, setFlash] = useState('');
 
-  // Modal States
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [gradingModalData, setGradingModalData] = useState(null);
+  const course = myCourses.find((c) => c.id === courseId) || myCourses[0] || null;
+  const openAssignment = assignments.find((a) => a.id === openId && a.course_id === course?.id) || null;
 
-  // New Assignment Form State
-  const [formData, setFormData] = useState({
-    course_id: myCourses[0]?.id || '',
-    title: '',
-    description: '',
-    due_date: '2026-09-10T23:59',
-    max_marks: 30
-  });
-  // Optional problem statement or spec, uploaded when the assignment is posted.
-  const [attachment, setAttachment] = useState(null);
-  const [isPosting, setIsPosting] = useState(false);
-
-  const [formError, setFormError] = useState('');
-
-  const handleOpenCreateModal = () => {
-    setFormData({
-      course_id: myCourses[0]?.id || '',
-      title: '',
-      description: '',
-      due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
-      max_marks: 30
-    });
-    setAttachment(null);
-    setFormError('');
-    setIsCreateModalOpen(true);
+  const showFlash = (text) => {
+    setFlash(text);
+    setTimeout(() => setFlash(''), 5000);
   };
 
-  const handlePickAttachment = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      setFormError('The attachment must be 20 MB or smaller.');
-      return;
-    }
-    setFormError('');
-    setAttachment(file);
-  };
-
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) {
-      setFormError('Please enter an assignment title.');
-      return;
-    }
-
-    setIsPosting(true);
-    try {
-      const file = attachment
-        ? await uploadAssignmentFile(formData.course_id, attachment)
-        : { attachment_url: null, attachment_name: null };
-      createAssignment({
-        ...formData,
-        ...file,
-        max_marks: Number(formData.max_marks)
-      });
-      setIsCreateModalOpen(false);
-    } catch (err) {
-      setFormError(err.message || 'Could not post the assignment.');
-    } finally {
-      setIsPosting(false);
-    }
-  };
-
-  // Filter assignments
-  const myAssignments = assignments.filter(a => {
-    if (!myCourseIds.includes(a.course_id)) return false;
-    if (selectedCourseFilter !== 'all' && a.course_id !== selectedCourseFilter) return false;
-    return true;
-  });
-
-  // Filter submissions
-  const relevantAssignmentIds = myAssignments.map(a => a.id);
-  const mySubmissions = submissions.filter(s => relevantAssignmentIds.includes(s.assignment_id));
-
-  const handleSaveGrade = (submissionId, marks, feedback) => {
-    gradeSubmission(submissionId, marks, feedback, currentUser?.id);
-  };
+  if (!course) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="No classes assigned yet"
+        description="Your classes appear here once an admin assigns you courses."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-brand-600" />
-            Assignment Studio & Evaluation
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
+            <FileText className="h-5 w-5 text-brand-600" />
+            Assignments
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Create lab tasks, review student submissions, provide rubric grading and automated feedback alerts.
+          <p className="mt-1 text-xs text-slate-500">
+            Pick a class, open an assignment to see every student in it, and grade in place. Work handed in after
+            the due date is accepted and tagged Late.
           </p>
         </div>
-
         <button
-          onClick={handleOpenCreateModal}
-          disabled={myCourses.length === 0}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-600/20 hover:bg-brand-700"
         >
-          <Plus className="w-4 h-4" />
-          <span>Create New Assignment</span>
+          <Plus className="h-4 w-4" />
+          New assignment
         </button>
       </div>
 
-      {/* Tabs and Course Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-          <button
-            onClick={() => setActiveTab('assignments')}
-            className={`px-3.5 py-1.5 rounded-lg transition-all ${
-              activeTab === 'assignments' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Assignments ({myAssignments.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('submissions')}
-            className={`px-3.5 py-1.5 rounded-lg transition-all ${
-              activeTab === 'submissions' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Student Submissions ({mySubmissions.length})
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500">Course Filter:</span>
-          <select
-            value={selectedCourseFilter}
-            onChange={(e) => setSelectedCourseFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-            <option value="all">All My Courses</option>
-            {myCourses.map(c => (
-              <option key={c.id} value={c.id}>{c.code} (Sec {c.section})</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      {activeTab === 'assignments' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {myAssignments.map((asg) => {
-            const course = courses.find(c => c.id === asg.course_id);
-            const asgSubs = submissions.filter(s => s.assignment_id === asg.id);
-            const gradedCount = asgSubs.filter(s => s.graded).length;
-            const dueDate = new Date(asg.due_date);
-
-            return (
-              <div
-                key={asg.id}
-                className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs hover:shadow-card transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge variant="primary" size="sm">
-                      {course?.code} • Sec {course?.section}
-                    </Badge>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                      Max {asg.max_marks} Pts
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-slate-900 text-sm mt-3 line-clamp-1">
-                    {asg.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {asg.description}
-                  </p>
-                  {asg.attachment_url && (
-                    <SubmissionFileLink url={asg.attachment_url} name={asg.attachment_name} className="mt-2 text-xs max-w-full" />
-                  )}
-
-                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        Due Date:
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        {dueDate.toLocaleDateString()} {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        Submissions:
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        {asgSubs.length} received ({gradedCount} graded)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <button
-                    onClick={() => setActiveTab('submissions')}
-                    className="text-xs font-bold text-brand-600 hover:text-brand-700"
-                  >
-                    View {asgSubs.length} Submissions →
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* Submissions Table */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-3.5">Student</th>
-                  <th className="px-6 py-3.5">Assignment Task</th>
-                  <th className="px-6 py-3.5">Artifact File</th>
-                  <th className="px-6 py-3.5">Submission Time</th>
-                  <th className="px-6 py-3.5">Grading & Score</th>
-                  <th className="px-6 py-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {mySubmissions.map((sub) => {
-                  const student = users.find(u => u.id === sub.student_id);
-                  const asg = assignments.find(a => a.id === sub.assignment_id);
-                  const course = courses.find(c => c.id === asg?.course_id);
-
-                  return (
-                    <tr key={sub.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={student?.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student?.name}`}
-                            alt={student?.name}
-                            className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
-                          />
-                          <div>
-                            <p className="font-bold text-slate-900 text-xs">{student?.name}</p>
-                            <p className="text-[10px] text-slate-400 font-semibold">{student?.roll_no}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-800 line-clamp-1">{asg?.title}</p>
-                        <p className="text-[10px] text-slate-400">{course?.code} (Sec {course?.section})</p>
-                      </td>
-
-                      <td className="px-6 py-4 font-bold text-brand-600">
-                        <SubmissionFileLink submission={sub} className="max-w-[14rem]" />
-                      </td>
-
-                      <td className="px-6 py-4 text-slate-500 text-[11px]">
-                        {new Date(sub.submitted_at).toLocaleDateString()} {new Date(sub.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        {sub.graded ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3" />
-                              {sub.marks} / {asg?.max_marks || 30}
-                            </span>
-                            {sub.feedback && (
-                              <p className="text-[10px] text-slate-500 italic mt-0.5 line-clamp-1">"{sub.feedback}"</p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            <Clock className="w-3 h-3" />
-                            Pending Review
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setGradingModalData({ submission: sub, assignment: asg, student })}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            sub.graded
-                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                              : 'bg-brand-600 text-white hover:bg-brand-700 shadow-xs'
-                          }`}
-                        >
-                          {sub.graded ? 'Edit Grade' : 'Grade Submission'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {flash && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          {flash}
         </div>
       )}
 
-      {/* Create Assignment Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Course Assignment"
-        subtitle="Enrolled students will receive immediate deadline and specification alerts."
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {formError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-              {formError}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Course *
-              </label>
-              <select
-                value={formData.course_id}
-                onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              >
-                {myCourses.map(c => (
-                  <option key={c.id} value={c.id}>{c.code} - {c.name} (Sec {c.section})</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Max Marks (Points) *
-              </label>
-              <input
-                type="number"
-                min={5}
-                max={100}
-                required
-                value={formData.max_marks}
-                onChange={(e) => setFormData({ ...formData, max_marks: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Assignment Title *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g. Assignment 4: Distributed Consensus Simulation"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Due Date & Time *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Description & Rubric Criteria
-              </label>
-              <textarea
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Deliverables, benchmarking guidelines, programming constraints..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Attachment (optional)
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer focus-within:ring-2 focus-within:ring-brand-500">
-                  <Paperclip className="w-3.5 h-3.5" />
-                  {attachment ? 'Change file' : 'Choose file'}
-                  <input type="file" onChange={handlePickAttachment} className="sr-only" />
-                </label>
-                {attachment ? (
-                  <>
-                    <span className="text-xs font-semibold text-slate-700 break-all">
-                      {attachment.name} ({(attachment.size / (1024 * 1024)).toFixed(1)} MB)
-                    </span>
-                    <button type="button" onClick={() => setAttachment(null)} className="text-[11px] font-bold text-rose-600 hover:underline">
-                      Remove
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-[11px] text-slate-400">Problem statement, spec or dataset. Up to 20 MB.</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Class">
+        {myCourses.map((c) => {
+          const s = classAssignmentSummary(c, data);
+          const isSelected = c.id === course.id;
+          return (
             <button
+              key={c.id}
               type="button"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => {
+                setCourseId(c.id);
+                setOpenId(null);
+              }}
+              className={cn(
+                'rounded-2xl border p-4 text-left transition-colors',
+                isSelected ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:bg-slate-50'
+              )}
             >
-              Cancel
+              <span className="block text-sm font-extrabold text-slate-900">{classLabel(c)}</span>
+              <span className="block truncate text-xs text-slate-500">{c.name}</span>
+              <span className="mt-2 block text-[11px] font-semibold text-slate-600">
+                {s.assignments} {s.assignments === 1 ? 'assignment' : 'assignments'} · {s.toGrade} to grade
+              </span>
+              <span className="block text-[11px] text-slate-500">
+                Submitted {s.submissionRate === null ? '—' : `${s.submissionRate}%`} · Average{' '}
+                {s.averagePct === null ? '—' : `${s.averagePct}%`}
+              </span>
             </button>
-            <button
-              type="submit"
-              disabled={isPosting}
-              className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md shadow-brand-600/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isPosting ? 'Uploading…' : 'Post Assignment'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+          );
+        })}
+      </div>
 
-      {/* Grading Modal */}
-      {gradingModalData && (
-        <SubmissionGraderModal
-          isOpen={Boolean(gradingModalData)}
-          onClose={() => setGradingModalData(null)}
-          submission={gradingModalData.submission}
-          assignment={gradingModalData.assignment}
-          student={gradingModalData.student}
-          onSaveGrade={handleSaveGrade}
+      {openAssignment ? (
+        <AssignmentRoster
+          assignment={openAssignment}
+          course={course}
+          data={data}
+          gradedBy={currentUser?.id}
+          onBack={() => setOpenId(null)}
+          onFlash={showFlash}
+        />
+      ) : (
+        <AssignmentList course={course} data={data} onOpen={setOpenId} />
+      )}
+
+      {createOpen && (
+        <CreateAssignmentModal
+          courses={myCourses}
+          defaultCourseId={course.id}
+          onClose={() => setCreateOpen(false)}
+          onPost={async (fields, courseIds, file) => {
+            // Each class gets its own copy (own submissions and grading), with the file stored in
+            // that class's folder so its students can open it.
+            for (const id of courseIds) {
+              const attachment = file
+                ? await uploadAssignmentFile(id, file)
+                : { attachment_url: null, attachment_name: null };
+              createAssignment({ ...fields, ...attachment, course_id: id });
+            }
+            setCreateOpen(false);
+            setCourseId(courseIds[0]);
+            setOpenId(null);
+            const names = courseIds.map((id) => classLabel(myCourses.find((c) => c.id === id))).join(', ');
+            showFlash(`Posted to ${courseIds.length} ${courseIds.length === 1 ? 'class' : 'classes'}: ${names}. Students were notified.`);
+          }}
         />
       )}
     </div>
+  );
+}
+
+function AssignmentList({ course, data, onOpen }) {
+  const list = data.assignments
+    .filter((a) => a.course_id === course.id)
+    .sort((a, b) => String(b.due_date).localeCompare(String(a.due_date)));
+
+  if (!list.length) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title={`No assignments for ${classLabel(course)} yet`}
+        description="Use New assignment to post one. You can send it to several classes at once."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {list.map((a) => {
+        const counts = rosterCounts(assignmentRoster(a, data));
+        const handedIn = counts.submitted + counts.late + counts.graded;
+        const toGrade = counts.submitted + counts.late;
+        const pastDue = isPastDue(a);
+        return (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => onOpen(a.id)}
+            className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left shadow-xs hover:bg-slate-50/60 sm:flex-row sm:items-center"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-extrabold text-slate-900">{a.title}</span>
+              <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Due {fmtDue(a.due_date)}
+                </span>
+                <span>Max {a.max_marks}</span>
+                {a.attachment_url && (
+                  <span className="flex items-center gap-1">
+                    <Paperclip className="h-3 w-3" />
+                    File attached
+                  </span>
+                )}
+              </span>
+            </span>
+            <span className="flex shrink-0 flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-600">
+              <span className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {handedIn} of {counts.all} handed in
+              </span>
+              {counts.late > 0 && <Badge variant="warning" size="sm">{counts.late} late</Badge>}
+              {toGrade > 0 ? (
+                <Badge variant="primary" size="sm">{toGrade} to grade</Badge>
+              ) : (
+                handedIn > 0 && <Badge variant="success" size="sm">All graded</Badge>
+              )}
+              <Badge variant={pastDue ? 'neutral' : 'info'} size="sm">{pastDue ? 'Past due' : 'Open'}</Badge>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssignmentRoster({ assignment, course, data, gradedBy, onBack, onFlash }) {
+  const [filter, setFilter] = useState('all');
+  const [reminded, setReminded] = useState(false);
+  const roster = assignmentRoster(assignment, data);
+  const counts = rosterCounts(roster);
+  const missing = roster.filter((r) => r.status === 'missing');
+  const rows = roster.filter((r) => filter === 'all' || r.status === filter);
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        {classLabel(course)} assignments
+      </button>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <h3 className="text-base font-extrabold text-slate-900">{assignment.title}</h3>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Due {fmtDue(assignment.due_date)} · Max {assignment.max_marks} marks · only {classLabel(course)} students
+        </p>
+        {assignment.description && <p className="mt-2 text-xs leading-relaxed text-slate-600">{assignment.description}</p>}
+        {assignment.attachment_url && (
+          <SubmissionFileLink url={assignment.attachment_url} name={assignment.attachment_name} className="mt-2 text-xs" />
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show students">
+          {FILTERS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={filter === id}
+              onClick={() => setFilter(id)}
+              className={cn(
+                'rounded-lg border px-2.5 py-1 text-[11px] font-bold',
+                filter === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              )}
+            >
+              {label} {counts[id]}
+            </button>
+          ))}
+        </div>
+        {missing.length > 0 && (
+          <button
+            type="button"
+            disabled={reminded}
+            onClick={() => {
+              data.remindAssignment(assignment, missing.map((r) => r.student.id));
+              setReminded(true);
+              onFlash(`Reminder sent to ${missing.length} ${missing.length === 1 ? 'student' : 'students'} who haven't submitted.`);
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:text-slate-400"
+          >
+            <BellRing className="h-3.5 w-3.5" />
+            {reminded ? 'Reminder sent' : `Remind ${missing.length} who haven't submitted`}
+          </button>
+        )}
+      </div>
+
+      <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-xs">
+        {rows.length === 0 && <li className="px-5 py-6 text-center text-xs text-slate-500">No students in this group.</li>}
+        {rows.map((r) => (
+          <GradeRow
+            key={r.student.id}
+            row={r}
+            assignment={assignment}
+            onSave={(marks, feedback) => {
+              data.gradeSubmission(r.submission.id, marks, feedback, gradedBy);
+              onFlash(`${r.student.name}: ${marks}/${assignment.max_marks} saved. They were notified.`);
+            }}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function GradeRow({ row, assignment, onSave }) {
+  const { student, submission, status, late } = row;
+  const [marks, setMarks] = useState(submission?.graded ? String(submission.marks) : '');
+  const [feedback, setFeedback] = useState(submission?.feedback || '');
+  const [error, setError] = useState('');
+  const max = Number(assignment.max_marks);
+
+  const save = () => {
+    const value = Number(marks);
+    if (marks.trim() === '' || Number.isNaN(value) || value < 0 || value > max) {
+      setError(`Enter marks from 0 to ${max}.`);
+      return;
+    }
+    setError('');
+    onSave(value, feedback.trim());
+  };
+
+  return (
+    <li className="flex flex-col gap-3 px-5 py-3.5 lg:flex-row lg:items-center">
+      <span className="min-w-0 lg:w-56">
+        <span className="block truncate text-xs font-bold text-slate-900">{student.name}</span>
+        <span className="block text-[11px] text-slate-500">{student.usn || student.roll_no || student.id}</span>
+      </span>
+      <span className="flex flex-wrap items-center gap-2 lg:w-64">
+        <Badge variant={STATUS[status].variant} size="sm" dot>
+          {STATUS[status].label}
+          {status === 'graded' ? ` · ${submission.marks}/${max}` : ''}
+        </Badge>
+        {status === 'graded' && late && <Badge variant="warning" size="sm">Late</Badge>}
+        <span className="text-[11px] text-slate-500">
+          {submission
+            ? new Date(submission.submitted_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+            : ''}
+        </span>
+      </span>
+      {submission ? (
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <SubmissionFileLink submission={submission} className="max-w-40 text-xs" />
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <span className="sr-only">Marks for {student.name}</span>
+              <input
+                type="number"
+                min={0}
+                max={max}
+                step="0.5"
+                value={marks}
+                placeholder="—"
+                onChange={(e) => {
+                  setMarks(e.target.value);
+                  setError('');
+                }}
+                className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-900 outline-none focus:border-brand-400"
+              />
+              / {max}
+            </label>
+            <label className="min-w-32 flex-1">
+              <span className="sr-only">Feedback for {student.name}</span>
+              <input
+                value={feedback}
+                maxLength={500}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="Feedback (optional)"
+                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={save}
+              className="rounded-lg bg-brand-500 px-3 py-1 text-xs font-bold text-white hover:bg-brand-600"
+            >
+              {submission.graded ? 'Update' : 'Save'}
+            </button>
+          </span>
+          {error && <span className="text-[11px] font-semibold text-rose-700">{error}</span>}
+        </span>
+      ) : (
+        <span className="flex-1 text-xs text-slate-400">
+          {isPastDue(assignment) ? 'Not submitted. It will be tagged Late if they hand it in now.' : 'Not submitted yet.'}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function CreateAssignmentModal({ courses, defaultCourseId, onClose, onPost }) {
+  const [form, setForm] = useState(() => ({
+    title: '',
+    description: '',
+    due_date: inAWeekLocal(),
+    max_marks: 20
+  }));
+  const [selected, setSelected] = useState(() => new Set([defaultCourseId]));
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const max = Number(form.max_marks);
+    if (!form.title.trim()) return setError('Enter an assignment title.');
+    if (!selected.size) return setError('Tick at least one class.');
+    if (!Number.isFinite(max) || max < 1 || max > 100) return setError('Max marks must be from 1 to 100.');
+    if (!form.due_date) return setError('Pick a due date.');
+    setPosting(true);
+    setError('');
+    try {
+      await onPost(
+        { title: form.title.trim(), description: form.description.trim(), due_date: form.due_date, max_marks: max },
+        courses.filter((c) => selected.has(c.id)).map((c) => c.id),
+        file
+      );
+    } catch (err) {
+      setError(err.message || 'Could not post the assignment.');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const field = 'w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-500';
+
+  return (
+    <Modal isOpen onClose={onClose} title="New assignment" subtitle="Students in each class you tick are notified.">
+      <form onSubmit={submit} className="space-y-4">
+        {error && (
+          <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+            {error}
+          </div>
+        )}
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold text-slate-700">Title *</span>
+          <input
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="Stacks and queues worksheet"
+            className={field}
+          />
+        </label>
+
+        <fieldset>
+          <legend className="mb-1 text-xs font-bold text-slate-700">Send to these classes *</legend>
+          <p className="mb-2 text-[11px] text-slate-500">Each class gets its own copy, with its own submissions and grading.</p>
+          <div className="space-y-1.5 rounded-xl border border-slate-200 p-3">
+            {courses.map((c) => (
+              <label key={c.id} className="flex cursor-pointer items-center gap-2 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={selected.has(c.id)}
+                  onChange={() => {
+                    toggle(c.id);
+                    setError('');
+                  }}
+                  className="h-3.5 w-3.5 accent-brand-600"
+                />
+                <span className="font-bold">{classLabel(c)}</span>
+                <span className="truncate text-slate-500">{c.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-slate-700">Due date and time *</span>
+            <input
+              type="datetime-local"
+              value={form.due_date}
+              onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+              className={field}
+            />
+            <span className="mt-1 block text-[11px] text-slate-500">Same for every ticked class. Late work is accepted and tagged Late.</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-slate-700">Max marks *</span>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={form.max_marks}
+              onChange={(e) => setForm({ ...form, max_marks: e.target.value })}
+              className={field}
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold text-slate-700">Instructions</span>
+          <textarea
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="What to hand in and how it will be marked"
+            className={field}
+          />
+        </label>
+
+        <div>
+          <span className="mb-1 block text-xs font-bold text-slate-700">Attachment (optional)</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500">
+              <Paperclip className="h-3.5 w-3.5" />
+              {file ? 'Change file' : 'Choose file'}
+              <input
+                type="file"
+                className="sr-only"
+                onChange={(e) => {
+                  const picked = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!picked) return;
+                  if (picked.size > 20 * 1024 * 1024) return setError('The attachment must be 20 MB or smaller.');
+                  setError('');
+                  setFile(picked);
+                }}
+              />
+            </label>
+            {file ? (
+              <>
+                <span className="break-all text-xs font-semibold text-slate-700">
+                  {file.name} ({(file.size / (1024 * 1024)).toFixed(1)} MB)
+                </span>
+                <button type="button" onClick={() => setFile(null)} className="text-[11px] font-bold text-rose-600 hover:underline">
+                  Remove
+                </button>
+              </>
+            ) : (
+              <span className="text-[11px] text-slate-400">Problem statement, spec or dataset. Up to 20 MB.</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+          <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={posting}
+            className="rounded-xl bg-brand-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-brand-600/20 hover:bg-brand-700 disabled:opacity-50"
+          >
+            {posting
+              ? 'Posting…'
+              : `Post to ${selected.size} ${selected.size === 1 ? 'class' : 'classes'}`}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
