@@ -10,6 +10,7 @@ import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 // The hero loads first; everything below it comes as a separate file a moment later.
 const BelowFold = lazy(() => import('./BelowFold'))
 const Footer = lazy(() => import('./Sections').then((m) => ({ default: m.Footer })))
+const LastBench = lazy(() => import('./BelowFold').then((m) => ({ default: m.LastBench })))
 
 // Mount the lower sections once the browser is idle after the first paint, on the first
 // scroll or touch, or straight away when the link points into the page (#faq and so on).
@@ -109,11 +110,13 @@ function Page({ onSignIn }) {
             </span>
             <span className="font-display text-lg font-bold">Campusnex</span>
           </span>
-          <nav aria-label="Main" className="hidden gap-7 text-sm text-mist md:flex">
+          <nav aria-label="Main" className="hidden gap-4 text-sm whitespace-nowrap text-mist min-[920px]:flex lg:gap-7">
             <a href="#day" className="hover:text-white">A day at college</a>
             <a href="#features" className="hover:text-white">Features</a>
             <a href="#security" className="hover:text-white">Security</a>
             <a href="#faq" className="hover:text-white">FAQ</a>
+            <a href="#about" className="hover:text-white">About</a>
+            <a href="#trust" className="hover:text-white">The Last Bench</a>
           </nav>
           <div className="flex items-center gap-2">
             {/* Phones get the sticky bar at the bottom instead. */}
@@ -227,7 +230,14 @@ function Page({ onSignIn }) {
           {showBelow ? <BelowFold onSignIn={onSignIn} /> : <div className="min-h-[200vh]" aria-hidden="true" />}
         </Suspense>
       </main>
-      <Suspense fallback={null}>{showBelow && <Footer onSignIn={onSignIn} />}</Suspense>
+      <Suspense fallback={null}>
+        {showBelow && (
+          <>
+            <Footer onSignIn={onSignIn} />
+            <LastBench />
+          </>
+        )}
+      </Suspense>
       <StickyPilotBar heroRef={heroRef} />
     </div>
   )

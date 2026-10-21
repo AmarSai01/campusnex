@@ -1,21 +1,23 @@
 import React from 'react'
-import { ExternalLink, ImageIcon, Lock, MapPin, ServerCog, ShieldCheck, UserRound } from 'lucide-react'
+import { ExternalLink, ImageIcon, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from './Sections'
 
-// Who is behind Campusnex, what the product really looks like, and how data is kept.
+// The Last Bench: who is behind Campusnex and what the product really looks like.
+// How data is kept lives in the About part of the footer (DataFacts.jsx).
 //
 // Fill in the empty values below before launch. Anything left empty (null) is shown as a
 // dashed "to fill in" slot on the dev server and is left out of the live site, so the
 // public page never shows a placeholder.
 
+// TEST DATA for now: replace the city and note with your own words before launch.
 const BUILDER = {
-  name: null, // e.g. 'Amar Sai'
-  city: null, // e.g. 'Bengaluru'
+  name: 'Amar Sai',
+  city: 'Bengaluru',
   role: 'Founder and developer',
   photo: null, // e.g. '/team/amar.jpg' (put the file in public/team/)
   linkedin: null, // full profile URL
-  note: null, // one or two sentences on why you are building Campusnex
+  note: 'Too many students find out about an attendance shortage only when it is too late to fix. I am building Campusnex so the student, the teacher and the HOD all see it in time.',
 }
 
 // Real screenshots of the signed-in app, taken with test data. Put the files in public/screens/.
@@ -24,14 +26,6 @@ const SCREENS = [
   { role: 'HOD', caption: 'Department overview', src: null },
   { role: 'Faculty', caption: 'Marking attendance', src: null },
   { role: 'Student', caption: 'Attendance and results', src: null },
-]
-
-// Only facts that are true today. Leave `text` null for anything not yet confirmed.
-const DATA_FACTS = [
-  { icon: MapPin, text: 'Your data is stored in India, in a Mumbai data centre.' },
-  { icon: ShieldCheck, text: 'Access rules run inside the database, so each role sees only what it should.' },
-  { icon: Lock, text: 'Every connection to Campusnex is encrypted.' },
-  { icon: ServerCog, text: null, hint: 'Backups: confirm the backup schedule in Supabase, then describe it here.' },
 ]
 
 const SHOW_SLOTS = import.meta.env.DEV
@@ -80,23 +74,6 @@ function Builder() {
   )
 }
 
-function DataFacts() {
-  const facts = DATA_FACTS.filter((f) => f.text || SHOW_SLOTS)
-  return (
-    <div className="h-full rounded-2xl border border-white/10 bg-night-2/60 p-6 backdrop-blur-sm">
-      <h3 className="font-display text-lg font-semibold text-white">How your data is kept</h3>
-      <ul className="mt-4 space-y-3">
-        {facts.map(({ icon: Icon, text, hint }) => (
-          <li key={text ?? hint} className={cn('flex gap-3 text-sm leading-relaxed', text ? 'text-mist' : 'text-amber-100/80')}>
-            <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', text ? 'text-brand-300' : 'text-amber-300')} aria-hidden="true" />
-            {text ?? <span><span className="font-semibold text-amber-200">To fill in. </span>{hint}</span>}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
 function Screens() {
   const ready = SCREENS.filter((s) => s.src)
   if (!ready.length && !SHOW_SLOTS) return null
@@ -128,20 +105,14 @@ export default function TrustSection() {
   const hasBuilder = Boolean(BUILDER.name && BUILDER.city)
   return (
     <>
-      {hasBuilder || SHOW_SLOTS ? (
-        <SectionHeading title="Real software, built by a real person.">
-          No stock photos and no made-up customers. Here is who builds Campusnex, what the app looks like inside, and
-          how your college's data is looked after.
-        </SectionHeading>
-      ) : (
-        <SectionHeading title="Your college's data, looked after.">
-          Plain facts about where Campusnex keeps your records and who can see them.
-        </SectionHeading>
+      <SectionHeading title="Real software, built by a real person.">
+        No stock photos and no made-up customers. Here is who builds Campusnex and what the app looks like inside.
+      </SectionHeading>
+      {(hasBuilder || SHOW_SLOTS) && (
+        <div className="mt-12 max-w-2xl">
+          <Builder />
+        </div>
       )}
-      <div className={cn('mt-12 grid gap-5', (hasBuilder || SHOW_SLOTS) && 'lg:grid-cols-2')}>
-        {(hasBuilder || SHOW_SLOTS) && <Builder />}
-        <DataFacts />
-      </div>
       <Screens />
     </>
   )

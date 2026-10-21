@@ -1,8 +1,9 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { GraduationCap, MapPin, MessageCircleQuestion, MonitorSmartphone, Moon, ShieldCheck } from 'lucide-react'
+import { GraduationCap, MessageCircleQuestion, Moon, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
+import DataFacts from './DataFacts'
 import { useRequestPilot } from './PilotRequest'
 import { RISK_RULES } from '@/utils/risk'
 
@@ -254,19 +255,14 @@ export function ClosingCall({ onSignIn }) {
 const FOOTER_LINKS = [
   ['Product', [['A day at college', '#day'], ['Features', '#features'], ['Security', '#security'], ['Plans', '#plans']]],
   ['For your role', [['Admin', '#security'], ['HOD', '#security'], ['Faculty', '#security'], ['Student', '#security']]],
-  ['Help', [['FAQ', '#faq'], ['Contact', null]]],
+  ['Help', [['FAQ', '#faq'], ['Contact', null], ['The Last Bench', '#trust']]],
 ]
 
-const TRUST = [
-  [MapPin, 'Data stored in India (Mumbai)'],
-  [ShieldCheck, 'Role-based access, enforced by the database'],
-  [MonitorSmartphone, 'Runs in the browser, nothing to install'],
-]
 
 export function Footer({ onSignIn }) {
   const requestPilot = useRequestPilot()
   return (
-    <footer className="relative overflow-hidden border-t border-white/10">
+    <footer id="about" className="relative scroll-mt-20 overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
         <div className="col-span-2 max-w-md sm:col-span-3 lg:col-span-1">
           <span className="flex items-center gap-3">
@@ -313,14 +309,9 @@ export function Footer({ onSignIn }) {
         ))}
       </div>
 
-      <ul className="relative mx-auto flex max-w-6xl flex-wrap gap-3 px-4 pb-10 sm:px-6">
-        {TRUST.map(([Icon, label]) => (
-          <li key={label} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/75">
-            <Icon className="h-3.5 w-3.5 text-brand-300" aria-hidden="true" />
-            {label}
-          </li>
-        ))}
-      </ul>
+      <div className="relative mx-auto max-w-6xl px-4 pb-10 sm:px-6">
+        <DataFacts />
+      </div>
 
       <div aria-hidden="true" className="pointer-events-none relative -mb-[0.18em] flex items-center justify-center gap-[0.12em] text-[15vw] leading-none select-none">
         <span className="flex h-[0.8em] w-[0.8em] items-center justify-center rounded-[0.18em] bg-brand-500/15">

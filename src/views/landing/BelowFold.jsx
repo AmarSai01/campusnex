@@ -58,10 +58,6 @@ export default function BelowFold({ onSignIn }) {
         <SetupSteps />
       </Section>
 
-      <Section id="trust" theme="dusk" className="border-t border-white/10">
-        <TrustSection />
-      </Section>
-
       <Section id="plans" theme="night" className="border-t border-white/10">
         <Plans />
       </Section>
@@ -74,5 +70,21 @@ export default function BelowFold({ onSignIn }) {
         <ClosingCall onSignIn={onSignIn} />
       </Section>
     </>
+  )
+}
+
+// The Last Bench: who builds Campusnex and how college data is kept. It sits below the
+// footer, as the very end of the page, and fills the screen so its header link lands on it.
+export function LastBench() {
+  // The footer and this section arrive after smooth scrolling first measured the page.
+  // A resize event makes it measure again, so links and scrolling reach the real end.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => window.dispatchEvent(new Event('resize')))
+    return () => cancelAnimationFrame(frame)
+  }, [])
+  return (
+    <Section id="trust" theme="night" className="min-h-screen border-t border-white/10">
+      <TrustSection />
+    </Section>
   )
 }
