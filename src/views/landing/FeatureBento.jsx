@@ -149,7 +149,7 @@ function ImportDemo() {
 }
 
 const ALERTS = [
-  { who: 'Rohan Shetty', what: 'CS301 attendance 67%', to: 'Student, teacher, HOD' },
+  { who: 'Rohan Shetty', what: 'CS301 attendance 75%', to: 'Student, teacher, HOD' },
   { who: 'Kavya Menon', what: 'CS303 IA average 36%', to: 'Student, teacher, HOD' },
   { who: 'Sneha Patil', what: 'CS304 attendance 69%', to: 'Student, teacher, HOD' },
 ]

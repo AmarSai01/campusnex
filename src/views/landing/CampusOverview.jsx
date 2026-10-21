@@ -30,10 +30,10 @@ const ROLE_VIEWS = {
     { title: "Today's classes", icon: CalendarClock, kind: 'list', data: [{ primary: 'CS301, 9:00 am', secondary: 'LH-101, Sem 5 Sec A', value: 'Marked', tone: 'good' }, { primary: 'CS302, 11:30 am', secondary: 'LH-104, Sem 5 Sec B', value: 'Pending', tone: 'warn' }] },
     { title: 'IA-2 marks, CS301', icon: BookOpen, kind: 'big', data: { value: '34 / 50', label: 'Class average, hidden from students', action: 'Publish marks' } },
     { title: 'Assignments to grade', icon: ClipboardCheck, kind: 'big', data: { value: '12', label: 'Submissions waiting for CS301' } },
-    { title: 'Shortage in my classes', icon: TriangleAlert, kind: 'list', data: [{ primary: 'Rohan Shetty', secondary: 'CS301 attendance', value: '67%', tone: 'bad' }] },
+    { title: 'Shortage in my classes', icon: TriangleAlert, kind: 'list', data: [{ primary: 'Rohan Shetty', secondary: 'CS301 attendance', value: '75%', tone: 'bad' }] },
   ],
   Student: [
-    { title: 'My attendance', icon: ClipboardCheck, kind: 'bars', data: [{ label: 'CS301', value: 67 }, { label: 'CS302', value: 78 }, { label: 'CS303', value: 86 }] },
+    { title: 'My attendance', icon: ClipboardCheck, kind: 'bars', data: [{ label: 'CS301', value: 75 }, { label: 'CS302', value: 78 }, { label: 'CS303', value: 86 }] },
     { title: 'Next exam', icon: MapPin, kind: 'big', data: { value: `${STUDENT_NEXT_EXAM.room}, seat ${STUDENT_NEXT_EXAM.seat}`, label: `${STUDENT_NEXT_EXAM.subject}, ${STUDENT_NEXT_EXAM.date}` } },
     { title: 'Results', icon: GraduationCap, kind: 'stats', data: [{ label: 'SGPA, Sem 5', value: '8.90' }, { label: 'CGPA', value: '8.22' }] },
     { title: 'Notices', icon: Megaphone, kind: 'list', data: [{ primary: 'IA-3 timetable posted', secondary: 'From HOD, CSE', value: 'New', tone: 'good' }] },

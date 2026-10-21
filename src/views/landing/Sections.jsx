@@ -153,7 +153,7 @@ export function Plans() {
             <li>HOD overview and risk alerts</li>
             <li>CSV student import</li>
           </ul>
-          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-night hover:bg-white/90">
+          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
             Request a pilot
           </button>
         </div>
@@ -166,7 +166,7 @@ export function Plans() {
             <li>Semester results with SGPA and CGPA</li>
             <li>Help moving your existing records</li>
           </ul>
-          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
             Talk to us
           </button>
         </div>

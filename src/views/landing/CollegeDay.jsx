@@ -26,8 +26,8 @@ const MARKS = [
 ]
 
 const AT_RISK = [
-  ['Farhan Ali', 'CS301 attendance', 71],
-  ['Rohan Shetty', 'CS301 attendance', 67],
+  ['Farhan Ali', 'CS301 attendance', 70],
+  ['Rohan Shetty', 'CS301 attendance', 75],
   ['Farhan Ali', 'CS301 IA average', 36],
 ]
 
@@ -122,13 +122,13 @@ const SeatScreen = () => (
       ))}
     </div>
     <p className="mt-3 flex items-center gap-1.5 text-xs text-mist">
-      <BellRing className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" /> CS301 attendance 67%. Attend upcoming classes to stay eligible.
+      <BellRing className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" /> CS301 attendance 75%. Attend upcoming classes to stay eligible.
     </p>
   </Screen>
 )
 
 const STEPS = [
-  { time: '8:45 am', who: 'Faculty', theme: 'dawn', title: 'Attendance for a full class in under a minute', body: 'The teacher marks CS301. Rohan is absent, which takes him to 67%.', Screen: AttendanceScreen },
+  { time: '8:45 am', who: 'Faculty', theme: 'dawn', title: 'Attendance for a full class in under a minute', body: 'The teacher marks CS301. Rohan is absent, which takes him to 75%.', Screen: AttendanceScreen },
   { time: '11:30 am', who: 'Faculty', theme: 'morning', title: 'IA-2 marks, published when ready', body: 'Marks stay hidden until the teacher publishes. Then all 60 students see their score.', Screen: MarksScreen },
   { time: '2:30 pm', who: 'HOD', theme: 'afternoon', title: 'The HOD sees who is slipping', body: `Every student below ${RISK_RULES.attendance.shortage}% attendance or a ${RISK_RULES.marks.fail}% IA average is already on the list.`, Screen: HodScreen },
   { time: '5:00 pm', who: 'Student', theme: 'dusk', title: 'Students know where they stand', body: 'Rohan sees his exam room and seat, and a nudge about his attendance.', Screen: SeatScreen },

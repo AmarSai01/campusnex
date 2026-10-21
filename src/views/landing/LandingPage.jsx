@@ -173,8 +173,8 @@ function Page({ onSignIn }) {
                 borderRadius="0.75rem"
                 duration={3200}
                 containerClassName="h-12 w-full max-w-64 sm:w-44"
-                borderClassName="bg-[radial-gradient(#ff5c00_40%,transparent_60%)]"
-                className="border-night-line bg-night-2 text-sm font-semibold text-white"
+                borderClassName="bg-[radial-gradient(#ffd7bf_40%,transparent_60%)]"
+                className="border-brand-500 bg-brand-500 text-sm font-semibold text-white hover:bg-brand-600"
               >
                 Request a pilot
               </MovingBorderButton>

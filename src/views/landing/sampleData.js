@@ -9,7 +9,7 @@ export const REGISTER_STUDENTS = [
   { id: 'r1', name: 'Ananya Rao', usn: '1CN23CS014', marks: 'PPPPPPLPPP' },
   { id: 'r2', name: 'Rohan Shetty', usn: '1CN23CS027', marks: 'PPAPPPLPPP' },
   { id: 'r3', name: 'Meera Iyer', usn: '1CN23CS031', marks: 'PPPPLPPPPP' },
-  { id: 'r4', name: 'Farhan Ali', usn: '1CN23CS042', marks: 'PAPPAPPLPP' },
+  { id: 'r4', name: 'Farhan Ali', usn: '1CN23CS042', marks: 'PAPPAPPAPP' },
   { id: 'r5', name: 'Divya Nair', usn: '1CN23CS055', marks: 'PPPPPPPAPP' }
 ];
 
@@ -30,7 +30,7 @@ export const ADMIN_KPIS = [
 ];
 
 export const HOD_AT_RISK = [
-  { name: 'Farhan Ali', usn: '1CN23CS042', subject: 'CS301', kind: 'attendance', value: 71 },
+  { name: 'Farhan Ali', usn: '1CN23CS042', subject: 'CS301', kind: 'attendance', value: 70 },
   { name: 'Kavya Menon', usn: '1CN23CS066', subject: 'CS303', kind: 'marks', value: 36 },
   { name: 'Rohan Shetty', usn: '1CN23CS027', subject: 'CS302', kind: 'attendance', value: 74 },
   { name: 'Aditya Kulkarni', usn: '1CN23CS071', subject: 'CS301', kind: 'marks', value: 38 },

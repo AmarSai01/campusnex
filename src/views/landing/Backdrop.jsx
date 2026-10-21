@@ -230,18 +230,21 @@ function Backdrop({ theme }) {
         </div>
       </motion.div>
 
-      {/* Near layer: floating tokens drift faster than the page */}
-      <motion.div className="absolute inset-x-0 top-0 hidden sm:block" style={{ y: nearY, height: `${screens * 100}vh` }}>
-        {tokens.map((tok) => (
-          <span
-            key={tok.key}
-            className="absolute rounded-md border border-white/10 bg-white/[0.035] px-2 py-1 text-xs font-semibold whitespace-nowrap text-white/25 backdrop-blur-[2px]"
-            style={{ left: tok.left, top: tok.top, transform: `rotate(${tok.r}deg)` }}
-          >
-            {tok.t}
-          </span>
-        ))}
-      </motion.div>
+      {/* Near layer: floating tokens drift faster than the page. They stay clear at the
+          sides and fade behind the centre, where the headings and text sit. */}
+      <div className="absolute inset-0 hidden [mask-image:linear-gradient(to_right,black_0%,black_12%,rgba(0,0,0,0.2)_28%,rgba(0,0,0,0.2)_72%,black_88%,black_100%)] sm:block">
+        <motion.div className="absolute inset-x-0 top-0" style={{ y: nearY, height: `${screens * 100}vh` }}>
+          {tokens.map((tok) => (
+            <span
+              key={tok.key}
+              className="absolute rounded-md border border-white/10 bg-white/[0.035] px-2 py-1 text-xs font-semibold whitespace-nowrap text-white/25 backdrop-blur-[2px]"
+              style={{ left: tok.left, top: tok.top, transform: `rotate(${tok.r}deg)` }}
+            >
+              {tok.t}
+            </span>
+          ))}
+        </motion.div>
+      </div>
     </div>
   )
 }
