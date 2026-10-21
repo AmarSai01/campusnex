@@ -183,6 +183,11 @@ export const enrolledStudents = (course, data, batch = null) => {
     );
 };
 
+// For a batch lab: enrolled students the admin hasn't put in any batch yet. They may be in this
+// lab, so the teacher marks only the ones who came; the rest get no attendance row.
+export const unbatchedStudents = (course, data, batch) =>
+  batch ? enrolledStudents(course, data).filter((u) => !u.batch) : [];
+
 const sessionFromItem = (item, fields) => ({
   id: item.session?.id || (item.kind === 'regular' ? regularSessionId(item.timetableId, item.date) : newId('ses')),
   course_id: item.course.id,
@@ -269,7 +274,10 @@ export function markSession(prev, item, statuses, meId) {
 // Cancel a class: it no longer counts for anyone. Enrolled students are told.
 export function cancelSession(prev, item, reason) {
   const session = sessionFromItem(item, { status: 'cancelled', cancel_reason: reason.trim(), marked_at: null });
-  const students = enrolledStudents(item.course, prev, item.batch);
+  const students = [
+    ...enrolledStudents(item.course, prev, item.batch),
+    ...unbatchedStudents(item.course, prev, item.batch)
+  ];
   return {
     ...prev,
     class_sessions: upsert(prev.class_sessions || [], session),

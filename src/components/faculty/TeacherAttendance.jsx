@@ -18,6 +18,7 @@ import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import { formatTimeRange } from '../../utils/time';
+import { batchLabel } from '../../utils/batches';
 import {
   EDIT_WINDOW_DAYS,
   addDays,
@@ -25,6 +26,7 @@ import {
   classesOn,
   dayName,
   enrolledStudents,
+  unbatchedStudents,
   holidayFor,
   nowHHMM,
   parseISODate,
@@ -294,6 +296,7 @@ function WeekStrip({ selectedDate, today, onPick }) {
 
 function ClassCard({ item, status, data, attendance, isOpen, onToggle }) {
   const students = enrolledStudents(item.course, data, item.batch).length;
+  const unbatched = unbatchedStudents(item.course, data, item.batch).length;
   const rows = sessionRows(item, attendance);
   const present = rows.filter((a) => a.status !== 'absent').length;
   const holiday = status === 'holiday' ? holidayFor(item.date, item.course, data) : null;
@@ -316,7 +319,7 @@ function ClassCard({ item, status, data, attendance, isOpen, onToggle }) {
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-extrabold text-slate-900">
           {item.course.code} · Sem {item.course.semester} · Sec {item.course.section}
-          {item.batch ? ` · Batch ${item.batch}` : ''}
+          {item.batch ? ` · ${batchLabel(item.batch)}` : ''}
           {item.kind === 'extra' && (
             <span className="ml-2 rounded-md bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">Extra class</span>
           )}
@@ -331,7 +334,7 @@ function ClassCard({ item, status, data, attendance, isOpen, onToggle }) {
           )}
           <span className="flex items-center gap-1">
             <Users className="h-3 w-3" />
-            {students} students
+            {students} students{unbatched > 0 && ` + ${unbatched} without a batch`}
           </span>
         </span>
       </span>
@@ -348,11 +351,14 @@ function ClassCard({ item, status, data, attendance, isOpen, onToggle }) {
 
 function ClassPanel({ item, status, data, now, requested, onSave, onCancelClass, onRestore, onRequestUnlock }) {
   const students = enrolledStudents(item.course, data, item.batch);
+  const unbatched = unbatchedStudents(item.course, data, item.batch);
   const saved = Object.fromEntries(sessionRows(item, data.attendance).map((a) => [a.student_id, a.status]));
-  // Everyone starts Present; a class marked before opens with what was saved.
-  const [statuses, setStatuses] = useState(() =>
-    Object.fromEntries(students.map((s) => [s.id, saved[s.id] || 'present']))
-  );
+  // The class (or batch) starts Present; a class marked before opens with what was saved.
+  // Students without a batch start unmarked: only those who came to this lab get a row.
+  const [statuses, setStatuses] = useState(() => ({
+    ...Object.fromEntries(unbatched.filter((s) => saved[s.id]).map((s) => [s.id, saved[s.id]])),
+    ...Object.fromEntries(students.map((s) => [s.id, saved[s.id] || 'present']))
+  }));
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState('');
   const [forceOpen, setForceOpen] = useState(false);
@@ -422,22 +428,23 @@ function ClassPanel({ item, status, data, now, requested, onSave, onCancelClass,
 
       {!isFuture && !blockedByHoliday && (
         <>
-          {students.length === 0 ? (
+          {students.length === 0 && unbatched.length === 0 ? (
             <p className="text-xs text-slate-500">No students are enrolled in this class yet.</p>
           ) : (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-slate-600">
-                  Sem {item.course.semester} · {item.batch ? `Batch ${item.batch}` : `Sec ${item.course.section}`} students only · {counts[0]} present · {counts[1]} late · {counts[2]} absent
+                  Sem {item.course.semester} · {item.batch ? batchLabel(item.batch) : `Sec ${item.course.section}`} students only · {counts[0]} present · {counts[1]} late · {counts[2]} absent
                 </p>
                 <button
                   type="button"
-                  onClick={() => setStatuses(Object.fromEntries(students.map((s) => [s.id, 'present'])))}
+                  onClick={() => setStatuses((prev) => ({ ...prev, ...Object.fromEntries(students.map((s) => [s.id, 'present'])) }))}
                   className="text-xs font-bold text-brand-700 hover:underline"
                 >
                   Mark all present
                 </button>
               </div>
+              {students.length > 0 && (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
                 {students.map((s) => (
                   <li key={s.id} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -468,6 +475,52 @@ function ClassPanel({ item, status, data, now, requested, onSave, onCancelClass,
                   </li>
                 ))}
               </ul>
+              )}
+              {unbatched.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-amber-800">
+                    <span className="font-bold">{unbatched.length} {unbatched.length === 1 ? 'student has' : 'students have'} no batch yet.</span>{' '}
+                    Mark only the ones who came to this lab. Unmarked students aren't counted. An admin can assign batches in Timetable Builder.
+                  </p>
+                  <ul className="divide-y divide-slate-100 rounded-xl border border-amber-200 bg-white">
+                    {unbatched.map((s) => (
+                      <li key={s.id} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-bold text-slate-900">{s.name}</span>
+                          <span className="block text-[11px] text-slate-500">{s.usn || s.roll_no || s.id}</span>
+                        </span>
+                        <span className="flex gap-1.5" role="radiogroup" aria-label={`Attendance for ${s.name}`}>
+                          {[...MARKS, { id: null, label: 'Not in this lab', on: 'bg-slate-100 text-slate-700 border-slate-300' }].map((m) => {
+                            const on = (statuses[s.id] ?? null) === m.id;
+                            return (
+                              <button
+                                key={m.label}
+                                type="button"
+                                role="radio"
+                                aria-checked={on}
+                                onClick={() =>
+                                  setStatuses((prev) => {
+                                    const next = { ...prev };
+                                    if (m.id) next[s.id] = m.id;
+                                    else delete next[s.id];
+                                    return next;
+                                  })
+                                }
+                                className={cn(
+                                  'rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-colors',
+                                  on ? m.on : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                                )}
+                              >
+                                {m.label}
+                              </button>
+                            );
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </>
