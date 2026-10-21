@@ -7,7 +7,9 @@ import {
   Clock,
   Download,
   FileText,
+  Lock,
   Printer,
+  Unlock,
   Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -16,22 +18,44 @@ import StatCard from '../common/StatCard';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import { downloadCsv, printReport } from '../../utils/exportReport';
+import { formatTimeRange } from '../../utils/time';
+import { nowHHMM, todayISO, unmarkedClasses } from '../../utils/classSessions';
 
-// Attendance older than this many days is flagged as not up to date.
-const STALE_ATTENDANCE_DAYS = 7;
-
-const DAY_MS = 86400000;
-const daysSince = (isoDate) =>
-  Math.floor((Date.now() - new Date(`${isoDate}T00:00:00`).getTime()) / DAY_MS);
+// How far back to look for timetable classes that were never marked.
+const LOOKBACK_DAYS = 30;
 
 export default function HodFacultyCompliance() {
-  const { hodDepartments } = useAuth();
-  const { users, courses, enrollments, attendance, ia_marks, assignments, submissions } = useData();
+  const { currentUser, hodDepartments } = useAuth();
+  const data = useData();
+  const {
+    users, courses, enrollments, attendance, ia_marks, assignments, submissions, timetable, notifications,
+    unlockClassSession
+  } = data;
 
   const [deptId, setDeptId] = useState(hodDepartments[0]?.id || '');
   const [onlyIssues, setOnlyIssues] = useState(false);
   const [exportError, setExportError] = useState('');
   const department = hodDepartments.find((d) => d.id === deptId) || hodDepartments[0];
+  const today = todayISO();
+
+  // Timetable classes in this department from the last 30 days that nobody marked.
+  const unmarked = useMemo(() => {
+    if (!department) return [];
+    const now = { date: today, time: nowHHMM() };
+    const teacherIds = new Set(
+      courses.filter((c) => c.department_id === department.id && c.faculty_id).map((c) => c.faculty_id)
+    );
+    return [...teacherIds]
+      .flatMap((id) => unmarkedClasses(id, data, now, LOOKBACK_DAYS))
+      .filter((c) => c.course.department_id === department.id)
+      .sort((a, b) => b.date.localeCompare(a.date) || a.start_time.localeCompare(b.start_time));
+  }, [department, courses, data, today]);
+  const locked = unmarked.filter((c) => c.status === 'locked');
+  const requestedKeys = new Set(
+    notifications
+      .filter((n) => n.type === 'attendance_unlock_request' && n.user_id === currentUser?.id)
+      .map((n) => n.reference_id)
+  );
 
   const courseRows = useMemo(() => {
     if (!department) return [];
@@ -40,7 +64,12 @@ export default function HodFacultyCompliance() {
       .map((course) => {
         const att = attendance.filter((a) => a.course_id === course.id);
         const lastDate = att.reduce((max, a) => (a.date > max ? a.date : max), '');
-        const sessions = new Set(att.map((a) => a.date)).size;
+        // One per class session; rows from before sessions existed count once per day.
+        const sessions = new Set(att.map((a) => a.session_id || a.date)).size;
+        const missed = unmarked.filter((c) => c.course.id === course.id);
+        const missedLocked = missed.filter((c) => c.status === 'locked').length;
+        const missedOpen = missed.length - missedLocked;
+        const inTimetable = timetable.some((t) => t.course_id === course.id);
         const marks = ia_marks.filter((m) => m.course_id === course.id);
         const unpublished = marks.filter((m) => !m.published).length;
         const courseAssignments = assignments.filter((a) => a.course_id === course.id);
@@ -49,16 +78,17 @@ export default function HodFacultyCompliance() {
         const enrolled = enrollments.filter((e) => e.course_id === course.id).length;
 
         const issues = [];
-        if (!lastDate) issues.push('No attendance marked yet');
-        else if (daysSince(lastDate) > STALE_ATTENDANCE_DAYS) {
-          issues.push(`No attendance for ${daysSince(lastDate)} days`);
+        if (missedOpen > 0) issues.push(`${missedOpen} class${missedOpen === 1 ? '' : 'es'} not marked`);
+        if (missedLocked > 0) {
+          issues.push(`${missedLocked} locked class${missedLocked === 1 ? '' : 'es'} not marked`);
         }
+        if (!inTimetable) issues.push('Not in the timetable');
         if (unpublished > 0) issues.push(`${unpublished} IA mark${unpublished === 1 ? '' : 's'} unpublished`);
         if (ungraded > 0) issues.push(`${ungraded} submission${ungraded === 1 ? '' : 's'} to grade`);
 
-        return { course, enrolled, lastDate, sessions, marks: marks.length, unpublished, assignments: courseAssignments.length, ungraded, issues };
+        return { course, enrolled, lastDate, sessions, missed: missed.length, marks: marks.length, unpublished, assignments: courseAssignments.length, ungraded, issues };
       });
-  }, [department, courses, attendance, ia_marks, assignments, submissions, enrollments]);
+  }, [department, courses, attendance, ia_marks, assignments, submissions, enrollments, unmarked, timetable]);
 
   // Group by teacher; include department faculty who teach nothing here.
   const groups = useMemo(() => {
@@ -88,7 +118,7 @@ export default function HodFacultyCompliance() {
     ungraded: courseRows.reduce((n, r) => n + r.ungraded, 0)
   };
 
-  const HEADERS = ['Teacher', 'Course code', 'Course', 'Section', 'Students', 'Sessions marked', 'Last attendance', 'IA entries', 'Unpublished IA', 'Assignments', 'Ungraded submissions', 'Issues'];
+  const HEADERS = ['Teacher', 'Course code', 'Course', 'Section', 'Students', 'Sessions marked', 'Classes not marked', 'Last attendance', 'IA entries', 'Unpublished IA', 'Assignments', 'Ungraded submissions', 'Issues'];
   const exportRows = () =>
     groups.flatMap((g) =>
       g.rows.map((r) => [
@@ -98,6 +128,7 @@ export default function HodFacultyCompliance() {
         r.course.section || '',
         r.enrolled,
         r.sessions,
+        r.missed,
         r.lastDate || 'Never',
         r.marks,
         r.unpublished,
@@ -117,7 +148,7 @@ export default function HodFacultyCompliance() {
     try {
       printReport({
         title: `${department.name} — Faculty Compliance`,
-        subtitle: `Generated ${new Date().toLocaleString()} · Attendance flagged after ${STALE_ATTENDANCE_DAYS} days without a session`,
+        subtitle: `Generated ${new Date().toLocaleString()} · Timetable classes from the last ${LOOKBACK_DAYS} days that were not marked`,
         sections: [{ heading: 'Courses', headers: HEADERS, rows: exportRows() }]
       });
     } catch (e) {
@@ -133,7 +164,7 @@ export default function HodFacultyCompliance() {
         <div>
           <h2 className="text-lg font-extrabold tracking-tight text-slate-900">Faculty Compliance · {department.code}</h2>
           <p className="text-xs text-slate-500">
-            Attendance, IA publishing and grading status for every course in {department.name}. View only.
+            Attendance, IA publishing and grading status for every course in {department.name}. Unlock locked attendance here.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -181,6 +212,45 @@ export default function HodFacultyCompliance() {
         <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {exportError}
         </div>
+      )}
+
+      {locked.length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <Lock className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            Locked classes not marked
+          </h3>
+          <p className="mb-3 text-xs text-slate-500">
+            These are older than 7 days, so the teacher can no longer mark them. Unlock one to give the teacher 2 days.
+          </p>
+          <ul className="divide-y divide-slate-100">
+            {locked.map((c) => {
+              const teacher = users.find((u) => u.id === c.course.faculty_id);
+              return (
+                <li key={c.key} className="flex flex-col gap-2 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <span className="min-w-0">
+                    <span className="block font-bold text-slate-900">
+                      {c.course.code} · Sem {c.course.semester} · Sec {c.course.section} · {c.date},{' '}
+                      {formatTimeRange(c.start_time, c.end_time)}
+                    </span>
+                    <span className="block text-slate-500">
+                      {teacher?.name || 'Unassigned'}
+                      {requestedKeys.has(c.key) ? ' · asked you to unlock' : ''}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => unlockClassSession(c, today)}
+                    className="inline-flex items-center gap-1.5 self-start rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-800 hover:bg-slate-50"
+                  >
+                    <Unlock className="h-3.5 w-3.5" aria-hidden="true" />
+                    Unlock for 2 days
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

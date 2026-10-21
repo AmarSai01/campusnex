@@ -1,7 +1,7 @@
 import React from 'react';
 import ClassAnalytics from '../../components/faculty/ClassAnalytics';
 import ManageStudents from '../../components/shared/ManageStudents';
-import BulkAttendanceMarker from '../../components/faculty/BulkAttendanceMarker';
+import TeacherAttendance from '../../components/faculty/TeacherAttendance';
 import IAMarksEntry from '../../components/faculty/IAMarksEntry';
 import AssignmentManager from '../../components/faculty/AssignmentManager';
 import FacultyTimetable from '../../components/faculty/FacultyTimetable';
@@ -26,7 +26,7 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
       case 'students':
         return isHod ? <ManageStudents /> : <ClassAnalytics onNavigateTab={setActiveTab} />;
       case 'attendance':
-        return <BulkAttendanceMarker />;
+        return <TeacherAttendance />;
       case 'iamarks':
         return <IAMarksEntry />;
       case 'student_analytics':

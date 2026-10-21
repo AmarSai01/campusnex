@@ -62,10 +62,10 @@ export default function IAMarksEntry() {
         course_id: selectedCourseId,
         ia_name: selectedIAName,
         name: student.name,
-        roll_no: student.roll_no || 'N/A',
+        roll_no: student.usn || student.roll_no || 'N/A',
         section: student.section || 'A',
         photo_url: student.photo_url,
-        score: existing ? existing.score : 40,
+        score: existing && existing.score !== null && existing.score !== undefined ? existing.score : '',
         max_score: existing ? existing.max_score : maxScore,
         published: existing ? existing.published : false,
         date: existing ? existing.date : new Date().toISOString().split('T')[0]
@@ -80,7 +80,8 @@ export default function IAMarksEntry() {
   }, [selectedCourseId, selectedIAName, enrollments, users, ia_marks]);
 
   const handleScoreChange = (studentId, val) => {
-    const num = Math.max(0, Math.min(maxScore, Number(val) || 0));
+    // Clearing the box means "not entered yet".
+    const num = val === '' ? '' : Math.max(0, Math.min(maxScore, Number(val) || 0));
     setMarksRoster(prev => prev.map(item =>
       item.student_id === studentId ? { ...item, score: num } : item
     ));
@@ -102,7 +103,8 @@ export default function IAMarksEntry() {
   const handleSave = () => {
     if (!selectedCourseId || marksRoster.length === 0) return;
 
-    const payload = marksRoster.map(item => ({
+    // Only students with a mark entered are saved; blank rows stay "not entered".
+    const payload = marksRoster.filter(item => item.score !== '').map(item => ({
       id: item.id,
       student_id: item.student_id,
       course_id: selectedCourseId,
@@ -151,23 +153,43 @@ export default function IAMarksEntry() {
         </div>
       )}
 
-      {/* Selectors Bar */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-            Course *
-          </label>
-          <select
-            value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-            {myCourses.map(c => (
-              <option key={c.id} value={c.id}>{c.code} - {c.name} (Sec {c.section})</option>
-            ))}
-          </select>
-        </div>
+      {/* Class picker: one card per class (subject + semester + section) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Class">
+        {[...myCourses]
+          .sort((a, b) => a.code.localeCompare(b.code) || String(a.section).localeCompare(String(b.section)))
+          .map(c => {
+            const enrolled = enrollments.filter(e => e.course_id === c.id).length;
+            const entered = ia_marks.filter(
+              m => m.course_id === c.id && m.ia_name === selectedIAName && m.score !== null && m.score !== undefined
+            ).length;
+            const isSelected = c.id === selectedCourseId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => setSelectedCourseId(c.id)}
+                className={`text-left p-4 rounded-2xl border transition-colors ${
+                  isSelected
+                    ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
+                }`}
+              >
+                <span className="block text-sm font-extrabold text-slate-900">
+                  {c.code} · Sem {c.semester} · Sec {c.section}
+                </span>
+                <span className="block text-xs text-slate-500 truncate">{c.name}</span>
+                <span className="block mt-2 text-[11px] font-semibold text-slate-600">
+                  {enrolled} students · {entered} of {enrolled} marks entered for {selectedIAName.split(' ')[0]}
+                </span>
+              </button>
+            );
+          })}
+      </div>
 
+      {/* Selectors Bar */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5">
             Assessment Cycle *
@@ -229,7 +251,7 @@ export default function IAMarksEntry() {
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {marksRoster.map((item, idx) => {
-                const pct = Math.round((item.score / maxScore) * 100);
+                const pct = item.score === '' ? null : Math.round((item.score / maxScore) * 100);
                 return (
                   <tr key={item.student_id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-6 py-4">
@@ -254,6 +276,8 @@ export default function IAMarksEntry() {
                           min={0}
                           max={maxScore}
                           value={item.score}
+                          placeholder="—"
+                          aria-label={`Marks for ${item.name}`}
                           onChange={(e) => handleScoreChange(item.student_id, e.target.value)}
                           className="w-20 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-extrabold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                         />
@@ -263,9 +287,9 @@ export default function IAMarksEntry() {
 
                     <td className="px-6 py-4">
                       <span className={`font-extrabold text-xs ${
-                        pct >= 80 ? 'text-emerald-600' : pct >= 60 ? 'text-brand-600' : 'text-rose-600'
+                        pct === null ? 'text-slate-400' : pct >= 80 ? 'text-emerald-600' : pct >= 60 ? 'text-brand-600' : 'text-rose-600'
                       }`}>
-                        {pct}%
+                        {pct === null ? 'Not entered' : `${pct}%`}
                       </span>
                     </td>
 

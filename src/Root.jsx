@@ -7,7 +7,10 @@ import LandingPage from './views/landing/LandingPage'
 // is not signed in sees the landing page straight away; the app loads when they press Sign in.
 const App = lazy(() => import('./App'))
 
-const OPENS_APP_DIRECTLY = MAY_HAVE_SESSION || new URLSearchParams(window.location.search).has('preview')
+const params = new URLSearchParams(window.location.search)
+const OPENS_APP_DIRECTLY = MAY_HAVE_SESSION || params.has('preview')
+// A direct sign-in link (/?signin=hod) skips the landing page.
+const OPENS_SIGN_IN = params.has('signin')
 
 const Spinner = () => (
   <div className="bg-background">
@@ -18,7 +21,7 @@ const Spinner = () => (
 )
 
 export default function Root() {
-  const [start, setStart] = useState(OPENS_APP_DIRECTLY ? 'landing' : null)
+  const [start, setStart] = useState(OPENS_SIGN_IN ? 'login' : OPENS_APP_DIRECTLY ? 'landing' : null)
 
   if (!start) {
     return (

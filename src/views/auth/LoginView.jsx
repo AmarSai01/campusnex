@@ -63,10 +63,10 @@ const MODE_COPY = {
   forgot: { button: 'Send Reset Link', switchPrompt: 'Remembered it?', switchLabel: 'Back to sign in' },
 }
 
-export default function LoginView({ onBack }) {
+export default function LoginView({ initialRole, onBack }) {
   const { login, activateAccount, requestPasswordReset } = useAuth()
 
-  const [activeRoleTab, setActiveRoleTab] = useState('student')
+  const [activeRoleTab, setActiveRoleTab] = useState(Object.hasOwn(rolePresets, initialRole ?? '') ? initialRole : 'student')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
