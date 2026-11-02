@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Briefcase, Plus, Upload, Search, Edit2, Power, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Briefcase, Plus, Upload, Search, Edit2, Power, X, AlertTriangle, CheckCircle2, CalendarDays } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
 import FacultyImportModal from './FacultyImportModal';
+import BatchTag from '../common/BatchTag';
+import { WEEK_DAYS } from '../../utils/classSessions';
+import { formatTimeRange } from '../../utils/time';
 import { CLASS_ROLES, FACULTY_DESIGNATIONS, classRoleText, weeklyHours } from '../../utils/faculty';
 
 const OTHER = '__other__';
@@ -26,6 +29,46 @@ const inputClass = 'w-full px-3 py-2 rounded-xl border border-slate-200 text-xs 
 const selectClass = `${inputClass} font-semibold text-slate-700 bg-white`;
 
 // Admin: every teacher with their subjects, weekly load, HOD and class responsibilities.
+// One teacher's classes for the week, grouped by day.
+function TeacherWeek({ facultyId, timetable, courses }) {
+  const slots = timetable
+    .filter(s => s.faculty_id === facultyId)
+    .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)));
+  if (!slots.length) {
+    return <p className="py-6 text-center text-xs text-slate-500">No classes on the timetable yet.</p>;
+  }
+  return (
+    <div className="space-y-3">
+      {WEEK_DAYS.map(day => {
+        const daySlots = slots.filter(s => s.day_of_week === day);
+        if (!daySlots.length) return null;
+        return (
+          <section key={day}>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{day}</h4>
+            <ul className="mt-1 divide-y divide-slate-100 rounded-xl border border-slate-200">
+              {daySlots.map(s => {
+                const course = courses.find(c => c.id === s.course_id);
+                return (
+                  <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-xs">
+                    <span className="w-36 shrink-0 font-semibold tabular-nums text-slate-700">{formatTimeRange(s.start_time, s.end_time)}</span>
+                    <span className="min-w-0 flex-1 text-slate-800">
+                      <strong>{course?.code || 'Unknown course'}</strong> {course?.name}
+                    </span>
+                    <span className="text-slate-500">
+                      {[s.section && `Sec ${s.section}`, s.room && `Room ${s.room}`].filter(Boolean).join(' · ')}
+                    </span>
+                    {s.batch && <BatchTag batch={s.batch} />}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ManageFaculty() {
   const {
     users, departments, courses, timetable, class_roles: classRoles = [],
@@ -39,6 +82,7 @@ export default function ManageFaculty() {
   const [notice, setNotice] = useState('');
   const [confirmRequest, setConfirmRequest] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [scheduleOf, setScheduleOf] = useState(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -344,6 +388,15 @@ export default function ManageFaculty() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
+                          onClick={() => setScheduleOf(f)}
+                          aria-label={`View ${f.name}'s timetable`}
+                          title="View timetable"
+                          className="rounded-lg p-1.5 text-slate-500 hover:bg-brand-50 hover:text-brand-600 cursor-pointer"
+                        >
+                          <CalendarDays className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => openForm(f)}
                           aria-label={`Edit ${f.name}`}
                           title="Edit"
@@ -369,6 +422,15 @@ export default function ManageFaculty() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={Boolean(scheduleOf)}
+        onClose={() => setScheduleOf(null)}
+        title={scheduleOf ? `${scheduleOf.name}'s timetable` : ''}
+        subtitle={scheduleOf ? `${weeklyHours(scheduleOf.id, timetable)} hours a week · read only. Change classes in Timetable Builder.` : ''}
+      >
+        {scheduleOf && <TeacherWeek facultyId={scheduleOf.id} timetable={timetable} courses={courses} />}
+      </Modal>
 
       <Modal
         isOpen={isFormOpen}
