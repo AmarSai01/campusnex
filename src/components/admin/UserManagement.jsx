@@ -23,11 +23,11 @@ import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
 
-import { FACULTY_DESIGNATIONS } from '../../utils/faculty';
+import { FACULTY_DESIGNATIONS, classRoleText } from '../../utils/faculty';
 const OTHER_DESIGNATION = '__other__';
 
 export default function UserManagement() {
-  const { users, departments, createUser, updateUser } = useData();
+  const { users, departments, createUser, updateUser, class_roles: classRoles = [] } = useData();
   const { currentUser } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -332,6 +332,20 @@ export default function UserManagement() {
                             <Badge variant="warning" size="sm">
                               {hodLabel(departments, user.id)}
                             </Badge>
+                          )}
+                          {classRoles.some(r => r.faculty_id === user.id) && (
+                            <div className="flex flex-wrap gap-1">
+                              {classRoles.filter(r => r.faculty_id === user.id).map(r => (
+                                <span
+                                  key={r.id}
+                                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                                    r.role === 'class_teacher' ? 'bg-emerald-50 text-emerald-700' : 'bg-violet-50 text-violet-700'
+                                  }`}
+                                >
+                                  {classRoleText(r, departments)}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       ) : (
