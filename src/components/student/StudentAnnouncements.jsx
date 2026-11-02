@@ -5,26 +5,22 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
+import { announcementTag, canSeeAnnouncement } from '../../utils/announcements';
+
+// Filter groups: college-wide, department, and the student's own class or subjects.
+const groupOf = (a) => (a.scope === 'global' ? 'global' : a.scope === 'department' ? 'department' : 'class');
 
 export default function StudentAnnouncements() {
   const { currentUser } = useAuth();
-  const { announcements, courses, enrollments } = useData();
+  const { announcements, courses, enrollments, departments } = useData();
 
-  const myEnrollments = enrollments.filter(e => e.student_id === currentUser?.id);
-  const myCourseIds = myEnrollments.map(e => e.course_id);
+  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' | 'global' | 'department' | 'class'
 
-  const [scopeFilter, setScopeFilter] = useState('all'); // 'all' | 'global' | 'department' | 'course'
-
-  // Filter announcements for this student
-  const studentAnnouncements = announcements.filter(a => {
-    if (a.scope === 'global') return true;
-    if (a.scope === 'department' && a.department_id === currentUser?.department_id) return true;
-    if (a.scope === 'course' && myCourseIds.includes(a.course_id)) return true;
-    return false;
-  }).filter(a => {
-    if (scopeFilter === 'all') return true;
-    return a.scope === scopeFilter;
-  });
+  // Only notices meant for this student, newest first.
+  const studentAnnouncements = announcements
+    .filter(a => canSeeAnnouncement(a, currentUser, { departments, courses, enrollments }))
+    .filter(a => scopeFilter === 'all' || groupOf(a) === scopeFilter)
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -36,7 +32,7 @@ export default function StudentAnnouncements() {
             Campus Bulletins & Notices
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Institutional announcements, department technical symposiums, and course study materials.
+            Notices for the whole college, your department, your class and your subjects.
           </p>
         </div>
 
@@ -56,7 +52,7 @@ export default function StudentAnnouncements() {
               scopeFilter === 'global' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600'
             }`}
           >
-            Global
+            College
           </button>
           <button
             onClick={() => setScopeFilter('department')}
@@ -67,12 +63,12 @@ export default function StudentAnnouncements() {
             Department
           </button>
           <button
-            onClick={() => setScopeFilter('course')}
+            onClick={() => setScopeFilter('class')}
             className={`px-3 py-1.5 rounded-lg transition-all ${
-              scopeFilter === 'course' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600'
+              scopeFilter === 'class' ? 'bg-white text-brand-700 shadow-xs' : 'text-slate-600'
             }`}
           >
-            Courses
+            My class
           </button>
         </div>
       </div>
@@ -80,7 +76,7 @@ export default function StudentAnnouncements() {
       {/* Announcements Feed */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {studentAnnouncements.map((ann) => {
-          const course = courses.find(c => c.id === ann.course_id);
+          const tag = announcementTag(ann, { departments, courses });
 
           return (
             <div
@@ -89,13 +85,8 @@ export default function StudentAnnouncements() {
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <Badge
-                    variant={
-                      ann.scope === 'global' ? 'purple' : ann.scope === 'department' ? 'info' : 'primary'
-                    }
-                    dot
-                  >
-                    {course ? `${course.code} Course Notice` : ann.scope === 'global' ? 'Global Circular' : 'Department Notice'}
+                  <Badge variant={tag.variant} dot>
+                    {tag.label}
                   </Badge>
                   <span className="text-[10px] text-slate-400 font-semibold">
                     {new Date(ann.created_at).toLocaleDateString()}

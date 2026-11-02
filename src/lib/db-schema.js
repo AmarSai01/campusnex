@@ -74,8 +74,8 @@ export const TABLES = [
     key: 'announcements',
     table: 'announcements',
     columns: [
-      'id', 'author_id', 'author_name', 'author_role', 'scope', 'course_id', 'department_id', 'title',
-      'body', 'priority', 'created_at'
+      'id', 'author_id', 'author_name', 'author_role', 'scope', 'audience', 'course_id', 'department_id',
+      'semester', 'section', 'title', 'body', 'priority', 'created_at'
     ]
   },
   {

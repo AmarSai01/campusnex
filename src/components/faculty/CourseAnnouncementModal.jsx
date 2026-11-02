@@ -2,30 +2,45 @@ import React, { useState } from 'react';
 import {
   Megaphone,
   Plus,
-  Send
+  Send,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
+import {
+  ANNOUNCEMENT_AUDIENCES,
+  announcementTag,
+  canSeeAnnouncement,
+  isAddressedTo
+} from '../../utils/announcements';
 
 export default function CourseAnnouncementModal() {
   const { currentUser, isHod, hodDepartments } = useAuth();
-  const { courses, announcements, createAnnouncement } = useData();
+  const {
+    courses, announcements, createAnnouncement, departments, users, enrollments,
+    class_roles: classRoles = []
+  } = useData();
 
   const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);
-  const headedDeptIds = hodDepartments.map(d => d.id);
+  // Classes this teacher is Class CC of.
+  const myCcClasses = classRoles.filter(r => r.faculty_id === currentUser?.id && r.role === 'class_coordinator');
+  const deptCode = (id) => departments.find(d => d.id === id)?.code || '—';
+  const classKey = (r) => `class:${r.department_id}|${r.semester}|${r.section}`;
 
-  // Audience is "course:<id>" for a class notice or "dept:<id>" for an HOD department notice.
+  // Audience is "course:<id>" (subject), "class:<dept>|<sem>|<sec>" (Class CC) or "dept:<id>" (HOD).
   const defaultAudience = myCourses[0]
     ? `course:${myCourses[0].id}`
-    : hodDepartments[0] ? `dept:${hodDepartments[0].id}` : '';
+    : myCcClasses[0] ? classKey(myCcClasses[0])
+      : hodDepartments[0] ? `dept:${hodDepartments[0].id}` : '';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     body: '',
     audience: defaultAudience,
+    deptAudience: 'all',
     priority: 'normal'
   });
 
@@ -34,53 +49,55 @@ export default function CourseAnnouncementModal() {
       title: '',
       body: '',
       audience: defaultAudience,
+      deptAudience: 'all',
       priority: 'normal'
     });
     setIsModalOpen(true);
   };
 
+  // The notice the form would send, without its text.
+  const target = (() => {
+    const [kind, rest = ''] = formData.audience.split(':');
+    if (kind === 'dept') {
+      return { scope: 'department', department_id: rest, audience: formData.deptAudience, course_id: null };
+    }
+    if (kind === 'class') {
+      const [department_id, semester, section] = rest.split('|');
+      return { scope: 'class', department_id, semester: Number(semester), section, audience: 'students', course_id: null };
+    }
+    const course = courses.find(c => c.id === rest);
+    return { scope: 'course', course_id: rest, department_id: course?.department_id || currentUser?.department_id, audience: 'students' };
+  })();
+  const reach = users.filter(u => isAddressedTo({ ...target, author_id: currentUser?.id }, u, { enrollments })).length;
+  const reachWho = target.audience === 'faculty' ? 'teachers' : target.audience === 'all' ? 'students and teachers' : 'students';
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.body.trim()) return;
 
-    const [kind, targetId] = formData.audience.split(':');
-    const dept = hodDepartments.find(d => d.id === targetId);
+    const signature = target.scope === 'department'
+      ? `${currentUser.name} (HOD, ${deptCode(target.department_id)})`
+      : target.scope === 'class'
+        ? `${currentUser.name} (CC, ${deptCode(target.department_id)} ${target.semester}${target.section})`
+        : currentUser.name;
 
-    createAnnouncement(
-      kind === 'dept' && dept
-        ? {
-            author_id: currentUser.id,
-            author_name: `${currentUser.name} (HOD, ${dept.code})`,
-            author_role: 'faculty',
-            scope: 'department',
-            course_id: null,
-            department_id: dept.id,
-            title: formData.title,
-            body: formData.body,
-            priority: formData.priority
-          }
-        : {
-            author_id: currentUser.id,
-            author_name: currentUser.name,
-            author_role: 'faculty',
-            scope: 'course',
-            course_id: targetId,
-            department_id: currentUser.department_id,
-            title: formData.title,
-            body: formData.body,
-            priority: formData.priority
-          }
-    );
+    createAnnouncement({
+      author_id: currentUser.id,
+      author_name: signature,
+      author_role: 'faculty',
+      ...target,
+      title: formData.title.trim(),
+      body: formData.body.trim(),
+      priority: formData.priority
+    });
     setIsModalOpen(false);
   };
 
-  // Filter announcements: posted by this faculty or global/dept
-  const relevantAnnouncements = announcements.filter(a =>
-    a.author_id === currentUser?.id ||
-    a.scope === 'global' ||
-    (a.scope === 'department' &&
-      (a.department_id === currentUser?.department_id || headedDeptIds.includes(a.department_id)))
-  );
+  // Notices this teacher may see: theirs, ones addressed to them, and ones they oversee.
+  const visibilityContext = { departments, courses, enrollments, classRoles };
+  const relevantAnnouncements = announcements
+    .filter(a => canSeeAnnouncement(a, currentUser, visibilityContext))
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -89,12 +106,14 @@ export default function CourseAnnouncementModal() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-brand-600" />
-            Class Bulletins & Course Circulars
+            Announcements
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            {isHod
-              ? 'Post notices to your classes, or to your whole department as HOD.'
-              : 'Publish syllabus handouts, lab reminders, and exam revision guides to your enrolled classes.'}
+            {[
+              'Send notices to the students of your subjects',
+              myCcClasses.length > 0 && 'your class as Class CC',
+              isHod && 'your department as HOD'
+            ].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' or $1')}. Notices meant for you show here too.
           </p>
         </div>
 
@@ -104,14 +123,14 @@ export default function CourseAnnouncementModal() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>{isHod ? 'Post Notice' : 'Post Class Notice'}</span>
+          <span>New notice</span>
         </button>
       </div>
 
       {/* Announcements Feed */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {relevantAnnouncements.map((ann) => {
-          const course = courses.find(c => c.id === ann.course_id);
+          const tag = announcementTag(ann, { departments, courses });
           const isOwn = ann.author_id === currentUser?.id;
 
           return (
@@ -123,8 +142,8 @@ export default function CourseAnnouncementModal() {
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <Badge variant={ann.scope === 'global' ? 'purple' : ann.scope === 'department' ? 'info' : 'primary'} dot>
-                    {course ? `${course.code} Class Notice` : ann.scope === 'global' ? 'Global Circular' : 'Dept Notice'}
+                  <Badge variant={tag.variant} dot>
+                    {tag.label}
                   </Badge>
                   <span className="text-[10px] text-slate-400 font-semibold">
                     {new Date(ann.created_at).toLocaleDateString()}
@@ -152,30 +171,21 @@ export default function CourseAnnouncementModal() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={isHod ? 'Post a Notice' : 'Post Notice to Enrolled Students'}
-        subtitle={isHod
-          ? 'Class notices reach enrolled students; department notices reach everyone in the department.'
-          : 'Students enrolled in the selected course will receive an immediate notification.'}
+        title="New notice"
+        subtitle="Only the people you send it to can see it."
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              {isHod ? 'Send To *' : 'Select Course *'}
+              Send to *
             </label>
             <select
               value={formData.audience}
               onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
             >
-              {isHod && (
-                <optgroup label="Whole department (HOD)">
-                  {hodDepartments.map(d => (
-                    <option key={d.id} value={`dept:${d.id}`}>{d.code} - all students and faculty</option>
-                  ))}
-                </optgroup>
-              )}
               {myCourses.length > 0 && (
-                <optgroup label="My classes">
+                <optgroup label="My subject">
                   {myCourses.map(c => (
                     <option key={c.id} value={`course:${c.id}`}>
                       {c.code} - {c.name}{c.section && !/\bsec\b/i.test(c.name) ? ` (Sec ${c.section})` : ''}
@@ -183,8 +193,53 @@ export default function CourseAnnouncementModal() {
                   ))}
                 </optgroup>
               )}
+              {myCcClasses.length > 0 && (
+                <optgroup label="My class (Class CC)">
+                  {myCcClasses.map(r => (
+                    <option key={r.id} value={classKey(r)}>
+                      {deptCode(r.department_id)} Sem {r.semester} Sec {r.section} - all students of the class
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {isHod && (
+                <optgroup label="My department (HOD)">
+                  {hodDepartments.map(d => (
+                    <option key={d.id} value={`dept:${d.id}`}>{d.code} - {d.name}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
+
+          {target.scope === 'department' && (
+            <fieldset>
+              <legend className="block text-xs font-bold text-slate-700 mb-1.5">Who in {deptCode(target.department_id)}?</legend>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(ANNOUNCEMENT_AUDIENCES).map(([value, label]) => {
+                  const on = formData.deptAudience === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setFormData({ ...formData, deptAudience: value })}
+                      className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
+                        on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {on && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {value === 'all' ? `Everyone in ${deptCode(target.department_id)}` : label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+
+          <p className="rounded-xl bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-800" aria-live="polite">
+            This goes to {reach} {reachWho}. Nobody else can see it.
+          </p>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -227,7 +282,7 @@ export default function CourseAnnouncementModal() {
               className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Broadcast Notice</span>
+              <span>Send</span>
             </button>
           </div>
         </form>

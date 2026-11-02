@@ -19,12 +19,13 @@ import Badge from '../common/Badge';
 import { formatTime } from '../../utils/time';
 import { slotVisibleToStudent } from '../../utils/batches';
 import { RISK_RULES } from '../../utils/risk';
+import { announcementTag, canSeeAnnouncement } from '../../utils/announcements';
 
 const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
 
 export default function StudentHub({ onNavigateTab }) {
   const { currentUser } = useAuth();
-  const { courses, enrollments, attendance, ia_marks, assignments, submissions, timetable, announcements, users } = useData();
+  const { courses, enrollments, attendance, ia_marks, assignments, submissions, timetable, announcements, users, departments } = useData();
 
   // Enrolled courses for this student
   const myEnrollments = enrollments.filter(e => e.student_id === currentUser?.id);
@@ -64,12 +65,11 @@ export default function StudentHub({ onNavigateTab }) {
     .filter(t => myCourseIds.includes(t.course_id) && t.day_of_week === currentDayName && slotVisibleToStudent(t, currentUser))
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-  // Recent announcements (Global / Dept / Enrolled courses)
-  const relevantAnnouncements = announcements.filter(a =>
-    a.scope === 'global' ||
-    (a.scope === 'department' && a.department_id === currentUser?.department_id) ||
-    (a.scope === 'course' && myCourseIds.includes(a.course_id))
-  ).slice(0, 2);
+  // Latest two notices meant for this student
+  const relevantAnnouncements = announcements
+    .filter(a => canSeeAnnouncement(a, currentUser, { departments, courses, enrollments }))
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, 2);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -309,8 +309,8 @@ export default function StudentHub({ onNavigateTab }) {
             {relevantAnnouncements.map((ann) => (
               <div key={ann.id} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
                 <div className="flex items-center justify-between mb-1">
-                  <Badge variant={ann.scope === 'global' ? 'purple' : 'primary'} size="sm">
-                    {ann.scope}
+                  <Badge variant={announcementTag(ann, { departments, courses }).variant} size="sm">
+                    {announcementTag(ann, { departments, courses }).label}
                   </Badge>
                   <span className="text-[10px] text-slate-400">
                     {new Date(ann.created_at).toLocaleDateString()}

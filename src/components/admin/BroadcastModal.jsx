@@ -4,7 +4,8 @@ import {
   Plus,
   Send,
   Radio,
-  CheckCircle2
+  CheckCircle2,
+  Check
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,9 +13,26 @@ import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
+import {
+  ANNOUNCEMENT_AUDIENCES,
+  announcementGroup,
+  announcementTag,
+  isAddressedTo
+} from '../../utils/announcements';
+
+const SHOW_GROUPS = [
+  ['all', 'All'],
+  ['students', 'Students'],
+  ['faculty', 'Faculty'],
+  ['everyone', 'Everyone'],
+  ['class', 'Class notices']
+];
+const selectClass = 'w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none';
 
 export default function BroadcastModal() {
-  const { announcements, departments, users, createAnnouncement, pushManualBroadcast } = useData();
+  const { announcements, departments, users, courses, enrollments, createAnnouncement, pushManualBroadcast } = useData();
+  const [show, setShow] = useState('all');
+  const [deptFilter, setDeptFilter] = useState('');
   const [confirmRequest, setConfirmRequest] = useState(null);
   const [notice, setNotice] = useState('');
 
@@ -29,14 +47,9 @@ export default function BroadcastModal() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDirectPushOpen, setIsDirectPushOpen] = useState(false);
 
-  // Announcement Form
-  const [formData, setFormData] = useState({
-    title: '',
-    body: '',
-    scope: 'global', // 'global' | 'department'
-    department_id: departments[0]?.id || '',
-    priority: 'normal'
-  });
+  // Announcement Form: audience is all | students | faculty; an empty department_id means every department.
+  const blankForm = { title: '', body: '', audience: 'all', department_id: '', priority: 'normal' };
+  const [formData, setFormData] = useState(blankForm);
 
   // Direct Push Form
   const [pushData, setPushData] = useState({
@@ -46,15 +59,23 @@ export default function BroadcastModal() {
   });
 
   const handleOpenAnnouncement = () => {
-    setFormData({
-      title: '',
-      body: '',
-      scope: 'global',
-      department_id: departments[0]?.id || '',
-      priority: 'normal'
-    });
+    setFormData(blankForm);
     setIsModalOpen(true);
   };
+
+  const draft = {
+    scope: formData.department_id ? 'department' : 'global',
+    audience: formData.audience,
+    department_id: formData.department_id || null
+  };
+  const draftReach = users.filter(u => isAddressedTo(draft, u, { enrollments })).length;
+  const draftDept = departments.find(d => d.id === formData.department_id);
+  const draftWho = formData.audience === 'students' ? 'students' : formData.audience === 'faculty' ? 'teachers' : 'students and teachers';
+
+  const visible = sortedAnnouncements.filter(a =>
+    (show === 'all' || announcementGroup(a) === show) && (!deptFilter || a.department_id === deptFilter));
+  const groupCount = (key) => sortedAnnouncements.filter(a =>
+    (key === 'all' || announcementGroup(a) === key) && (!deptFilter || a.department_id === deptFilter)).length;
 
   const handleAnnouncementSubmit = (e) => {
     e.preventDefault();
@@ -64,15 +85,14 @@ export default function BroadcastModal() {
       author_id: currentUser?.id,
       author_name: currentUser?.name || 'Administrator',
       author_role: 'admin',
-      scope: formData.scope,
+      ...draft,
       course_id: null,
-      department_id: formData.scope === 'department' ? formData.department_id : null,
-      title: formData.title,
-      body: formData.body,
+      title: formData.title.trim(),
+      body: formData.body.trim(),
       priority: formData.priority
     });
     setIsModalOpen(false);
-    showNotice(`"${formData.title}" was published.`);
+    showNotice(`"${formData.title.trim()}" was sent to ${draftReach} ${draftReach === 1 ? 'person' : 'people'}.`);
   };
 
   const handlePushSubmit = (e) => {
@@ -123,7 +143,7 @@ export default function BroadcastModal() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Broadcast</span>
+            <span>New broadcast</span>
           </button>
         </div>
       </div>
@@ -139,17 +159,52 @@ export default function BroadcastModal() {
         <EmptyState
           icon={Megaphone}
           title="No circulars yet"
-          description="Publish a circular to everyone or one department. It shows on their dashboard and in their notifications."
-          actionLabel="Create Broadcast"
+          description="Send a notice to everyone, only students or only faculty, in every department or one. Only they can see it."
+          actionLabel="New broadcast"
           onAction={handleOpenAnnouncement}
         />
       )}
 
+      {sortedAnnouncements.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500">Show:</span>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show">
+            {SHOW_GROUPS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={show === key}
+                onClick={() => setShow(key)}
+                className={`rounded-full border px-3 py-1 text-xs font-bold transition-colors cursor-pointer ${
+                  show === key ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {label} · {groupCount(key)}
+              </button>
+            ))}
+          </div>
+          <select
+            value={deptFilter}
+            onChange={(e) => setDeptFilter(e.target.value)}
+            aria-label="Department"
+            className="ml-auto rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+          >
+            <option value="">All departments</option>
+            {departments.map(d => <option key={d.id} value={d.id}>{d.code}</option>)}
+          </select>
+        </div>
+      )}
+
+      {sortedAnnouncements.length > 0 && visible.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
+          No broadcasts match this filter.
+        </p>
+      )}
+
       {/* Announcements List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {sortedAnnouncements.map((ann) => {
-          const isGlobal = ann.scope === 'global';
-          const isDept = ann.scope === 'department';
+        {visible.map((ann) => {
+          const tag = announcementTag(ann, { departments, courses });
 
           return (
             <div
@@ -158,8 +213,8 @@ export default function BroadcastModal() {
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <Badge variant={isGlobal ? 'purple' : isDept ? 'primary' : 'neutral'} dot>
-                    {isGlobal ? 'Global Broadcast' : isDept ? 'Department Circular' : 'Course Scoped'}
+                  <Badge variant={tag.variant} dot>
+                    {tag.label}
                   </Badge>
                   <span className="text-[10px] text-slate-400 font-semibold">
                     {new Date(ann.created_at).toLocaleDateString()}
@@ -187,40 +242,50 @@ export default function BroadcastModal() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Publish Institutional Broadcast"
-        subtitle="Deliver official news and circulars to students and faculty."
+        title="New broadcast"
+        subtitle="Only the people you choose can see it."
       >
         <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Broadcast Scope *
-            </label>
-            <select
-              value={formData.scope}
-              onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-            >
-              <option value="global">Global (All Students & Faculty)</option>
-              <option value="department">Department-Specific</option>
-            </select>
-          </div>
-
-          {formData.scope === 'department' && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Target Department *
-              </label>
-              <select
-                value={formData.department_id}
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              >
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                ))}
-              </select>
+          <fieldset>
+            <legend className="block text-xs font-bold text-slate-700 mb-1.5">Who should receive it?</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(ANNOUNCEMENT_AUDIENCES).map(([value, label]) => {
+                const on = formData.audience === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setFormData({ ...formData, audience: value })}
+                    className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
+                      on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {on && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </fieldset>
+
+          <label className="block text-xs font-bold text-slate-700">
+            From which department?
+            <select
+              value={formData.department_id}
+              onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+              className={`mt-1 ${selectClass}`}
+            >
+              <option value="">All departments</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+              ))}
+            </select>
+          </label>
+
+          <p className="rounded-xl bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-800" aria-live="polite">
+            This goes to {draftReach} {draftWho}{draftDept ? ` in ${draftDept.code}` : ''}. Nobody else can see it.
+          </p>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -263,7 +328,7 @@ export default function BroadcastModal() {
               className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Publish Circular</span>
+              <span>Send</span>
             </button>
           </div>
         </form>

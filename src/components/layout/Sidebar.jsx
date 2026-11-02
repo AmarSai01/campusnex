@@ -87,7 +87,7 @@ export default function Sidebar({
       { id: 'timetable_edit', label: 'Edit Class Timetables', icon: CalendarCog },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },
       { id: 'semester_calendar', label: 'Semester Calendar', icon: CalendarRange, badge: 'COE' },
-      { id: 'announcements', label: 'Class Announcements', icon: Megaphone },
+      { id: 'announcements', label: 'Announcements', icon: Megaphone },
       { id: 'requests', label: 'Student Requests', icon: LifeBuoy },
       { id: 'feedback_results', label: 'Course Feedback', icon: MessageSquareHeart },
     ],

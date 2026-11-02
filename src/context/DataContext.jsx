@@ -7,6 +7,7 @@ import { formatTimeRange } from '../utils/time';
 import { eventAppliesTo } from '../utils/calendarScope';
 import { calendarAppliesTo, describeDateChanges } from '../utils/semesterCalendar';
 import { courseDeleteBlockers } from '../utils/courses';
+import { isAddressedTo } from '../utils/announcements';
 import {
   addExtraClass,
   cancelSession,
@@ -390,63 +391,39 @@ export function DataProvider({ children }) {
   };
 
   // 6. Announcements Creation
+  // scope global | department | class | course; audience all | students | faculty
+  // (see utils/announcements.js). Only the people it is addressed to are notified.
   const createAnnouncement = (annData) => {
-    const newId = `ann_${Date.now()}`;
+    const newId = `ann_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
     const newAnn = {
       id: newId,
       ...annData,
+      audience: annData.scope === 'class' || annData.scope === 'course' ? 'students' : annData.audience || 'all',
+      semester: annData.scope === 'class' ? Number(annData.semester) : null,
+      section: annData.scope === 'class' ? annData.section : null,
       created_at: new Date().toISOString()
     };
+    const prefix = {
+      global: 'Announcement',
+      department: 'Department notice',
+      class: 'Class notice',
+      course: 'Class notice'
+    }[newAnn.scope] || 'Announcement';
 
     setData((prev) => {
-      const newNotifs = [...prev.notifications];
-
-      // Determine recipients based on scope
-      if (annData.scope === 'global') {
-        // Send to all students and faculty
-        prev.users.forEach(u => {
-          if (u.id !== annData.author_id) {
-            newNotifs.unshift(addNotification({
-              user_id: u.id,
-              type: 'new_announcement',
-              reference_id: newId,
-              title: `Announcement: ${annData.title}`,
-              message: annData.body.length > 120 ? `${annData.body.substring(0, 117)}...` : annData.body
-            }));
-          }
-        });
-      } else if (annData.scope === 'department') {
-        prev.users
-          .filter(u => u.department_id === annData.department_id && u.id !== annData.author_id)
-          .forEach(u => {
-            newNotifs.unshift(addNotification({
-              user_id: u.id,
-              type: 'new_announcement',
-              reference_id: newId,
-              title: `Dept Announcement: ${annData.title}`,
-              message: annData.body.length > 120 ? `${annData.body.substring(0, 117)}...` : annData.body
-            }));
-          });
-      } else if (annData.scope === 'course' && annData.course_id) {
-        const enrolledStudents = prev.enrollments
-          .filter(e => e.course_id === annData.course_id)
-          .map(e => e.student_id);
-
-        enrolledStudents.forEach(studentId => {
-          newNotifs.unshift(addNotification({
-            user_id: studentId,
-            type: 'new_announcement',
-            reference_id: newId,
-            title: `Course Announcement: ${annData.title}`,
-            message: annData.body.length > 120 ? `${annData.body.substring(0, 117)}...` : annData.body
-          }));
-        });
-      }
-
+      const notices = prev.users
+        .filter(u => isAddressedTo(newAnn, u, { enrollments: prev.enrollments }))
+        .map(u => addNotification({
+          user_id: u.id,
+          type: 'new_announcement',
+          reference_id: newId,
+          title: `${prefix}: ${newAnn.title}`,
+          message: newAnn.body.length > 120 ? `${newAnn.body.substring(0, 117)}...` : newAnn.body
+        }));
       return {
         ...prev,
         announcements: [newAnn, ...prev.announcements],
-        notifications: newNotifs
+        notifications: [...notices, ...prev.notifications]
       };
     });
     return newId;
