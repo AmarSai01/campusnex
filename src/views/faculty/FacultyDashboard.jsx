@@ -15,6 +15,7 @@ import StudentAnalytics from '../../components/shared/StudentAnalytics';
 import ClassPerformance from '../../components/shared/ClassPerformance';
 import RequestsInbox from '../../components/shared/RequestsInbox';
 import FeedbackResults from '../../components/shared/FeedbackResults';
+import ClassSheets from '../../components/faculty/ClassSheets';
 import { useAuth } from '../../context/AuthContext';
 
 export default function FacultyDashboard({ activeTab = 'overview', setActiveTab }) {
@@ -35,6 +36,8 @@ export default function FacultyDashboard({ activeTab = 'overview', setActiveTab 
         return <ClassPerformance scope="teaching" />;
       case 'assignments':
         return <AssignmentManager />;
+      case 'class_sheets':
+        return <ClassSheets />;
       case 'timetable':
         return <FacultyTimetable />;
       case 'timetable_edit':

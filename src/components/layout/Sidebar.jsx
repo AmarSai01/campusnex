@@ -28,6 +28,7 @@ import {
   MessageSquareHeart,
   Handshake,
   History,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
@@ -81,6 +82,7 @@ export default function Sidebar({
       { id: 'student_analytics', label: 'Student Analytics', icon: UserRoundSearch },
       { id: 'class_analytics', label: 'Class Analytics', icon: ChartColumn },
       { id: 'assignments', label: 'Assignments & Grading', icon: FileText },
+      { id: 'class_sheets', label: 'Class Sheets', icon: FileSpreadsheet },
       { id: 'timetable', label: 'My Teaching Schedule', icon: Clock },
       { id: 'timetable_edit', label: 'Edit Class Timetables', icon: CalendarCog },
       { id: 'exam_seating', label: 'Exam Timetable & Seating', icon: Layers },

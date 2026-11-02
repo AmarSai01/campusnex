@@ -1867,7 +1867,7 @@ export function DataProvider({ children }) {
 
   // A link that opens a stored file: a signed link for files in our private buckets, or an
   // https link someone shared (a repository, say). Old placeholder links have no file.
-  const STORED_FILE = /^storage:\/\/(submissions|assignment-files|calendar-files)\/(.+)$/;
+  const STORED_FILE = /^storage:\/\/(submissions|assignment-files|calendar-files|sheet-files)\/(.+)$/;
   const getStoredFileLink = async (fileUrl) => {
     if (!fileUrl) return null;
     const stored = fileUrl.match(STORED_FILE);

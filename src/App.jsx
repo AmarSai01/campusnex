@@ -133,6 +133,7 @@ function AppContent({ initialScreen = 'landing' }) {
       calendar: 'Institutional Calendar & Events',
       semester_calendar: 'Semester Calendar',
       activity: 'Activity Log',
+      class_sheets: 'Class Sheets',
       announcements: 'Campus Broadcasts & Circulars',
       attendance: 'Attendance Management',
       iamarks: 'Internal Assessment (IA) Marks',

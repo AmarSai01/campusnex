@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { IA_CYCLES } from '../../utils/iaCycles';
 
 export default function IAMarksEntry() {
   const { currentUser } = useAuth();
@@ -17,17 +18,12 @@ export default function IAMarksEntry() {
   const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);
 
   const [selectedCourseId, setSelectedCourseId] = useState(myCourses[0]?.id || '');
-  const [selectedIAName, setSelectedIAName] = useState('IA-1 (Theory & Assessment)');
+  const [selectedIAName, setSelectedIAName] = useState(IA_CYCLES[0]);
   const [maxScore, setMaxScore] = useState(50);
   const [marksRoster, setMarksRoster] = useState([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const iaOptions = [
-    'IA-1 (Theory & Assessment)',
-    'IA-2 (Advanced Modules & Problem Solving)',
-    'IA-3 (Pre-University Evaluation)',
-    'Lab Assessment 1 (Hands-on Viva)'
-  ];
+  const iaOptions = IA_CYCLES;
 
   // Set default course
   useEffect(() => {
