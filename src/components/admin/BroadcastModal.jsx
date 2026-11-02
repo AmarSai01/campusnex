@@ -70,7 +70,9 @@ export default function BroadcastModal() {
   };
   const draftReach = users.filter(u => isAddressedTo(draft, u, { enrollments })).length;
   const draftDept = departments.find(d => d.id === formData.department_id);
-  const draftWho = formData.audience === 'students' ? 'students' : formData.audience === 'faculty' ? 'teachers' : 'students and teachers';
+  const draftWho = formData.audience === 'students' ? (draftReach === 1 ? 'student' : 'students')
+    : formData.audience === 'faculty' ? (draftReach === 1 ? 'teacher' : 'teachers')
+      : (draftReach === 1 ? 'person' : 'students and teachers');
 
   const visible = sortedAnnouncements.filter(a =>
     (show === 'all' || announcementGroup(a) === show) && (!deptFilter || a.department_id === deptFilter));
@@ -256,7 +258,7 @@ export default function BroadcastModal() {
                     key={value}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setFormData({ ...formData, audience: value })}
+                    onClick={() => setFormData(prev => ({ ...prev, audience: value }))}
                     className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
                       on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
@@ -273,7 +275,7 @@ export default function BroadcastModal() {
             From which department?
             <select
               value={formData.department_id}
-              onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, department_id: e.target.value }))}
               className={`mt-1 ${selectClass}`}
             >
               <option value="">All departments</option>
@@ -295,7 +297,7 @@ export default function BroadcastModal() {
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. End Semester Examination Time Table & Admit Cards Released"
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
@@ -309,7 +311,7 @@ export default function BroadcastModal() {
               rows={4}
               required
               value={formData.body}
-              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
               placeholder="Full text of the circular, deadlines, guidelines..."
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
@@ -348,7 +350,7 @@ export default function BroadcastModal() {
             </label>
             <select
               value={pushData.targetRole}
-              onChange={(e) => setPushData({ ...pushData, targetRole: e.target.value })}
+              onChange={(e) => setPushData(prev => ({ ...prev, targetRole: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
             >
               <option value="all">Everyone (All Students & Faculty)</option>
@@ -365,7 +367,7 @@ export default function BroadcastModal() {
               type="text"
               required
               value={pushData.title}
-              onChange={(e) => setPushData({ ...pushData, title: e.target.value })}
+              onChange={(e) => setPushData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. Urgent: Severe Weather Alert"
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
@@ -379,7 +381,7 @@ export default function BroadcastModal() {
               rows={3}
               required
               value={pushData.message}
-              onChange={(e) => setPushData({ ...pushData, message: e.target.value })}
+              onChange={(e) => setPushData(prev => ({ ...prev, message: e.target.value }))}
               placeholder="Brief message sent directly to user notification drawers..."
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />

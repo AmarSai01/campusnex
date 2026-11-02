@@ -69,7 +69,9 @@ export default function CourseAnnouncementModal() {
     return { scope: 'course', course_id: rest, department_id: course?.department_id || currentUser?.department_id, audience: 'students' };
   })();
   const reach = users.filter(u => isAddressedTo({ ...target, author_id: currentUser?.id }, u, { enrollments })).length;
-  const reachWho = target.audience === 'faculty' ? 'teachers' : target.audience === 'all' ? 'students and teachers' : 'students';
+  const reachWho = target.audience === 'faculty' ? (reach === 1 ? 'teacher' : 'teachers')
+    : target.audience === 'all' ? (reach === 1 ? 'person' : 'students and teachers')
+      : (reach === 1 ? 'student' : 'students');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -109,11 +111,15 @@ export default function CourseAnnouncementModal() {
             Announcements
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            {[
-              'Send notices to the students of your subjects',
-              myCcClasses.length > 0 && 'your class as Class CC',
-              isHod && 'your department as HOD'
-            ].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' or $1')}. Notices meant for you show here too.
+            {(() => {
+              const targets = [
+                myCourses.length > 0 && 'the students of your subjects',
+                myCcClasses.length > 0 && 'your class as Class CC',
+                isHod && 'your department as HOD'
+              ].filter(Boolean);
+              const list = targets.length > 1 ? `${targets.slice(0, -1).join(', ')} or ${targets[targets.length - 1]}` : targets[0];
+              return list ? `Send notices to ${list}. Notices meant for you show here too.` : 'Notices meant for you show here.';
+            })()}
           </p>
         </div>
 
@@ -181,7 +187,7 @@ export default function CourseAnnouncementModal() {
             </label>
             <select
               value={formData.audience}
-              onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, audience: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
             >
               {myCourses.length > 0 && (
@@ -223,7 +229,7 @@ export default function CourseAnnouncementModal() {
                       key={value}
                       type="button"
                       aria-pressed={on}
-                      onClick={() => setFormData({ ...formData, deptAudience: value })}
+                      onClick={() => setFormData(prev => ({ ...prev, deptAudience: value }))}
                       className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
                         on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
@@ -249,7 +255,7 @@ export default function CourseAnnouncementModal() {
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. Lab Viva Schedule & Question Bank"
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
@@ -263,7 +269,7 @@ export default function CourseAnnouncementModal() {
               rows={4}
               required
               value={formData.body}
-              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
               placeholder="Full details, instructions, room allocations..."
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
