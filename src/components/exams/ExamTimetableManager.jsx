@@ -43,6 +43,7 @@ export default function ExamTimetableManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [deleteConfirmExam, setDeleteConfirmExam] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -86,7 +87,7 @@ export default function ExamTimetableManager() {
       subject: deptCourses[0] ? `${deptCourses[0].code} - ${deptCourses[0].name}` : '',
       course_id: deptCourses[0]?.id || '',
       department_id: deptId,
-      semester: 5,
+      semester: deptCourses[0]?.semester || 1,
       exam_date: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
       start_time: '09:30',
       end_time: '12:30',
@@ -170,14 +171,16 @@ export default function ExamTimetableManager() {
       };
 
       if (editingExam) {
-        updateExamTimetable(
+        const { notified } = updateExamTimetable(
           editingExam.id,
           payload,
           currentUser?.id,
           currentUser?.role,
           facultyDeptId
         );
-        setSuccessToast(`Exam schedule for "${formData.subject}" updated.`);
+        setSuccessToast(notified
+          ? `Exam schedule for "${formData.subject}" updated. ${notified} ${notified === 1 ? 'student was' : 'students were'} told about the change.`
+          : `Exam schedule for "${formData.subject}" updated.`);
       } else {
         createExamTimetable(
           payload,
@@ -203,7 +206,7 @@ export default function ExamTimetableManager() {
       setDeleteConfirmExam(null);
       setTimeout(() => setSuccessToast(''), 4000);
     } catch (err) {
-      setFormError(err.message);
+      setDeleteError(err.message);
     }
   };
 
@@ -652,7 +655,7 @@ export default function ExamTimetableManager() {
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={Boolean(deleteConfirmExam)}
-        onClose={() => setDeleteConfirmExam(null)}
+        onClose={() => { setDeleteConfirmExam(null); setDeleteError(''); }}
         title="Confirm Exam Deletion"
         subtitle="This action cannot be undone."
       >
@@ -661,6 +664,9 @@ export default function ExamTimetableManager() {
             Are you sure you want to delete exam schedule <strong className="text-slate-900">{deleteConfirmExam?.subject}</strong> on {deleteConfirmExam?.exam_date}?
             Associated seating arrangements will also be removed.
           </p>
+          {deleteError && (
+            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{deleteError}</p>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-3">
             <button

@@ -3,30 +3,32 @@ import {
   GraduationCap,
   UserPlus,
   Search,
-  Filter,
   Edit2,
   Trash2,
   Mail,
-  Building,
   CheckCircle2,
   AlertCircle,
   Clock,
   ShieldCheck,
   Lock,
-  Sparkles,
-  Layers,
-  UserCheck,
-  Upload
+  Upload,
+  Power
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import StudentImportModal from './StudentImportModal';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
-import Badge from '../common/Badge';
+import ConfirmDialog from '../common/ConfirmDialog';
+
+const BASE_SECTIONS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const PAGE_SIZE = 100;
 
 export default function ManageStudents() {
   const { currentUser, hodDepartments } = useAuth();
-  const { users, departments, createStudent, updateStudent, deleteStudent } = useData();
+  const {
+    users, departments, createStudent, updateStudent, deleteStudent,
+    attendance = [], ia_marks: iaMarks = [], submissions = [], results = []
+  } = useData();
 
   const isAdmin = currentUser?.role === 'admin';
   // Non-admins reach this screen only as HOD, scoped to the departments they head.
@@ -41,6 +43,9 @@ export default function ManageStudents() {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('all');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('all');
   const [selectedSemesterFilter, setSelectedSemesterFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [shownCount, setShownCount] = useState(PAGE_SIZE);
+  const [confirmRequest, setConfirmRequest] = useState(null);
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,6 +73,8 @@ export default function ManageStudents() {
 
   // Base list of students
   const allStudents = users.filter(u => u.role === 'student');
+  // Sections in use, plus the usual ones, so a college with sections D or E can filter by them.
+  const sectionOptions = [...new Set([...BASE_SECTIONS, ...allStudents.map(s => s.section).filter(Boolean)])].sort();
 
   // Scoped list
   const scopedStudents = allStudents.filter(st => {
@@ -85,6 +92,10 @@ export default function ManageStudents() {
     }
     // Semester filter
     if (selectedSemesterFilter !== 'all' && String(st.semester) !== String(selectedSemesterFilter)) {
+      return false;
+    }
+    // Status filter
+    if (statusFilter !== 'all' && (st.status === 'inactive' ? 'inactive' : 'active') !== statusFilter) {
       return false;
     }
     // Search query
@@ -121,7 +132,7 @@ export default function ManageStudents() {
       usn: student.usn || student.roll_no || '',
       email: student.email,
       department_id: student.department_id || defaultDeptId,
-      semester: student.semester || 5,
+      semester: student.semester || 1,
       section: student.section || 'A',
       phone: student.phone || '',
       status: student.status || 'active'
@@ -161,7 +172,7 @@ export default function ManageStudents() {
 
     // 3. Validate Email
     const duplicateEmail = users.find(
-      u => u.id !== editingStudent?.id && u.email.toLowerCase() === formData.email.trim().toLowerCase()
+      u => u.id !== editingStudent?.id && u.email?.toLowerCase() === formData.email.trim().toLowerCase()
     );
     if (duplicateEmail) {
       setFormError(`Email "${formData.email}" is already used by another account.`);
@@ -192,21 +203,43 @@ export default function ManageStudents() {
     }
   };
 
-  const handleDeleteConfirm = () => {
-    if (!deleteConfirmStudent) return;
-    if (!isAdmin) {
-      alert('Only Administrators have permission to delete student records.');
-      return;
-    }
+  const showToast = (text) => {
+    setSuccessToast(text);
+    setTimeout(() => setSuccessToast(''), 4000);
+  };
 
-    try {
-      deleteStudent(deleteConfirmStudent.id, currentUser?.role);
-      setSuccessToast(`Student ${deleteConfirmStudent.name} was removed from the roster.`);
-      setDeleteConfirmStudent(null);
-      setTimeout(() => setSuccessToast(''), 4000);
-    } catch (err) {
-      alert(err.message || 'Delete operation failed.');
-    }
+  // Deleting a student also deletes their attendance, marks, submissions and results, so it is
+  // only allowed for a student with none of those (say, one added by mistake).
+  const recordCounts = (studentId) => [
+    [attendance.filter(a => a.student_id === studentId).length, 'attendance record'],
+    [iaMarks.filter(m => m.student_id === studentId).length, 'IA mark'],
+    [submissions.filter(s => s.student_id === studentId).length, 'submission'],
+    [results.filter(r => r.student_id === studentId).length, 'result']
+  ].filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}${n === 1 ? '' : 's'}`);
+
+  const deleteBlockers = deleteConfirmStudent ? recordCounts(deleteConfirmStudent.id) : [];
+
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirmStudent || !isAdmin || deleteBlockers.length) return;
+    deleteStudent(deleteConfirmStudent.id, currentUser?.role);
+    showToast(`Student ${deleteConfirmStudent.name} was removed from the roster.`);
+    setDeleteConfirmStudent(null);
+  };
+
+  const askToggle = (student) => {
+    const deactivating = student.status !== 'inactive';
+    setConfirmRequest({
+      title: deactivating ? `Deactivate ${student.name}?` : `Reactivate ${student.name}?`,
+      message: deactivating
+        ? 'They can no longer sign in until you reactivate them. Their attendance, marks and results are kept.'
+        : 'They will be able to sign in to Campusnex again.',
+      confirmLabel: deactivating ? 'Deactivate' : 'Reactivate',
+      tone: deactivating ? 'danger' : 'neutral',
+      onConfirm: () => {
+        updateStudent(student.id, { status: deactivating ? 'inactive' : 'active' }, currentUser?.id);
+        showToast(`${student.name} ${deactivating ? 'deactivated' : 'reactivated'}.`);
+      }
+    });
   };
 
   const getCreatorName = (authorId) => {
@@ -304,9 +337,7 @@ export default function ManageStudents() {
             className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
           >
             <option value="all">All Sections</option>
-            <option value="A">Section A</option>
-            <option value="B">Section B</option>
-            <option value="C">Section C</option>
+            {sectionOptions.map(sec => <option key={sec} value={sec}>Section {sec}</option>)}
           </select>
 
           {/* Semester Filter */}
@@ -320,8 +351,25 @@ export default function ManageStudents() {
               <option key={sem} value={sem}>Semester {sem}</option>
             ))}
           </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Status"
+            className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="all">Active and inactive</option>
+          </select>
         </div>
       </div>
+
+      <p className="text-xs text-slate-500">
+        {scopedStudents.length} {scopedStudents.length === 1 ? 'student' : 'students'}
+        {scopedStudents.length > shownCount && `, showing the first ${shownCount}`}
+      </p>
 
       {/* Students Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -345,15 +393,16 @@ export default function ManageStudents() {
                   </td>
                 </tr>
               ) : (
-                scopedStudents.map((student) => {
+                scopedStudents.slice(0, shownCount).map((student) => {
                   const dept = departments.find(d => d.id === student.department_id);
-                  const displayUSN = student.usn || student.roll_no || '1MS22CS100';
+                  const inactive = student.status === 'inactive';
+                  const displayUSN = student.usn || student.roll_no || '—';
                   const updatedDate = student.updated_at
                     ? new Date(student.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Initial';
 
                   return (
-                    <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={student.id} className={`hover:bg-slate-50/70 transition-colors ${inactive ? 'opacity-60' : ''}`}>
                       {/* Name & Avatar */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -363,7 +412,10 @@ export default function ManageStudents() {
                             className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
                           />
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{student.name}</p>
+                            <p className="font-bold text-slate-900 text-sm">
+                              {student.name}
+                              {inactive && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 align-middle">Inactive</span>}
+                            </p>
                             <p className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
                               <Mail className="w-3 h-3 text-slate-400" />
                               {student.email}
@@ -381,14 +433,14 @@ export default function ManageStudents() {
 
                       {/* Department */}
                       <td className="px-6 py-4">
-                        <p className="font-bold text-slate-800">{dept?.code || 'CSE'}</p>
-                        <p className="text-slate-500 text-[11px] line-clamp-1">{dept?.name || 'Engineering'}</p>
+                        <p className="font-bold text-slate-800">{dept?.code || '—'}</p>
+                        <p className="text-slate-500 text-[11px] line-clamp-1">{dept?.name || 'No department'}</p>
                       </td>
 
                       {/* Semester / Section */}
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 font-bold text-xs border border-brand-200">
-                          Sem {student.semester || 5} • Sec {student.section || 'A'}
+                          Sem {student.semester || '—'} • Sec {student.section || '—'}
                         </span>
                       </td>
 
@@ -411,16 +463,29 @@ export default function ManageStudents() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEditModal(student)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            aria-label={`Edit ${student.name}`}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition-colors cursor-pointer"
                             title="Edit Student Record"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
 
+                          {isAdmin && (
+                            <button
+                              onClick={() => askToggle(student)}
+                              aria-label={`${inactive ? 'Reactivate' : 'Deactivate'} ${student.name}`}
+                              title={inactive ? 'Reactivate' : 'Deactivate'}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${inactive ? 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-600' : 'text-slate-400 hover:bg-amber-50 hover:text-amber-600'}`}
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          )}
+
                           {isAdmin ? (
                             <button
                               onClick={() => setDeleteConfirmStudent(student)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              aria-label={`Delete ${student.name}`}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                               title="Delete Student Record (Admin Only)"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -442,6 +507,17 @@ export default function ManageStudents() {
             </tbody>
           </table>
         </div>
+        {scopedStudents.length > shownCount && (
+          <div className="border-t border-slate-100 p-3 text-center">
+            <button
+              type="button"
+              onClick={() => setShownCount(n => n + PAGE_SIZE)}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              Show {Math.min(PAGE_SIZE, scopedStudents.length - shownCount)} more
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Student Modal */}
@@ -559,9 +635,7 @@ export default function ManageStudents() {
                 onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               >
-                <option value="A">Section A</option>
-                <option value="B">Section B</option>
-                <option value="C">Section C</option>
+                {sectionOptions.map(sec => <option key={sec} value={sec}>Section {sec}</option>)}
               </select>
             </div>
           </div>
@@ -600,8 +674,14 @@ export default function ManageStudents() {
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
+          {deleteBlockers.length > 0 && (
+            <div role="alert" className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+              <p className="font-bold">This student can't be deleted.</p>
+              <p>They have {deleteBlockers.join(', ')}. Deleting would erase them. Deactivate the student instead: they can't sign in, and their records are kept.</p>
+            </div>
+          )}
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
-            <p className="font-bold text-rose-900">Are you sure you want to delete this record?</p>
+            <p className="font-bold text-rose-900">{deleteBlockers.length ? 'Student' : 'Are you sure you want to delete this record?'}</p>
             <p><strong>Student:</strong> {deleteConfirmStudent?.name}</p>
             <p><strong>USN:</strong> {deleteConfirmStudent?.usn || deleteConfirmStudent?.roll_no}</p>
             <p><strong>Email:</strong> {deleteConfirmStudent?.email}</p>
@@ -614,23 +694,39 @@ export default function ManageStudents() {
             >
               Cancel
             </button>
-            <button
-              onClick={handleDeleteConfirm}
-              className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Confirm Permanent Delete</span>
-            </button>
+            {deleteBlockers.length ? (
+              deleteConfirmStudent?.status !== 'inactive' && (
+                <button
+                  onClick={() => {
+                    const student = deleteConfirmStudent;
+                    setDeleteConfirmStudent(null);
+                    askToggle(student);
+                  }}
+                  className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>Deactivate instead</span>
+                </button>
+              )
+            ) : (
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirm Permanent Delete</span>
+              </button>
+            )}
           </div>
         </div>
       </Modal>
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
       <StudentImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         allowedDepartments={scopeDepartments}
         onImported={(count) => {
-          setSuccessToast(`Imported ${count} student${count === 1 ? '' : 's'} successfully.`);
-          setTimeout(() => setSuccessToast(''), 4000);
+          showToast(`Imported ${count} student${count === 1 ? '' : 's'} successfully.`);
         }}
       />
     </div>

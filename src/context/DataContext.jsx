@@ -669,7 +669,7 @@ export function DataProvider({ children }) {
     }
 
     const existingEmail = data.users.find(
-      u => u.email.toLowerCase() === studentData.email.trim().toLowerCase()
+      u => u.email?.toLowerCase() === studentData.email.trim().toLowerCase()
     );
     if (existingEmail) {
       throw new Error(`A user with email "${studentData.email}" already exists.`);
@@ -985,7 +985,7 @@ export function DataProvider({ children }) {
 
     if (updateFields.email) {
       const duplicateEmail = data.users.find(
-        u => u.id !== studentId && u.email.toLowerCase() === updateFields.email.trim().toLowerCase()
+        u => u.id !== studentId && u.email?.toLowerCase() === updateFields.email.trim().toLowerCase()
       );
       if (duplicateEmail) {
         throw new Error(`Email "${updateFields.email}" is already used by another user.`);
@@ -1400,6 +1400,25 @@ export function DataProvider({ children }) {
   };
 
   // 15. Exam Timetable Management (Admin: all depts; Faculty: own dept only, no delete; Student: read-only)
+  // An exam can't share a room, or its class (department + semester), with another exam
+  // whose time overlaps on the same day.
+  const examClash = (exam, excludeId) => {
+    const others = (data.exam_timetables || []).filter(e =>
+      e.id !== excludeId && e.exam_date === exam.exam_date &&
+      e.start_time < exam.end_time && exam.start_time < e.end_time);
+    for (const other of others) {
+      const shared = (other.room_ids || []).filter(id => (exam.room_ids || []).includes(id));
+      if (shared.length) {
+        const room = (data.exam_rooms || []).find(r => r.id === shared[0]);
+        return `${room?.name || 'A selected room'} is already booked for ${other.subject} (${formatTimeRange(other.start_time, other.end_time)}) on that day.`;
+      }
+      if (other.department_id === exam.department_id && Number(other.semester) === Number(exam.semester)) {
+        return `This class already has ${other.subject} on that day (${formatTimeRange(other.start_time, other.end_time)}).`;
+      }
+    }
+    return null;
+  };
+
   const createExamTimetable = (examData, authorId, actorRole, actorDeptId) => {
     if (actorRole === 'faculty' && actorDeptId && examData.department_id !== actorDeptId) {
       throw new Error('Permission Denied: Faculty can only schedule exams for their own department.');
@@ -1417,6 +1436,9 @@ export function DataProvider({ children }) {
     if (!examData.department_id) {
       throw new Error('Department is required.');
     }
+
+    const clash = examClash({ ...examData, semester: parseInt(examData.semester, 10) || 5 });
+    if (clash) throw new Error(clash);
 
     const now = new Date().toISOString();
     const newId = examData.id || `exam_${Date.now()}`;
@@ -1441,7 +1463,8 @@ export function DataProvider({ children }) {
     setData(prev => {
       const newNotifs = [...prev.notifications];
       const targetStudents = (prev.users || []).filter(
-        u => u.role === 'student' && u.department_id === newExam.department_id && u.semester === newExam.semester
+        u => u.role === 'student' && u.status !== 'inactive' && u.department_id === newExam.department_id &&
+          Number(u.semester) === Number(newExam.semester)
       );
 
       targetStudents.forEach(st => {
@@ -1477,19 +1500,47 @@ export function DataProvider({ children }) {
       }
     }
 
+    const merged = { ...existing, ...updateFields };
+    const clash = examClash(merged, timetableId);
+    if (clash) throw new Error(clash);
+
+    // Students only hear about it when something they'd act on changed.
+    const moved = ['exam_date', 'start_time', 'end_time'].some(k => merged[k] !== existing[k]) ||
+      (merged.room_ids || []).join() !== (existing.room_ids || []).join();
+
     const now = new Date().toISOString();
-    setData(prev => ({
-      ...prev,
-      exam_timetables: (prev.exam_timetables || []).map(e => {
-        if (e.id !== timetableId) return e;
-        return {
-          ...e,
-          ...updateFields,
-          updated_by: editorId || currentProfileId,
-          updated_at: now
-        };
-      })
-    }));
+    setData(prev => {
+      const notices = moved
+        ? (prev.users || [])
+            .filter(u => u.role === 'student' && u.status !== 'inactive' && u.department_id === merged.department_id &&
+              Number(u.semester) === Number(merged.semester))
+            .map(st => addNotification({
+              user_id: st.id,
+              type: 'exam_scheduled',
+              reference_id: timetableId,
+              title: `Exam changed: ${merged.subject}`,
+              message: `Now on ${merged.exam_date} (${formatTimeRange(merged.start_time, merged.end_time)}). Rooms: ${(merged.rooms || []).join(', ') || 'TBD'}.`
+            }))
+        : [];
+      return {
+        ...prev,
+        exam_timetables: (prev.exam_timetables || []).map(e => {
+          if (e.id !== timetableId) return e;
+          return {
+            ...e,
+            ...updateFields,
+            updated_by: editorId || currentProfileId,
+            updated_at: now
+          };
+        }),
+        notifications: [...notices, ...prev.notifications]
+      };
+    });
+    const notified = moved
+      ? (data.users || []).filter(u => u.role === 'student' && u.status !== 'inactive' &&
+          u.department_id === merged.department_id && Number(u.semester) === Number(merged.semester)).length
+      : 0;
+    return { notified };
   };
 
   const deleteExamTimetable = (timetableId, actorRole) => {
