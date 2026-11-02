@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { useSectionBackdrop } from './Backdrop'
+import AskCampusnex from './AskCampusnex'
 import CollegeDay from './CollegeDay'
 import FeatureBento from './FeatureBento'
 import TrustSection from './TrustSection'
@@ -48,6 +49,10 @@ export default function BelowFold({ onSignIn }) {
         <div className="mt-12">
           <FeatureBento />
         </div>
+      </Section>
+
+      <Section id="ai" theme="night" className="border-t border-white/10">
+        <AskCampusnex />
       </Section>
 
       <Section id="security" theme="dusk" className="border-t border-white/10">
