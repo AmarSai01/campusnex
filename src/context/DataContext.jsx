@@ -5,7 +5,7 @@ import { missingEnrollments, replaceCourseEnrollments, studentMatchesCourse } fr
 import { gpa } from '../utils/results';
 import { formatTimeRange } from '../utils/time';
 import { eventAppliesTo } from '../utils/calendarScope';
-import { calendarAppliesTo } from '../utils/semesterCalendar';
+import { calendarAppliesTo, describeDateChanges } from '../utils/semesterCalendar';
 import { courseDeleteBlockers } from '../utils/courses';
 import {
   addExtraClass,
@@ -812,6 +812,7 @@ export function DataProvider({ children }) {
   };
 
   // Semester calendars: one circular with many dated rows, published to its semesters at once.
+  const newSemesterCalendarId = () => `semcal_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const notifySemesterCalendar = (prevUsers, calendar) =>
     prevUsers
       .filter(u => (u.role === 'student' || u.role === 'faculty') && calendarAppliesTo(calendar, u))
@@ -823,13 +824,14 @@ export function DataProvider({ children }) {
         message: `The semester calendar for Sem ${calendar.semesters.join(', ')} is out: CIE tests, SEE dates and deadlines.`
       }));
 
-  const createSemesterCalendar = ({ title, ref_no, semesters, department_id, items }, publish) => {
+  // `id` can be chosen up front (see newSemesterCalendarId) so the official copy is uploaded first.
+  const createSemesterCalendar = ({ id: givenId, title, ref_no, semesters, department_id, items, attachment_url, attachment_name }, publish) => {
     if (!title?.trim()) throw new Error('Give the calendar a title.');
     if (!semesters?.length) throw new Error('Pick at least one semester.');
     if (!items?.length) throw new Error('Paste at least one row with a date.');
 
     const now = new Date().toISOString();
-    const id = `semcal_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    const id = givenId || newSemesterCalendarId();
     const calendar = {
       id,
       title: title.trim(),
@@ -838,6 +840,8 @@ export function DataProvider({ children }) {
       department_id: department_id || null,
       status: publish ? 'published' : 'draft',
       published_at: publish ? now : null,
+      attachment_url: attachment_url || null,
+      attachment_name: attachment_name || null,
       created_by: currentProfileId,
       created_at: now,
       updated_at: now
@@ -877,12 +881,89 @@ export function DataProvider({ children }) {
     });
   };
 
+  // Save edits to a calendar and its rows. Rows keep their id when edited; new rows get one.
+  // If it's published and dates moved, everyone it applies to gets one "dates changed" notice.
+  const updateSemesterCalendar = (calendarId, { title, ref_no, semesters, department_id, items, attachment_url, attachment_name }) => {
+    if (!title?.trim()) throw new Error('Give the calendar a title.');
+    if (!semesters?.length) throw new Error('Pick at least one semester.');
+    if (!items?.length) throw new Error('Keep at least one row with a date.');
+    const existing = data.semester_calendars.find(c => c.id === calendarId);
+    if (!existing) throw new Error('This calendar no longer exists.');
+
+    const now = new Date().toISOString();
+    const calendar = {
+      ...existing,
+      title: title.trim(),
+      ref_no: ref_no?.trim() || null,
+      semesters: [...semesters].sort((a, b) => a - b),
+      department_id: department_id || null,
+      attachment_url: attachment_url || null,
+      attachment_name: attachment_name || null,
+      updated_at: now
+    };
+    const rows = items.map((item, i) => ({
+      id: item.id || `${calendarId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`,
+      calendar_id: calendarId,
+      activity: item.activity.trim(),
+      start_date: item.start_date,
+      end_date: item.end_date && item.end_date !== item.start_date ? item.end_date : null,
+      type: item.type,
+      sort_order: i
+    }));
+    const oldRows = data.semester_calendar_items.filter(r => r.calendar_id === calendarId);
+    const changes = existing.status === 'published' ? describeDateChanges(oldRows, rows) : null;
+
+    setData(prev => ({
+      ...prev,
+      semester_calendars: prev.semester_calendars.map(c => (c.id === calendarId ? calendar : c)),
+      semester_calendar_items: [
+        ...prev.semester_calendar_items.filter(r => r.calendar_id !== calendarId),
+        ...rows
+      ],
+      notifications: changes
+        ? [
+            ...prev.users
+              .filter(u => (u.role === 'student' || u.role === 'faculty') && calendarAppliesTo(calendar, u))
+              .map(u => addNotification({
+                user_id: u.id,
+                type: 'semester_calendar_changed',
+                reference_id: calendarId,
+                title: `${calendar.title}: ${changes.count} ${changes.count === 1 ? 'date' : 'dates'} changed`,
+                message: changes.summary
+              })),
+            ...prev.notifications
+          ]
+        : prev.notifications
+    }));
+    return { notified: Boolean(changes), changedCount: changes?.count || 0 };
+  };
+
+  // The official copy of a calendar circular (20261102000000_semester_calendar_files.sql).
+  const CALENDAR_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  const uploadCalendarFile = async (calendarId, file) => {
+    if (!CALENDAR_FILE_TYPES.includes(file.type)) throw new Error('Upload a PDF or a photo (JPG, PNG or WebP).');
+    if (file.size > 10 * 1024 * 1024) throw new Error('The file must be 10 MB or smaller.');
+    const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-120) || 'calendar';
+    const path = `${calendarId}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage.from('calendar-files').upload(path, file, { contentType: file.type });
+    if (error) throw new Error(`Could not upload the file: ${error.message}`);
+    return { attachment_url: `storage://calendar-files/${path}`, attachment_name: file.name };
+  };
+
+  // Best effort: a leftover file is harmless, so failures here are ignored.
+  const removeCalendarFile = async (attachmentUrl) => {
+    const path = attachmentUrl?.match(/^storage:\/\/calendar-files\/(.+)$/)?.[1];
+    if (path) await supabase.storage.from('calendar-files').remove([path]).catch(() => {});
+  };
+
   const deleteSemesterCalendar = (calendarId) => {
+    const calendar = data.semester_calendars.find(c => c.id === calendarId);
     setData(prev => ({
       ...prev,
       semester_calendars: prev.semester_calendars.filter(c => c.id !== calendarId),
       semester_calendar_items: prev.semester_calendar_items.filter(i => i.calendar_id !== calendarId)
     }));
+    if (calendar?.attachment_url) removeCalendarFile(calendar.attachment_url);
   };
 
   const updateStudent = (studentId, updateFields, editorId) => {
@@ -1735,7 +1816,7 @@ export function DataProvider({ children }) {
 
   // A link that opens a stored file: a signed link for files in our private buckets, or an
   // https link someone shared (a repository, say). Old placeholder links have no file.
-  const STORED_FILE = /^storage:\/\/(submissions|assignment-files)\/(.+)$/;
+  const STORED_FILE = /^storage:\/\/(submissions|assignment-files|calendar-files)\/(.+)$/;
   const getStoredFileLink = async (fileUrl) => {
     if (!fileUrl) return null;
     const stored = fileUrl.match(STORED_FILE);
@@ -1875,6 +1956,10 @@ export function DataProvider({ children }) {
         createSemesterCalendar,
         publishSemesterCalendar,
         deleteSemesterCalendar,
+        updateSemesterCalendar,
+        newSemesterCalendarId,
+        uploadCalendarFile,
+        removeCalendarFile,
         updateStudent,
         deleteStudent,
         createDepartment,

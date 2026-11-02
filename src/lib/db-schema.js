@@ -132,8 +132,8 @@ TABLES.push(
     key: 'semester_calendars',
     table: 'semester_calendars',
     columns: [
-      'id', 'title', 'ref_no', 'semesters', 'department_id', 'status', 'published_at', 'created_by',
-      'created_at', 'updated_at'
+      'id', 'title', 'ref_no', 'semesters', 'department_id', 'status', 'published_at', 'attachment_url',
+      'attachment_name', 'created_by', 'created_at', 'updated_at'
     ]
   },
   {

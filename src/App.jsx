@@ -174,7 +174,7 @@ function AppContent({ initialScreen = 'landing' }) {
       openTab('timetable')
     } else if (notif.type === 'calendar_event_added') {
       openTab('calendar')
-    } else if (notif.type === 'semester_calendar_published') {
+    } else if (notif.type === 'semester_calendar_published' || notif.type === 'semester_calendar_changed') {
       openTab('semester_calendar')
     } else if (
       notif.type === 'exam_scheduled' ||

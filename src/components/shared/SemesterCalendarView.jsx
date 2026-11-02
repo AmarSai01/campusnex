@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarRange, ChevronDown } from 'lucide-react';
+import { CalendarRange, ChevronDown, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import EmptyState from '../common/EmptyState';
@@ -232,6 +232,29 @@ function MonthGroups({ items, today, muted }) {
   ));
 }
 
+// Opens the signed link to the circular's PDF or photo.
+function OfficialCopyLink({ url }) {
+  const { getStoredFileLink } = useData();
+  const [error, setError] = React.useState('');
+  const open = async () => {
+    setError('');
+    try {
+      const link = await getStoredFileLink(url);
+      if (link) window.open(link, '_blank', 'noopener');
+    } catch {
+      setError('Could not open the file. Try again.');
+    }
+  };
+  return (
+    <p className="mt-1.5 text-xs">
+      <button type="button" onClick={open} className="inline-flex items-center gap-1 font-bold text-brand-700 hover:underline cursor-pointer">
+        <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Official copy
+      </button>
+      {error && <span role="alert" className="ml-2 text-rose-600">{error}</span>}
+    </p>
+  );
+}
+
 function CalendarSection({ calendar, items, department, today }) {
   const first = items[0]?.start_date;
   const last = items.reduce((max, i) => (endOf(i) > max ? endOf(i) : max), first || '');
@@ -254,6 +277,7 @@ function CalendarSection({ calendar, items, department, today }) {
               calendar.ref_no && `Ref ${calendar.ref_no}`
             ].filter(Boolean).join(' · ')}
           </p>
+          {calendar.attachment_url && <OfficialCopyLink url={calendar.attachment_url} />}
         </div>
         {first && (
           <span className="text-xs font-semibold text-slate-500 tabular-nums">{formatDateRange(first, last === first ? null : last)}</span>

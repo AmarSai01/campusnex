@@ -1,3 +1,5 @@
+import { parseCsv } from './studentImport';
+
 // Turns rows pasted from a semester calendar circular (PDF or Excel) into calendar items.
 
 export const SEMESTER_CALENDAR_TYPES = {
@@ -39,9 +41,11 @@ export function guessItemType(activity) {
 
 const DATE = String.raw`(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})`;
 
-// "17.02.2025" or "17/2/25" -> "2025-02-17"; null when it isn't a real date.
+// "17.02.2025", "17/2/25" or "2025-02-17" -> "2025-02-17"; null when it isn't a real date.
 export function parseDate(text) {
-  const m = String(text).trim().match(new RegExp(`^${DATE}$`));
+  const value = String(text).trim();
+  const iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const m = iso ? [null, iso[3], iso[2], iso[1]] : value.match(new RegExp(`^${DATE}$`));
   if (!m) return null;
   const day = Number(m[1]);
   const month = Number(m[2]);
@@ -103,4 +107,101 @@ export function calendarAppliesTo(calendar, user) {
   if (calendar.department_id && user.department_id !== calendar.department_id) return false;
   if (user.role === 'student') return (calendar.semesters || []).includes(Number(user.semester));
   return user.role === 'faculty';
+}
+
+// ── CSV import: Activity, Start date, End date (optional), Type (optional) ──
+
+export const SEMESTER_CALENDAR_CSV_COLUMNS = ['ACTIVITY', 'START DATE', 'END DATE', 'TYPE'];
+export const semesterCalendarTemplateCsv = () => [
+  'ACTIVITY,START DATE,END DATE,TYPE',
+  'Commencement of Even Semester,17.02.2025,,Milestone',
+  'First CIE Test,24.03.2025,27.03.2025,CIE test',
+  'SEE Theory Examination,19.06.2025,19.07.2025,SEE exam',
+  ''
+].join('\r\n');
+
+const CSV_HEADERS = {
+  activity: ['ACTIVITY', 'ACTIVITIES', 'EVENT', 'DESCRIPTION', 'PARTICULARS'],
+  start: ['START', 'STARTDATE', 'FROM', 'DATE', 'FROMDATE'],
+  end: ['END', 'ENDDATE', 'TO', 'TODATE'],
+  type: ['TYPE', 'CATEGORY', 'KIND']
+};
+const normHeader = (h) => h.toUpperCase().replace(/[\s_.-]/g, '');
+const typeFromLabel = (label, activity) => {
+  const v = String(label || '').trim().toLowerCase();
+  if (!v) return guessItemType(activity);
+  const found = Object.entries(SEMESTER_CALENDAR_TYPES).find(([key, text]) => key === v || text.toLowerCase() === v);
+  return found ? found[0] : guessItemType(activity);
+};
+
+// Rows from a CSV file. A row's single "Date" cell may also hold a range ("24.03.2025 to 27.03.2025").
+export function parseSemesterCalendarCsv(text) {
+  const rows = parseCsv(text);
+  if (!rows.length) return { items: [], skipped: [], error: 'The file is empty.' };
+  const header = rows[0].map(normHeader);
+  const hasHeader = header.some(h => Object.values(CSV_HEADERS).flat().includes(h));
+  const idx = { activity: 0, start: 1, end: 2, type: 3 };
+  if (hasHeader) {
+    for (const key of Object.keys(idx)) {
+      const i = header.findIndex(h => CSV_HEADERS[key].includes(h));
+      idx[key] = i;
+    }
+    if (idx.activity < 0 || idx.start < 0) {
+      return { items: [], skipped: [], error: 'The file needs ACTIVITY and START DATE columns. Download the template to see the layout.' };
+    }
+  }
+
+  const items = [];
+  const skipped = [];
+  (hasHeader ? rows.slice(1) : rows).forEach(r => {
+    const cell = (i) => (i >= 0 ? String(r[i] ?? '').trim() : '');
+    const activity = cell(idx.activity);
+    let startText = cell(idx.start);
+    let endText = cell(idx.end);
+    // "24.03.2025 to 27.03.2025" or "24.03.2025 - 27.03.2025"; a dash needs spaces so an
+    // ISO date like 2025-05-23 isn't split.
+    const range = startText.match(/^(.+?)(?:\s*\bto\b\s*|\s+[-–—]\s+)(\d.+)$/i);
+    if (range && !endText) {
+      startText = range[1];
+      endText = range[2];
+    }
+    const start = parseDate(startText);
+    const end = endText ? parseDate(endText) : null;
+    if (!activity || !start || (endText && !end) || (end && end < start)) {
+      skipped.push(r.join(', '));
+      return;
+    }
+    items.push({
+      activity,
+      start_date: start,
+      end_date: end && end !== start ? end : null,
+      type: typeFromLabel(cell(idx.type), activity)
+    });
+  });
+  return { items, skipped };
+}
+
+// ── What changed between two versions of a published calendar ──
+
+// Returns { count, summary } for moved, added and removed dates, or null if no date changed.
+export function describeDateChanges(oldRows, newRows) {
+  const oldById = new Map(oldRows.map(r => [r.id, r]));
+  const newIds = new Set(newRows.map(r => r.id));
+  const lines = [];
+  for (const row of newRows) {
+    const old = oldById.get(row.id);
+    if (!old) lines.push(`Added: ${row.activity}, ${formatDateRange(row.start_date, row.end_date)}`);
+    else if (old.start_date !== row.start_date || (old.end_date || null) !== (row.end_date || null)) {
+      lines.push(`${row.activity} moved to ${formatDateRange(row.start_date, row.end_date)} (was ${formatDateRange(old.start_date, old.end_date)})`);
+    }
+  }
+  for (const old of oldRows) {
+    if (!newIds.has(old.id)) lines.push(`Removed: ${old.activity}`);
+  }
+  if (!lines.length) return null;
+  const shown = lines.slice(0, 3).join('. ');
+  return {
+    count: lines.length,
+    summary: lines.length > 3 ? `${shown}. And ${lines.length - 3} more.` : `${shown}.`
+  };
 }
