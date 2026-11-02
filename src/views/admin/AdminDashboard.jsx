@@ -13,6 +13,7 @@ import ResultsManager from '../../components/admin/ResultsManager';
 import RequestsInbox from '../../components/shared/RequestsInbox';
 import FeedbackResults from '../../components/shared/FeedbackResults';
 import SemesterCalendarManager from '../../components/admin/SemesterCalendarManager';
+import ActivityLog from '../../components/admin/ActivityLog';
 import PilotRequests from '../../components/admin/PilotRequests';
 
 export default function AdminDashboard({ activeTab = 'overview', setActiveTab }) {
@@ -40,6 +41,8 @@ export default function AdminDashboard({ activeTab = 'overview', setActiveTab })
         return <CalendarManager />;
       case 'semester_calendar':
         return <SemesterCalendarManager />;
+      case 'activity':
+        return <ActivityLog />;
       case 'announcements':
         return <BroadcastModal />;
       case 'requests':

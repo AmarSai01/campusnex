@@ -116,6 +116,7 @@ function AppContent({ initialScreen = 'landing' }) {
       exam_seating: 'Exam Timetable & Seating Arrangement',
       calendar: 'Institutional Calendar & Events',
       semester_calendar: 'Semester Calendar',
+      activity: 'Activity Log',
       announcements: 'Campus Broadcasts & Circulars',
       attendance: 'Attendance Management',
       iamarks: 'Internal Assessment (IA) Marks',
