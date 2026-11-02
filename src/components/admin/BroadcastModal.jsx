@@ -3,9 +3,6 @@ import {
   Megaphone,
   Plus,
   Send,
-  Bell,
-  Globe,
-  Building,
   Radio,
   CheckCircle2
 } from 'lucide-react';
@@ -106,10 +103,10 @@ export default function BroadcastModal() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-brand-600" />
-            Institutional Broadcasts & Circulars
+            Global Broadcasts
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Publish official announcements and push urgent real-time notification alerts.
+            Send announcements to the whole college, a department or a class. Urgent ones also go out as notifications.
           </p>
         </div>
 

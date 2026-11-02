@@ -19,18 +19,15 @@ export default function AttendanceRingChart({
 
   // Red below the SEE minimum, amber in the warning band just above it.
   let strokeColor = '#10b981'; // emerald-500
-  let bgColor = 'text-emerald-50';
   let badgeColor = 'text-emerald-700 bg-emerald-100';
 
   if (empty) {
     badgeColor = 'text-slate-600 bg-slate-100';
   } else if (clamped < RISK_RULES.attendance.shortage) {
     strokeColor = '#f43f5e'; // rose-500
-    bgColor = 'text-rose-50';
     badgeColor = 'text-rose-700 bg-rose-100';
   } else if (clamped < RISK_RULES.attendance.warning) {
     strokeColor = '#f59e0b'; // amber-500
-    bgColor = 'text-amber-50';
     badgeColor = 'text-amber-700 bg-amber-100';
   }
 

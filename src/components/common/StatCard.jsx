@@ -8,6 +8,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
+const BADGE_TONES = {
+  primary: 'bg-brand-50 text-brand-700',
+  success: 'bg-emerald-50 text-emerald-700',
+  warning: 'bg-amber-50 text-amber-800',
+  danger: 'bg-rose-50 text-rose-700',
+}
 import { cn } from '@/lib/utils'
 
 export default function StatCard({
@@ -50,7 +57,7 @@ export default function StatCard({
             {value}
           </CardTitle>
           {badgeText && (
-            <Badge variant="secondary" className="rounded-full text-xs font-semibold">
+            <Badge variant="secondary" className={cn('rounded-full text-xs font-semibold', BADGE_TONES[badgeVariant])}>
               {badgeText}
             </Badge>
           )}

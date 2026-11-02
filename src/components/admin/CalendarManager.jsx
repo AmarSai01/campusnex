@@ -3,9 +3,6 @@ import {
   CalendarDays,
   Plus,
   Trash2,
-  Calendar,
-  Sparkles,
-  AlertCircle,
   Tag
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
@@ -133,10 +130,10 @@ export default function CalendarManager() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-brand-600" />
-            Institutional Academic Calendar
+            Academic Calendar
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Maintain term dates, holiday declarations, examination cycles, and compensatory working days.
+            Holidays, events and working days, for everyone or for one department, semester or section.
           </p>
         </div>
 

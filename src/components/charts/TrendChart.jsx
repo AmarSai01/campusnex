@@ -15,7 +15,6 @@ export default function TrendChart({
   yKey = 'score',
   yMax = 100,
   strokeColor = '#6366f1',
-  fillColor = '#e0e7ff',
   height = 200,
   unit = ''
 }) {

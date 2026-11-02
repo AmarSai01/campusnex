@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import {
   CheckSquare,
-  Filter,
-  Calendar,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
-  Clock,
-  Info,
-  Layers
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -37,7 +32,6 @@ export default function AttendanceOverview() {
   const totalClasses = myAttendance.length;
   const presentCount = myAttendance.filter(a => a.status === 'present').length;
   const lateCount = myAttendance.filter(a => a.status === 'late').length;
-  const absentCount = myAttendance.filter(a => a.status === 'absent').length;
 
   // null until a class is marked, so an empty record never reads as 100%.
   const overallRate = totalClasses > 0

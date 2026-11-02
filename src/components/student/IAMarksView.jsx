@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import {
   Award,
-  TrendingUp,
-  BookOpen,
-  Calendar,
-  CheckCircle2,
-  Lock,
-  Sparkles,
-  BarChart2
+  TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';

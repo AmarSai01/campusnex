@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Calendar, Building, Sparkles, User } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';

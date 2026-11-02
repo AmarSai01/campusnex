@@ -5,13 +5,10 @@ import {
   Edit2,
   Trash2,
   Search,
-  BookOpen,
   Users,
   Briefcase,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
-  ShieldAlert,
   MapPin
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
@@ -156,10 +153,10 @@ export default function DepartmentManagement() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-brand-600" />
-            Academic Departments Directory
+            Manage Departments
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Manage institutional departments, program codes, and faculty leadership assignments.
+            Departments, their codes, HODs and office rooms.
           </p>
         </div>
 

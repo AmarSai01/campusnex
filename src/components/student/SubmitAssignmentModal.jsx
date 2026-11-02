@@ -3,8 +3,6 @@ import {
   UploadCloud,
   FileText,
   CheckCircle2,
-  AlertCircle,
-  Sparkles,
   Link2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -73,7 +71,7 @@ export default function SubmitAssignmentModal({
           spread: 70,
           origin: { y: 0.6 }
         });
-      } catch (err) {
+      } catch {
         // Safe fallback if canvas not available
       }
 

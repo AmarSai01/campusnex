@@ -256,7 +256,7 @@ export default function ManageStudents() {
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-brand-600" />
-              Student Directory & USN Roster
+              Manage Students
             </h2>
             {isHodView && (
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
@@ -267,7 +267,7 @@ export default function ManageStudents() {
           </div>
           <p className="text-xs text-slate-500 mt-1">
             {isAdmin
-              ? 'Institutional access: View, provision, edit, and delete student credentials across all university departments.'
+              ? 'Add, edit and deactivate students in every department. Delete is only for students added by mistake.'
               : `HOD access: add and edit students in ${hodDepartments.map(d => d.name).join(', ')}. Only administrators can delete students.`}
           </p>
         </div>

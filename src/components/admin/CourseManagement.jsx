@@ -3,12 +3,6 @@ import {
   BookOpen,
   Plus,
   Edit2,
-  Users,
-  Briefcase,
-  Layers,
-  GraduationCap,
-  Sparkles,
-  CheckCircle2,
   Search,
   UserPlus,
   Trash2,
@@ -277,7 +271,7 @@ export default function CourseManagement() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-brand-600" />
-            Curriculum & Faculty Course Mapping
+            Curriculum & Courses
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             Pick a department and semester to see and add its subjects.

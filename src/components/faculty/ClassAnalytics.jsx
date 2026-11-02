@@ -1,25 +1,21 @@
 import React from 'react';
 import {
   BookOpen,
-  Users,
   CheckSquare,
   Award,
   FileText,
-  Clock,
-  TrendingUp,
   ArrowRight,
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import StatCard from '../common/StatCard';
-import TrendChart from '../charts/TrendChart';
 import DistributionBarChart from '../charts/DistributionBarChart';
 import Badge from '../common/Badge';
 
 export default function ClassAnalytics({ onNavigateTab }) {
   const { currentUser } = useAuth();
-  const { courses, enrollments, attendance, ia_marks, assignments, submissions, users } = useData();
+  const { courses, enrollments, attendance, ia_marks, assignments, submissions } = useData();
 
   // Scoped strictly to current faculty's assigned courses
   const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);

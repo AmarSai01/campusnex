@@ -3,18 +3,9 @@ import {
   Users,
   UserPlus,
   Search,
-  Filter,
-  MoreVertical,
-  CheckCircle2,
-  XCircle,
-  GraduationCap,
-  Briefcase,
-  ShieldAlert,
   Edit2,
   Power,
-  Mail,
-  Building,
-  Phone
+  Mail
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -201,10 +192,10 @@ export default function UserManagement() {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Users className="w-5 h-5 text-brand-600" />
-            Institutional User Management
+            User Directory
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Provision, update, and manage student rosters, faculty credentials, and role privileges.
+            Everyone with a Campusnex account: students, faculty and admins, with their roles.
           </p>
         </div>
 

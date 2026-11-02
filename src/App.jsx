@@ -99,6 +99,22 @@ function AppContent({ initialScreen = 'landing' }) {
   }
 
   const getTabTitle = () => {
+    // Admins see the same name in the top bar as in the sidebar.
+    const adminTitles = {
+      students: 'Manage Students',
+      faculty: 'Manage Faculty',
+      departments: 'Manage Departments',
+      users: 'User Directory',
+      courses: 'Curriculum & Courses',
+      timetable: 'Timetable Builder',
+      exam_seating: 'Exam Timetable & Seating',
+      calendar: 'Academic Calendar',
+      announcements: 'Global Broadcasts',
+      requests: 'Student Requests',
+      feedback_results: 'Course Feedback',
+      pilot_requests: 'Pilot Requests'
+    }
+    if (currentUser.role === 'admin' && adminTitles[tab]) return adminTitles[tab]
     const titles = {
       overview:
         currentUser.role === 'admin'

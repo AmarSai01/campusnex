@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import {
   Megaphone,
   Plus,
-  Send,
-  BookOpen,
-  Building,
-  Sparkles
+  Send
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -17,7 +14,6 @@ export default function CourseAnnouncementModal() {
   const { courses, announcements, createAnnouncement } = useData();
 
   const myCourses = courses.filter(c => c.faculty_id === currentUser?.id);
-  const myCourseIds = myCourses.map(c => c.id);
   const headedDeptIds = hodDepartments.map(d => d.id);
 
   // Audience is "course:<id>" for a class notice or "dept:<id>" for an HOD department notice.

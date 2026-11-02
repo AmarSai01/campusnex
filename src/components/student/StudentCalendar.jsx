@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import {
   CalendarDays,
-  Calendar as CalendarIcon,
   ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Tag,
-  AlertCircle
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';

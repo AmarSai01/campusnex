@@ -3,10 +3,7 @@ import {
   Contact,
   Mail,
   MapPin,
-  Phone,
-  BookOpen,
-  Building,
-  GraduationCap
+  Phone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';

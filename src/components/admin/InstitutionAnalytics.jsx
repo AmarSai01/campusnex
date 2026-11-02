@@ -1,20 +1,16 @@
 import React from 'react';
 import {
-  Users,
   GraduationCap,
   Briefcase,
-  BookOpen,
   CheckSquare,
   TrendingUp,
   AlertTriangle,
   Award,
-  Building2,
   CheckCircle2
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import StatCard from '../common/StatCard';
 import AttendanceRingChart from '../charts/AttendanceRingChart';
-import TrendChart from '../charts/TrendChart';
 import DistributionBarChart from '../charts/DistributionBarChart';
 import Badge from '../common/Badge';
 import { RISK_RULES } from '../../utils/risk';
@@ -22,7 +18,7 @@ import { RISK_RULES } from '../../utils/risk';
 const MIN_ATTENDANCE = RISK_RULES.attendance.shortage;
 
 export default function InstitutionAnalytics({ onNavigateTab }) {
-  const { users, courses, attendance, ia_marks, departments, assignments, submissions } = useData();
+  const { users, courses, attendance, ia_marks, departments } = useData();
 
   const students = users.filter(u => u.role === 'student' && u.status === 'active');
   const faculty = users.filter(u => u.role === 'faculty' && u.status === 'active');

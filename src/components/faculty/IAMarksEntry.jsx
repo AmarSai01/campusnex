@@ -4,15 +4,10 @@ import {
   Save,
   CheckCircle2,
   Eye,
-  EyeOff,
-  Sparkles,
-  Layers,
-  CheckCheck,
-  TrendingUp
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import Badge from '../common/Badge';
 
 export default function IAMarksEntry() {
   const { currentUser } = useAuth();
@@ -250,7 +245,7 @@ export default function IAMarksEntry() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {marksRoster.map((item, idx) => {
+              {marksRoster.map((item) => {
                 const pct = item.score === '' ? null : Math.round((item.score / maxScore) * 100);
                 return (
                   <tr key={item.student_id} className="hover:bg-slate-50/60 transition-colors">

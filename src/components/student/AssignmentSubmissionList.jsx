@@ -3,13 +3,7 @@ import {
   FileText,
   Clock,
   CheckCircle2,
-  AlertCircle,
-  Download,
-  Upload,
-  Calendar,
-  Award,
-  MessageSquare,
-  Sparkles
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';

@@ -5,7 +5,6 @@ import {
   Award,
   FileText,
   Clock,
-  Calendar,
   AlertTriangle,
   Sparkles,
   ArrowRight,
@@ -16,7 +15,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import StatCard from '../common/StatCard';
 import AttendanceRingChart from '../charts/AttendanceRingChart';
-import TrendChart from '../charts/TrendChart';
 import Badge from '../common/Badge';
 import { formatTime } from '../../utils/time';
 import { slotVisibleToStudent } from '../../utils/batches';

@@ -58,10 +58,10 @@ export default function ExamManagement({ initialTab = 'seating' }) {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Exam Timetable & Seating Arrangement
+            Exam Timetable & Seating
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Comprehensive examination hall scheduling, room capacity management, and automatic alternating seating plans.
+            Schedule exams, set up exam halls and generate seating plans.
           </p>
         </div>
 

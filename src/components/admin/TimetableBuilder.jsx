@@ -232,7 +232,7 @@ export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Clock className="w-5 h-5 text-brand-600" />
-            {isAdminMode ? 'Timetable Builder & Conflict Engine' : 'Edit Class Timetables'}
+            {isAdminMode ? 'Timetable Builder' : 'Edit Class Timetables'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {isAdminMode
@@ -345,7 +345,8 @@ export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
               <LabBatchesPanel deptId={deptId} semester={semester} section={section} classLabel={activeGroupLabel} />
             )}
 
-            {/* Day Filter */}
+            {/* Day Filter: only useful once the class has classes to filter */}
+            {groupSlots.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
               {['All', ...daysOfWeek].map((day) => (
                 <button
@@ -362,6 +363,7 @@ export default function TimetableBuilder({ onNavigateTab, mode = 'admin' }) {
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {!activeGroup && (
