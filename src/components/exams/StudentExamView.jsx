@@ -56,8 +56,13 @@ export default function StudentExamView() {
   // Match student's personal seat for each exam
   const examsWithSeats = myExams.map(exam => {
     // Look up personal seating record where student_id == currentUser.id
+    // Seats saved before each branch got its own exam id sit under the hall partner's exam
+    // in the same slot, so fall back to this student's seat at the same date and start time.
     const seatRecord = exam_seatings.find(
       s => s.exam_id === exam.id && s.student_id === currentUser?.id
+    ) || exam_seatings.find(
+      s => s.student_id === currentUser?.id && s.exam_date === exam.exam_date &&
+           String(s.start_time || '').slice(0, 5) === String(exam.start_time || '').slice(0, 5)
     );
 
     // If not found in explicit seatings, check if there's any seating plan with matching usn or student_id

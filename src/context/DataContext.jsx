@@ -100,6 +100,31 @@ async function persistChanges(prev, next) {
   }
 }
 
+// Two branches can share an exam hall while each writes its own paper in the same slot,
+// so a group's seats belong under its own department's exam for that date and start time.
+const findGroupExam = (exam, group, timetables) => {
+  if (!exam || !group?.department_id) return null;
+  const sameSem = (e) => !group.semester || !e.semester || Number(e.semester) === Number(group.semester);
+  if (exam.department_id === group.department_id && sameSem(exam)) return exam;
+  const startOf = (e) => String(e.start_time || '').slice(0, 5);
+  return timetables.find(e =>
+    e.department_id === group.department_id && sameSem(e) &&
+    e.exam_date === exam.exam_date && startOf(e) === startOf(exam)
+  ) || null;
+};
+
+// Every exam a seating plan wrote seats under. Older plans did not record each group's
+// exam, so it is looked up again from the timetable.
+const planExamIds = (plan, timetables) => {
+  const exam = timetables.find(e => e.id === plan.exam_id);
+  const ids = new Set([plan.exam_id]);
+  [plan.group1, plan.group2].forEach(group => {
+    const id = group?.exam_id || findGroupExam(exam, group, timetables)?.id;
+    if (id) ids.add(id);
+  });
+  return ids;
+};
+
 export function DataProvider({ children }) {
   const [data, setData] = useState(emptyData);
   const [auth, setAuth] = useState({ session: null, loading: true });
@@ -1540,12 +1565,20 @@ export function DataProvider({ children }) {
       throw new Error('Permission Denied: Only Administrators can delete exam timetables.');
     }
 
-    setData(prev => ({
-      ...prev,
-      exam_timetables: (prev.exam_timetables || []).filter(e => e.id !== timetableId),
-      exam_seating_plans: (prev.exam_seating_plans || []).filter(p => p.exam_id !== timetableId),
-      exam_seatings: (prev.exam_seatings || []).filter(s => s.exam_id !== timetableId)
-    }));
+    setData(prev => {
+      const timetables = prev.exam_timetables || [];
+      // A removed plan also takes the other branch's seats it wrote in that hall.
+      const removedPlans = (prev.exam_seating_plans || []).filter(p => p.exam_id === timetableId);
+      const coveredSeat = (s) => removedPlans.some(p =>
+        s.room_id === p.room_id && planExamIds(p, timetables).has(s.exam_id)
+      );
+      return {
+        ...prev,
+        exam_timetables: timetables.filter(e => e.id !== timetableId),
+        exam_seating_plans: (prev.exam_seating_plans || []).filter(p => p.exam_id !== timetableId),
+        exam_seatings: (prev.exam_seatings || []).filter(s => s.exam_id !== timetableId && !coveredSeat(s))
+      };
+    });
   };
 
   // 16. Exam Seating Arrangement Generation
@@ -1577,6 +1610,27 @@ export function DataProvider({ children }) {
     }
     const selectedRooms = (data.exam_rooms || []).filter(r => room_ids.includes(r.id));
     if (selectedRooms.length === 0) throw new Error('Selected room(s) not found.');
+
+    // Each group's seats go under its own branch's exam in this slot. When there is none,
+    // or faculty may not write to another department's exam, they stay under the selected exam.
+    const warnings = [];
+    const resolveGroupExam = (group) => {
+      if (!exam) return exam;
+      const own = findGroupExam(exam, group, data.exam_timetables || []);
+      const label = [group.branch, group.section].filter(Boolean).join('-') || 'Group';
+      if (!own) {
+        warnings.push(`No ${label} exam is scheduled on ${exam.exam_date} at ${exam.start_time}, so ${label} seats were saved under ${exam.subject} and those students will not see them. Schedule their exam for this slot, then generate again.`);
+        return exam;
+      }
+      if (own.id !== exam.id && actorRole === 'faculty' && own.department_id !== actorDeptId) {
+        warnings.push(`${label} seats were saved under ${exam.subject} because only their department or an admin can add seats to ${own.subject}. Ask an admin to generate this hall so ${label} students see their seats.`);
+        return exam;
+      }
+      return own;
+    };
+    const g1Exam = resolveGroupExam(group1);
+    const g2Exam = resolveGroupExam(group2);
+    const involvedExamIds = new Set([exam_id, g1Exam?.id, g2Exam?.id].filter(Boolean));
 
     const g1Students = (data.users || []).filter(
       u => u.role === 'student' &&
@@ -1675,14 +1729,16 @@ export function DataProvider({ children }) {
         };
         seats.push(seatRecord);
 
-        // Add to student-level exam_seatings
+        // Add to student-level exam_seatings, under the exam this student actually writes
+        const seatExam = (isGroup1 ? g1Exam : g2Exam) || exam;
+        const seatExamId = seatExam?.id || exam_id;
         newStudentSeatings.push({
-          id: `seat_${exam_id}_${room.id}_${seatNum}`,
+          id: `seat_${seatExamId}_${room.id}_${seatNum}`,
           student_id: studentObj.id,
           student_name: studentObj.name,
           usn: studentObj.usn,
-          exam_id: exam_id,
-          subject: exam ? exam.subject : 'Exam',
+          exam_id: seatExamId,
+          subject: seatExam ? seatExam.subject : 'Exam',
           room_id: room.id,
           room_name: room.name,
           seat_number: seatNum,
@@ -1692,9 +1748,9 @@ export function DataProvider({ children }) {
           branch: isGroup1 ? group1.branch : group2.branch,
           section: isGroup1 ? group1.section : group2.section,
           semester: isGroup1 ? group1.semester : group2.semester,
-          exam_date: exam ? exam.exam_date : '',
-          start_time: exam ? exam.start_time : '',
-          end_time: exam ? exam.end_time : '',
+          exam_date: seatExam ? seatExam.exam_date : '',
+          start_time: seatExam ? seatExam.start_time : '',
+          end_time: seatExam ? seatExam.end_time : '',
           created_by: authorId || currentProfileId,
           updated_by: authorId || currentProfileId,
           created_at: now,
@@ -1714,10 +1770,12 @@ export function DataProvider({ children }) {
         department_ids: [group1.department_id, group2.department_id],
         group1: {
           ...group1,
+          exam_id: g1Exam?.id || exam_id,
           allocated_count: g1Cap
         },
         group2: {
           ...group2,
+          exam_id: g2Exam?.id || exam_id,
           allocated_count: g2Cap
         },
         seats: seats,
@@ -1731,14 +1789,14 @@ export function DataProvider({ children }) {
     setData(prev => {
       const existingPlanRoomIds = new Set(selectedRooms.map(r => r.id));
       const filteredPlans = (prev.exam_seating_plans || []).filter(
-        p => !(p.exam_id === exam_id && existingPlanRoomIds.has(p.room_id))
+        p => !(involvedExamIds.has(p.exam_id) && existingPlanRoomIds.has(p.room_id))
       );
       const filteredSeatings = (prev.exam_seatings || []).filter(
-        s => !(s.exam_id === exam_id && existingPlanRoomIds.has(s.room_id))
+        s => !(involvedExamIds.has(s.exam_id) && existingPlanRoomIds.has(s.room_id))
       );
 
       const updatedTimetables = (prev.exam_timetables || []).map(e => {
-        if (e.id !== exam_id) return e;
+        if (!involvedExamIds.has(e.id)) return e;
         const mergedRoomIds = Array.from(new Set([...(e.room_ids || []), ...room_ids]));
         const mergedRoomNames = Array.from(new Set([...(e.rooms || []), ...assignedRoomNames]));
         return {
@@ -1756,7 +1814,7 @@ export function DataProvider({ children }) {
           newNotifs.unshift(addNotification({
             user_id: seat.student_id,
             type: 'seating_allocated',
-            reference_id: exam_id,
+            reference_id: seat.exam_id,
             title: `Exam Seating Allotment: ${seat.subject}`,
             message: `You are allotted Seat ${seat.seat_number} in Room ${seat.room_name} for your exam on ${seat.exam_date}.`
           }));
@@ -1772,7 +1830,7 @@ export function DataProvider({ children }) {
       };
     });
 
-    return newPlans;
+    return { plans: newPlans, warnings };
   };
 
   const deleteExamSeatingPlan = (planId, actorRole) => {
@@ -1783,13 +1841,17 @@ export function DataProvider({ children }) {
     const plan = (data.exam_seating_plans || []).find(p => p.id === planId);
     if (!plan) return;
 
-    setData(prev => ({
-      ...prev,
-      exam_seating_plans: (prev.exam_seating_plans || []).filter(p => p.id !== planId),
-      exam_seatings: (prev.exam_seatings || []).filter(
-        s => !(s.exam_id === plan.exam_id && s.room_id === plan.room_id)
-      )
-    }));
+    setData(prev => {
+      // Includes the seats written under the other branch's exam in this hall.
+      const examIds = planExamIds(plan, prev.exam_timetables || []);
+      return {
+        ...prev,
+        exam_seating_plans: (prev.exam_seating_plans || []).filter(p => p.id !== planId),
+        exam_seatings: (prev.exam_seatings || []).filter(
+          s => !(examIds.has(s.exam_id) && s.room_id === plan.room_id)
+        )
+      };
+    });
   };
 
   // Student self-service (supabase/migrations/20261019000600_student_self_service.sql).

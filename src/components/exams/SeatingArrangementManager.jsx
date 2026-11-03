@@ -66,6 +66,8 @@ export default function SeatingArrangementManager({ onNavigate }) {
 
   const [formError, setFormError] = useState('');
   const [successToast, setSuccessToast] = useState('');
+  // Groups whose seats could not go under their own exam; stays until dismissed.
+  const [seatingWarnings, setSeatingWarnings] = useState([]);
 
   // Selected seating plan
   const currentPlan =
@@ -159,7 +161,7 @@ export default function SeatingArrangementManager({ onNavigate }) {
       const dept1 = departments.find(d => d.id === formData.group1_dept);
       const dept2 = departments.find(d => d.id === formData.group2_dept);
 
-      const plans = generateExamSeatingPlan(
+      const { plans, warnings } = generateExamSeatingPlan(
         {
           exam_id: formData.exam_id,
           room_ids: formData.room_ids,
@@ -186,6 +188,7 @@ export default function SeatingArrangementManager({ onNavigate }) {
       }
 
       setIsGenerateModalOpen(false);
+      setSeatingWarnings(warnings);
       setSuccessToast(
         `Seating arrangement generated for ${formData.room_ids.length} room(s) with alternating branch placement!`
       );
@@ -239,6 +242,23 @@ export default function SeatingArrangementManager({ onNavigate }) {
           <button
             onClick={() => setSuccessToast('')}
             className="text-emerald-700 hover:text-emerald-900 text-xs font-bold"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {seatingWarnings.length > 0 && (
+        <div role="alert" className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl flex items-start justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-2 text-sm font-semibold">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              {seatingWarnings.map(w => <p key={w}>{w}</p>)}
+            </div>
+          </div>
+          <button
+            onClick={() => setSeatingWarnings([])}
+            className="text-amber-700 hover:text-amber-900 text-xs font-bold shrink-0"
           >
             Dismiss
           </button>
