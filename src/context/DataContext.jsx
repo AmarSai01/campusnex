@@ -26,14 +26,29 @@ const emptyData = () => Object.fromEntries(TABLES.map((t) => [t.key, []]));
 
 const toNumberOr = (value, fallback) => (value === '' || value === undefined ? fallback : Number(value));
 
+// Pages of one table requested at the same time, so big tables don't wait on one round trip
+// per page.
+const PARALLEL_PAGES = 6;
+
+// Reads a whole table in pages ordered by id. The first page also returns the row count, then
+// the remaining pages are fetched a few at a time.
 async function fetchTable(table) {
-  const rows = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase.from(table).select('*').range(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(`Could not load ${table}: ${error.message}`);
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) return rows;
+  const page = (from) => supabase.from(table).select('*').order('id').range(from, from + PAGE_SIZE - 1);
+  const first = await supabase.from(table).select('*', { count: 'exact' }).order('id').range(0, PAGE_SIZE - 1);
+  if (first.error) throw new Error(`Could not load ${table}: ${first.error.message}`);
+  const rows = [...first.data];
+  const total = first.count ?? first.data.length;
+
+  const starts = [];
+  for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) starts.push(from);
+  for (let i = 0; i < starts.length; i += PARALLEL_PAGES) {
+    const results = await Promise.all(starts.slice(i, i + PARALLEL_PAGES).map(page));
+    for (const { data, error } of results) {
+      if (error) throw new Error(`Could not load ${table}: ${error.message}`);
+      rows.push(...data);
+    }
   }
+  return rows;
 }
 
 async function fetchAll() {
