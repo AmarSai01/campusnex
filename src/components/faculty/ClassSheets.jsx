@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Download,
   Upload,
@@ -477,11 +478,11 @@ export default function ClassSheets() {
                   <button type="button" onClick={() => setRange(monthBounds(1))} className={buttonClass}>Next month</button>
                   <label className="inline-flex items-center gap-1.5">
                     From
-                    <input type="date" value={range.from} onChange={(e) => e.target.value && setRange(r => ({ ...r, from: e.target.value }))} className={inputClass} />
+                    <span className="w-40"><DatePicker value={range.from} aria-label="From" onChange={(from) => setRange(r => ({ ...r, from }))} /></span>
                   </label>
                   <label className="inline-flex items-center gap-1.5">
                     To
-                    <input type="date" value={range.to} min={range.from} onChange={(e) => e.target.value && setRange(r => ({ ...r, to: e.target.value }))} className={inputClass} />
+                    <span className="w-40"><DatePicker value={range.to} min={range.from} aria-label="To" onChange={(to) => setRange(r => ({ ...r, to }))} /></span>
                   </label>
                   <span className="text-slate-400">Dates come from your timetable; holidays are left out.</span>
                 </>

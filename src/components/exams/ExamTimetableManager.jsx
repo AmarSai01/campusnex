@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   CalendarDays,
   Clock,
@@ -554,11 +555,10 @@ export default function ExamTimetableManager() {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Exam Date <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={formData.exam_date}
-                onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                onChange={(exam_date) => setFormData({ ...formData, exam_date })}
+                className="bg-slate-50 px-3.5 font-bold"
                 required
               />
             </div>

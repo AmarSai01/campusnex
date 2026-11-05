@@ -6,6 +6,7 @@ import LandingPage from './views/landing/LandingPage'
 // The signed-in app (database, sign-in and dashboards) is a separate download. A visitor who
 // is not signed in sees the landing page straight away; the app loads when they press Sign in.
 const App = lazy(() => import('./App'))
+const CalendarDemo = lazy(() => import('./views/preview/CalendarDemo'))
 
 const params = new URLSearchParams(window.location.search)
 const OPENS_APP_DIRECTLY = MAY_HAVE_SESSION || params.has('preview')
@@ -22,6 +23,14 @@ const Spinner = () => (
 
 export default function Root() {
   const [start, setStart] = useState(OPENS_SIGN_IN ? 'login' : OPENS_APP_DIRECTLY ? 'landing' : null)
+
+  if (params.has('calendar-demo')) {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <CalendarDemo />
+      </Suspense>
+    )
+  }
 
   if (!start) {
     return (

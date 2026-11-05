@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   CalendarRange,
   Upload,
@@ -584,21 +585,22 @@ export default function SemesterCalendarManager() {
                             />
                           </td>
                           <td className="px-2 py-1.5">
-                            <input
-                              type="date"
+                            <DatePicker
                               value={row.start_date}
-                              onChange={(e) => updateRow(row.key, { start_date: e.target.value })}
+                              onChange={(date) => updateRow(row.key, { start_date: date })}
                               aria-label={`Start date for ${row.activity || `row ${i + 1}`}`}
-                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                              placeholder="Start"
+                              className="rounded-lg px-2 py-1"
                             />
                           </td>
                           <td className="px-2 py-1.5">
-                            <input
-                              type="date"
+                            <DatePicker
                               value={row.end_date}
-                              onChange={(e) => updateRow(row.key, { end_date: e.target.value })}
+                              min={row.start_date || undefined}
+                              onChange={(date) => updateRow(row.key, { end_date: date })}
                               aria-label={`End date for ${row.activity || `row ${i + 1}`}`}
-                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                              placeholder="End"
+                              className="rounded-lg px-2 py-1"
                             />
                           </td>
                           <td className="px-2 py-1.5">

@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { parseISODate, toISODate } from '@/components/ui/date-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Badge from '../common/Badge';
@@ -13,21 +11,10 @@ export default function StudentCalendar() {
   const { currentUser } = useAuth();
   const { calendar_events, departments } = useData();
 
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date('2026-08-01'));
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'month'
 
   // Only events that apply to this student's department, semester and section
   const relevantEvents = calendar_events.filter(e => eventAppliesTo(e, currentUser)).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const prevMonth = () => {
-    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
-  };
-
-  const monthName = currentMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   const getTypeBadge = (type) => {
     switch (type) {
@@ -123,66 +110,65 @@ export default function StudentCalendar() {
         </div>
       ) : (
         /* Month View */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-bold text-slate-900">{monthName}</h3>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={prevMonth}
-                className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={nextMonth}
-                className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-2">
-            <div>Sun</div>
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div>Sat</div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 31 }, (_, i) => {
-              const dayNum = i + 1;
-              const dateStr = `2026-08-${dayNum.toString().padStart(2, '0')}`;
-              const dayEvt = relevantEvents.find(e => e.date === dateStr);
-
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[70px] p-2 rounded-xl border flex flex-col justify-between text-left transition-all ${
-                    dayEvt
-                      ? dayEvt.type === 'holiday'
-                        ? 'bg-rose-50/60 border-rose-200'
-                        : dayEvt.type === 'exam'
-                        ? 'bg-purple-50/60 border-purple-200'
-                        : 'bg-sky-50/60 border-sky-200'
-                      : 'bg-slate-50/30 border-slate-100 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-xs font-bold text-slate-700">{dayNum}</span>
-                  {dayEvt && (
-                    <span className="text-[10px] font-extrabold line-clamp-1 text-slate-900 mt-1">
-                      {dayEvt.title}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <MonthView events={relevantEvents} getTypeBadge={getTypeBadge} />
       )}
+    </div>
+  );
+}
+
+function MonthView({ events, getTypeBadge }) {
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [day, setDay] = useState();
+
+  const dots = events.map((e) => ({ date: parseISODate(e.date), label: e.title }));
+  const monthKey = toISODate(month).slice(0, 7);
+  const dayKey = day ? toISODate(day) : null;
+  const shown = events.filter((e) => (dayKey ? e.date === dayKey : e.date.slice(0, 7) === monthKey));
+  const heading = day
+    ? day.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    : month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs md:flex-row">
+      <Calendar
+        className="shrink-0 self-start md:w-[300px]"
+        month={month}
+        onMonthChange={(m) => { setMonth(m); setDay(undefined); }}
+        selected={day}
+        onSelect={setDay}
+        events={dots}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-bold text-slate-900">{heading}</h3>
+          {day && (
+            <button type="button" onClick={() => setDay(undefined)} className="text-xs font-bold text-brand-600 hover:underline">
+              Show whole month
+            </button>
+          )}
+        </div>
+        {shown.length === 0 ? (
+          <p className="mt-3 text-xs text-slate-500">{day ? 'Nothing on this day.' : 'No events this month.'}</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {shown.map((evt) => (
+              <li key={evt.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-500">
+                    {parseISODate(evt.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-slate-900">{evt.title}</p>
+                  {evt.description && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{evt.description}</p>}
+                </div>
+                <div className="shrink-0">{getTypeBadge(evt.type)}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

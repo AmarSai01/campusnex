@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   CalendarDays,
   Plus,
@@ -257,12 +258,10 @@ export default function CalendarManager() {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Event Date *
               </label>
-              <input
-                type="date"
+              <DatePicker
                 required
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                onChange={(date) => setFormData({ ...formData, date })}
               />
             </div>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
 import {
   CalendarPlus,
@@ -622,7 +623,7 @@ function ExtraClassForm({ courses, date, minDate, onAdd, onCancel }) {
       </label>
       <label>
         <span className="mb-1 block text-xs font-bold text-slate-700">Date</span>
-        <input type="date" value={day} min={minDate} onChange={(e) => { setDay(e.target.value); setError(''); }} className={field} />
+        <DatePicker value={day} min={minDate} onChange={(d) => { setDay(d); setError(''); }} />
       </label>
       <label>
         <span className="mb-1 block text-xs font-bold text-slate-700">Starts</span>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { DateTimePicker } from '@/components/ui/date-picker';
 import {
   ArrowLeft,
   BellRing,
@@ -510,11 +511,9 @@ function CreateAssignmentModal({ courses, defaultCourseId, onClose, onPost }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-slate-700">Due date and time *</span>
-            <input
-              type="datetime-local"
+            <DateTimePicker
               value={form.due_date}
-              onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className={field}
+              onChange={(due_date) => setForm({ ...form, due_date })}
             />
             <span className="mt-1 block text-[11px] text-slate-500">Same for every ticked class. Late work is accepted and tagged Late.</span>
           </label>
