@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react'
 import { motion } from 'framer-motion'
-import { GraduationCap, Mail, MessageCircle, MessageCircleQuestion, Moon, Phone, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Check, GraduationCap, Mail, MessageCircle, MessageCircleQuestion, Moon, Phone, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
 import DataFacts from './DataFacts'
@@ -49,6 +49,7 @@ const ACCESS = [
 const ROLES = ['Admin', 'HOD', 'Faculty', 'Student']
 
 export function SecuritySection() {
+  const [col, setCol] = useState(null)
   return (
     <>
       <SectionHeading title="Four roles. Four sets of keys.">
@@ -72,13 +73,25 @@ export function SecuritySection() {
         ))}
       </div>
       <div className="mt-12 hidden overflow-x-auto rounded-2xl border border-white/10 bg-night-2/60 backdrop-blur-sm md:block">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm" onMouseLeave={() => setCol(null)}>
           <caption className="sr-only">What each role can see and change</caption>
+          {/* Column focus: the role under the pointer stays bright and the other three fade back. */}
           <thead>
             <tr className="border-b border-white/10">
               <td className="px-5 py-4" />
-              {ROLES.map((r) => (
-                <th key={r} scope="col" className="px-5 py-4 font-display text-base font-semibold text-white">{r}</th>
+              {ROLES.map((r, i) => (
+                <th
+                  key={r}
+                  scope="col"
+                  onMouseEnter={() => setCol(i)}
+                  className={cn(
+                    'px-5 py-4 font-display text-base font-semibold transition-[color,opacity] duration-300 motion-reduce:transition-none',
+                    col === i ? 'text-brand-300' : 'text-white',
+                    col !== null && col !== i && 'opacity-35',
+                  )}
+                >
+                  {r}
+                </th>
               ))}
             </tr>
           </thead>
@@ -87,7 +100,17 @@ export function SecuritySection() {
               <tr key={item} className="border-t border-white/5">
                 <th scope="row" className="px-5 py-3.5 font-medium text-white">{item}</th>
                 {cells.map((c, i) => (
-                  <td key={i} className={c === 'No' || c === 'No access' ? 'px-5 py-3.5 text-white/55' : 'px-5 py-3.5 text-mist'}>{c}</td>
+                  <td
+                    key={i}
+                    onMouseEnter={() => setCol(i)}
+                    className={cn(
+                      'px-5 py-3.5 transition-[color,opacity] duration-300 motion-reduce:transition-none',
+                      col === i ? 'text-white' : c === 'No' || c === 'No access' ? 'text-white/55' : 'text-mist',
+                      col !== null && col !== i && 'opacity-35',
+                    )}
+                  >
+                    {c}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -145,41 +168,53 @@ export function SetupSteps() {
 }
 
 export function Plans() {
+  const planCardFx = 'group-hover/plans:opacity-50 hover:!opacity-100 hover:-translate-y-1 hover:border-brand-500/60 motion-reduce:hover:translate-y-0'
   const requestPilot = useRequestPilot()
   return (
     <>
       <SectionHeading title="Pilot it in one department. Roll it out when you're convinced." center>
         Try Campusnex with a single department first, then bring in the rest of the institution.
       </SectionHeading>
-      <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-night-2/60 p-7 backdrop-blur-sm">
+      {/* Focus card: the plan under the pointer lifts with an orange edge and the other one fades back. */}
+      <div className="group/plans mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
+        <div className={cn('group relative rounded-2xl border border-white/10 bg-night-2/60 p-7 backdrop-blur-sm transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none', planCardFx)}>
           <h3 className="font-display text-2xl font-semibold text-white">Department pilot</h3>
           <p className="mt-2 text-sm text-mist">Start with one department. Try a demo for a few days, then we shape it around your college.</p>
-          <ul className="mt-6 space-y-2.5 text-sm text-white/85">
-            <li>Attendance, IA marks and assignments</li>
-            <li>Timetable with clash checks</li>
-            <li>HOD overview and risk alerts</li>
-            <li>CSV student import</li>
-          </ul>
-          <button type="button" onClick={() => requestPilot('pilot')} className="mt-8 inline-block cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <PlanList items={['Attendance, IA marks and assignments', 'Timetable with clash checks', 'HOD overview and risk alerts', 'CSV student import']} />
+          <button type="button" onClick={() => requestPilot('pilot')} className="group/btn mt-8 inline-flex items-center gap-1.5 cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
             Request a pilot
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
           </button>
         </div>
-        <div className="relative rounded-2xl border border-brand-500/60 bg-night-2/60 p-7 shadow-[0_0_60px_-20px_rgba(255,92,0,0.5)] backdrop-blur-sm">
+        <div className={cn('group relative rounded-2xl border border-brand-500/60 bg-night-2/60 p-7 shadow-[0_0_60px_-20px_rgba(255,92,0,0.5)] backdrop-blur-sm transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none', planCardFx)}>
           <h3 className="font-display text-2xl font-semibold text-white">Whole institution</h3>
           <p className="mt-2 text-sm text-mist">Every department, with exams, results and institution-wide reporting.</p>
-          <ul className="mt-6 space-y-2.5 text-sm text-white/85">
-            <li>Everything in the pilot, for all departments</li>
-            <li>Exam timetable, halls and seating plans</li>
-            <li>Semester results with SGPA and CGPA</li>
-            <li>Help moving your existing records</li>
-          </ul>
-          <button type="button" onClick={() => requestPilot('institution')} className="mt-8 inline-block cursor-pointer rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
+          <PlanList items={['Everything in the pilot, for all departments', 'Exam timetable, halls and seating plans', 'Semester results with SGPA and CGPA', 'Help moving your existing records']} />
+          <button type="button" onClick={() => requestPilot('institution')} className="group/btn mt-8 inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
             Talk to us
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
           </button>
         </div>
       </div>
     </>
+  )
+}
+
+// Plan features, each with a small orange tick.
+function PlanList({ items }) {
+  return (
+    <ul className="mt-6 space-y-2.5 text-sm text-white/85">
+      {items.map((item) => (
+        <li key={item} className="flex items-center gap-2.5">
+          <span
+            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-brand-500/50 text-brand-300"
+          >
+            <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+          </span>
+          {item}
+        </li>
+      ))}
+    </ul>
   )
 }
 

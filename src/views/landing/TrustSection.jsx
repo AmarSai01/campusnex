@@ -52,9 +52,23 @@ function Builder() {
   // Photo on the left, name and note on its right; stacked and centred on phones.
   const avatar = 'h-36 w-36 shrink-0 rounded-full ring-4 ring-white/10 sm:h-40 sm:w-40 xl:h-58 xl:w-58'
   return (
-    <div className="grid h-full items-center gap-6 rounded-[20px] border border-white/10 bg-night-2/60 p-6 text-center backdrop-blur-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8 sm:p-8 sm:text-left xl:gap-9 xl:p-10">
+    <div className={cn('group grid h-full items-center gap-6 rounded-[20px] border border-white/10 bg-night-2/60 p-6 text-center backdrop-blur-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8 sm:p-8 sm:text-left xl:gap-9 xl:p-10', 'transition-colors duration-500 hover:border-brand-500/40')}>
       {photo ? (
-        <img src={photo} alt="" className={cn(avatar, 'mx-auto object-cover')} />
+        // Hover: the photo lifts a little with a warm orange glow beneath it.
+        <span
+          className={cn(
+            'relative mx-auto block rounded-full',
+            'transition-[transform,box-shadow] duration-500 ease-out group-hover:-translate-y-1.5 group-hover:shadow-[0_24px_60px_-14px_rgba(255,92,0,0.6)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0',
+          )}
+        >
+          <span className={cn(avatar, 'block overflow-hidden')}>
+            <img
+              src={photo}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </span>
+        </span>
       ) : (
         <span className={cn(avatar, 'mx-auto flex items-center justify-center bg-white/10 text-mist')}>
           <UserRound className="h-10 w-10" aria-hidden="true" />
@@ -63,7 +77,11 @@ function Builder() {
       <div>
         <p className="font-display text-2xl font-semibold text-white sm:text-3xl xl:text-4xl">{name}</p>
         <p className="mt-1 text-sm text-mist sm:text-base xl:text-lg">{role}, {city}</p>
-        {note && <p className="mt-4 text-base leading-relaxed text-white/88 xl:mt-5 xl:text-[19px]">{note}</p>}
+        {note && (
+          <p className="mt-4 text-base leading-relaxed text-white/88 xl:mt-5 xl:text-[19px]">
+            {note}
+          </p>
+        )}
         {linkedin && (
           <a href={linkedin} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-300 hover:text-brand-200">
             <ExternalLink className="h-4 w-4" aria-hidden="true" /> LinkedIn profile

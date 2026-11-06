@@ -243,10 +243,20 @@ export default function AskCampusnex() {
         <DemoChat />
         <div className="grid gap-4 sm:grid-cols-2">
           {CAPABILITIES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-2xl border border-white/10 bg-night-2/60 p-5 backdrop-blur-sm">
-              <Icon className="h-5 w-5 text-brand-300" aria-hidden="true" />
-              <h3 className="mt-3 font-display text-base font-semibold text-white">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-mist">{body}</p>
+            // Hover: a soft orange fill rises from the bottom of the card and the icon turns solid orange.
+            <div
+              key={title}
+              className={cn(
+                'group relative overflow-hidden rounded-2xl border border-white/10 bg-night-2/60 p-5 backdrop-blur-sm transition-[border-color] duration-300 hover:border-brand-500/40',
+                'before:absolute before:inset-0 before:origin-bottom before:scale-y-0 before:bg-gradient-to-t before:from-brand-500/25 before:to-brand-500/0 before:transition-transform before:duration-500 before:ease-out before:content-[""] hover:before:scale-y-100',
+                'motion-reduce:transition-none motion-reduce:before:transition-none',
+              )}
+            >
+              <span className="relative flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-500/12 text-brand-300 transition-[background-color,color] duration-300 group-hover:bg-brand-500 group-hover:text-white motion-reduce:transition-none">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <h3 className="relative mt-3 font-display text-base font-semibold text-white">{title}</h3>
+              <p className="relative mt-1.5 text-sm leading-relaxed text-mist">{body}</p>
             </div>
           ))}
         </div>
