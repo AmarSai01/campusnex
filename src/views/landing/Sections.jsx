@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, BellRing, BookOpen, Check, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -350,6 +350,12 @@ const FOOTER_LINKS = [
 
 export function Footer({ onSignIn }) {
   const requestPilot = useRequestPilot()
+  // The footer loads after smooth scrolling first measured the page. A resize event makes it
+  // measure again, so scrolling and links reach the real end of the page.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => window.dispatchEvent(new Event('resize')))
+    return () => cancelAnimationFrame(frame)
+  }, [])
   const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
     <footer id="about" className="relative scroll-mt-20 overflow-hidden border-t border-white/10">

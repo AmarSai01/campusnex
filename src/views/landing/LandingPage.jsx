@@ -11,7 +11,6 @@ import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 // The hero loads first; everything below it comes as a separate file a moment later.
 const BelowFold = lazy(() => import('./BelowFold'))
 const Footer = lazy(() => import('./Sections').then((m) => ({ default: m.Footer })))
-const LastBench = lazy(() => import('./BelowFold').then((m) => ({ default: m.LastBench })))
 
 // Mount the lower sections once the browser is idle after the first paint, on the first
 // scroll or touch, or straight away when the link points into the page (#faq and so on).
@@ -234,7 +233,6 @@ function Page({ onSignIn }) {
         {showBelow && (
           <>
             <Footer onSignIn={onSignIn} />
-            <LastBench />
           </>
         )}
       </Suspense>

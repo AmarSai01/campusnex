@@ -12,8 +12,8 @@ const LINKS = [
   { id: 'features', label: 'Features', icon: LayoutGrid },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'faq', label: 'FAQ', icon: CircleHelp },
-  { id: 'about', label: 'About', icon: Info },
   { id: 'trust', label: 'The Last Bench', icon: PenLine },
+  { id: 'about', label: 'About', icon: Info },
 ]
 
 // Every section on the page, in order, and the nav link it belongs to. Sections without their
@@ -27,9 +27,9 @@ const PAGE_SECTIONS = [
   ['setup', null],
   ['plans', null],
   ['faq', 'faq'],
+  ['trust', 'trust'],
   ['tomorrow', null],
   ['about', 'about'],
-  ['trust', 'trust'],
 ]
 
 // The section whose top has passed a third of the way down the screen. The lower sections
