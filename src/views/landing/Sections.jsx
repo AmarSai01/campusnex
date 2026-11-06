@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Check, GraduationCap, Mail, MessageCircle, MessageCircleQuestion, Moon, Phone, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BellRing, BookOpen, Check, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
 import DataFacts from './DataFacts'
@@ -230,9 +230,16 @@ const FAQS = [
   ['Does it work on phones?', 'Yes. Campusnex runs in the browser on phones, tablets and laptops, so there is nothing to install. Students can check attendance, marks and their exam seat from their phone.'],
   ['Can one teacher be HOD of more than one department?', 'Yes. The admin picks a head for each department, and the same faculty member can head several. They see every department they head in one overview.'],
   ['Does it replace our LMS?', 'No. Campusnex runs academic operations: attendance, assessment, results, timetables, exams and communication. It sits alongside a learning management system used for course content.'],
+  ['Where is our data stored?', 'In India, in a Mumbai data centre. Every connection to Campusnex is encrypted, and the role rules run inside the database, so each person sees only their own part.'],
+  ['How does a pilot work?', 'We call you to understand your college. We set up a demo, and you use it for a few days. Then we take your inputs and build it the way your institution needs.'],
+  ['Can we get our data back if we stop?', 'Yes. Your college can ask for a copy of its data at any time. If you stop using Campusnex, we give you a copy and delete your data within 30 days.'],
 ]
 
+// One small icon per question, in FAQS order.
+const FAQ_ICONS = [UserCheck, BellRing, Upload, GraduationCap, Users, Lock, Smartphone, Network, BookOpen, MapPin, Rocket, Download]
+
 export function Faq() {
+  const [open, setOpen] = useState('')
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <div>
@@ -258,15 +265,44 @@ export function Faq() {
           </a>
         </div>
       </div>
-      <Accordion type="single" collapsible className="rounded-2xl border border-white/10 bg-night-2/60 px-5 backdrop-blur-sm">
-        {FAQS.map(([q, a], i) => (
-          <AccordionItem key={q} value={`faq-${i}`} className="border-white/10">
-            <AccordionTrigger className="text-left font-display text-base font-semibold text-white hover:no-underline cursor-pointer">
-              {q}
-            </AccordionTrigger>
-            <AccordionContent className="text-sm leading-relaxed text-mist">{a}</AccordionContent>
-          </AccordionItem>
-        ))}
+      {/* Each question has a topic icon. Hover draws an orange underline; the open one keeps it, in orange. */}
+      <Accordion
+        type="single"
+        collapsible
+        value={open}
+        onValueChange={setOpen}
+        className="rounded-2xl border border-white/10 bg-night-2/60 px-5 backdrop-blur-sm"
+      >
+        {FAQS.map(([q, a], i) => {
+          const value = `faq-${i}`
+          const isOpen = open === value
+          const Icon = FAQ_ICONS[i] ?? MessageCircleQuestion
+          return (
+            <AccordionItem key={q} value={value} className="border-white/10">
+              <AccordionTrigger className="group/q text-left font-display text-base font-semibold text-white hover:no-underline cursor-pointer">
+                <span className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-300 motion-reduce:transition-none',
+                      isOpen ? 'bg-brand-500 text-white' : 'bg-white/5 text-brand-300 group-hover/q:bg-brand-500/20',
+                    )}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span
+                    className={cn(
+                      'self-center bg-gradient-to-r from-brand-500 to-brand-300 bg-[length:0%_2px] bg-bottom-left bg-no-repeat pb-0.5 transition-[background-size,color] duration-500 ease-out group-hover/q:bg-[length:100%_2px] motion-reduce:transition-none',
+                      isOpen && 'bg-[length:100%_2px] text-brand-300',
+                    )}
+                  >
+                    {q}
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pl-11 text-sm leading-relaxed text-mist">{a}</AccordionContent>
+            </AccordionItem>
+          )
+        })}
       </Accordion>
     </div>
   )
