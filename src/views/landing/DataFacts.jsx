@@ -1,16 +1,16 @@
 import React from 'react'
-import { Lock, MapPin, MonitorSmartphone, ServerCog, ShieldCheck } from 'lucide-react'
+import { Lock, MapPin, MonitorSmartphone, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // "How your data is kept", shown in the About part of the footer.
-// Only facts that are true today. Leave `text` null for anything not yet confirmed: it shows as
+// Only facts that are true today. Add a backups line once Supabase backups are on (Pro plan).
+// Leave `text` null for anything not yet confirmed: it shows as
 // a "to fill in" line on the dev server and is left out of the live site.
 const DATA_FACTS = [
   { icon: MapPin, text: 'Your data is stored in India, in a Mumbai data centre.' },
   { icon: ShieldCheck, text: 'Access rules run inside the database, so each role sees only what it should.' },
   { icon: Lock, text: 'Every connection to Campusnex is encrypted.' },
   { icon: MonitorSmartphone, text: 'Runs in the browser on phones and laptops, so there is nothing to install.' },
-  { icon: ServerCog, text: null, hint: 'Backups: confirm the backup schedule in Supabase, then describe it here.' },
 ]
 
 const SHOW_SLOTS = import.meta.env.DEV
