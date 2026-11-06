@@ -1,17 +1,22 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { GraduationCap, MessageCircleQuestion, Moon, ShieldCheck } from 'lucide-react'
+import { GraduationCap, Mail, MessageCircle, MessageCircleQuestion, Moon, Phone, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
 import DataFacts from './DataFacts'
 import { useRequestPilot } from './PilotRequest'
 import { RISK_RULES } from '@/utils/risk'
 
-// Demo address for now (.example never delivers); replace with the real contact email.
-export const CONTACT_EMAIL = 'hello@campusnex.example'
+// Contact details shown on the landing page. Switch the email to hello@<domain> once one is bought.
+export const CONTACT_EMAIL = 'campusnex.official@gmail.com'
 export const contactHref = (subject) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`
 // The address is shown as text only once a real one is filled in.
 const HAS_CONTACT_EMAIL = !CONTACT_EMAIL.startsWith('__')
+// One number for calls and WhatsApp. Shown as written; the links use the digits only.
+export const CONTACT_PHONE = '+91 89516 82792'
+const PHONE_DIGITS = CONTACT_PHONE.replace(/\D/g, '')
+export const phoneHref = `tel:+${PHONE_DIGITS}`
+export const whatsappHref = (text) => `https://wa.me/${PHONE_DIGITS}?text=${encodeURIComponent(text)}`
 
 export function SectionHeading({ title, children, center = false }) {
   return (
@@ -197,13 +202,24 @@ export function Faq() {
         <SectionHeading title="What your principal will ask">
           Didn't find your question? Write to us and we'll answer it.
         </SectionHeading>
-        <a
-          href={contactHref('Question about Campusnex')}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
-        >
-          <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
-          Ask us
-        </a>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href={contactHref('Question about Campusnex')}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+          >
+            <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
+            Ask us
+          </a>
+          <a
+            href={whatsappHref('Hi, I have a question about Campusnex.')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+            WhatsApp us
+          </a>
+        </div>
       </div>
       <Accordion type="single" collapsible className="rounded-2xl border border-white/10 bg-night-2/60 px-5 backdrop-blur-sm">
         {FAQS.map(([q, a], i) => (
@@ -276,11 +292,31 @@ export function Footer({ onSignIn }) {
             Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the {SHORTAGE}%
             attendance rule for SEE eligibility.
           </p>
-          {HAS_CONTACT_EMAIL && (
-            <a href={contactHref('Campusnex enquiry')} className="mt-3 inline-block text-sm text-white/80 hover:text-white">
-              {CONTACT_EMAIL}
-            </a>
-          )}
+          <ul className="mt-4 space-y-2 text-sm">
+            {HAS_CONTACT_EMAIL && (
+              <li>
+                <a href={contactHref('Campusnex enquiry')} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
+                  <Mail className="h-4 w-4 text-brand-300" aria-hidden="true" />
+                  {CONTACT_EMAIL}
+                </a>
+              </li>
+            )}
+            <li className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <a href={phoneHref} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
+                <Phone className="h-4 w-4 text-brand-300" aria-hidden="true" />
+                {CONTACT_PHONE}
+              </a>
+              <a
+                href={whatsappHref('Hi, I would like to know more about Campusnex.')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-white/80 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                WhatsApp
+              </a>
+            </li>
+          </ul>
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
               Request a pilot

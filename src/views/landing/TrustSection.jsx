@@ -15,7 +15,7 @@ const BUILDER = {
   name: 'Amar Sai',
   city: 'Bengaluru',
   role: 'Founder and developer',
-  photo: null, // e.g. '/team/amar.jpg' (put the file in public/team/)
+  photo: '/team/amar.jpg',
   linkedin: null, // full profile URL
   note: 'Too many students find out about an attendance shortage only when it is too late to fix. I am building Campusnex so the student, the teacher and the HOD all see it in time.',
 }
@@ -49,27 +49,27 @@ function Builder() {
       </Slot>
     ) : null
   }
+  // Photo on the left, name and note on its right; stacked and centred on phones.
+  const avatar = 'h-36 w-36 shrink-0 rounded-full ring-4 ring-white/10 sm:h-40 sm:w-40 xl:h-58 xl:w-58'
   return (
-    <div className="h-full rounded-2xl border border-white/10 bg-night-2/60 p-6 backdrop-blur-sm">
-      <div className="flex items-center gap-4">
-        {photo ? (
-          <img src={photo} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-mist">
-            <UserRound className="h-7 w-7" aria-hidden="true" />
-          </span>
-        )}
-        <div>
-          <p className="font-display text-lg font-semibold text-white">{name}</p>
-          <p className="text-sm text-mist">{role}, {city}</p>
-        </div>
-      </div>
-      {note && <p className="mt-4 text-sm leading-relaxed text-white/85">{note}</p>}
-      {linkedin && (
-        <a href={linkedin} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-300 hover:text-brand-200">
-          <ExternalLink className="h-4 w-4" aria-hidden="true" /> LinkedIn profile
-        </a>
+    <div className="grid h-full items-center gap-6 rounded-[20px] border border-white/10 bg-night-2/60 p-6 text-center backdrop-blur-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8 sm:p-8 sm:text-left xl:gap-9 xl:p-10">
+      {photo ? (
+        <img src={photo} alt="" className={cn(avatar, 'mx-auto object-cover')} />
+      ) : (
+        <span className={cn(avatar, 'mx-auto flex items-center justify-center bg-white/10 text-mist')}>
+          <UserRound className="h-10 w-10" aria-hidden="true" />
+        </span>
       )}
+      <div>
+        <p className="font-display text-2xl font-semibold text-white sm:text-3xl xl:text-4xl">{name}</p>
+        <p className="mt-1 text-sm text-mist sm:text-base xl:text-lg">{role}, {city}</p>
+        {note && <p className="mt-4 text-base leading-relaxed text-white/88 xl:mt-5 xl:text-[19px]">{note}</p>}
+        {linkedin && (
+          <a href={linkedin} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-300 hover:text-brand-200">
+            <ExternalLink className="h-4 w-4" aria-hidden="true" /> LinkedIn profile
+          </a>
+        )}
+      </div>
     </div>
   )
 }
@@ -79,7 +79,7 @@ function Screens() {
   if (!ready.length && !SHOW_SLOTS) return null
   const list = SHOW_SLOTS ? SCREENS : ready
   return (
-    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {list.map((s) =>
         s.src ? (
           <figure key={s.role} className="overflow-hidden rounded-2xl border border-white/10 bg-night-2/60">
@@ -105,14 +105,19 @@ export default function TrustSection() {
   const hasBuilder = Boolean(BUILDER.name && BUILDER.city)
   return (
     <>
-      <SectionHeading title="Real software, built by a real person.">
-        No stock photos and no made-up customers. Here is who builds Campusnex and what the app looks like inside.
-      </SectionHeading>
-      {(hasBuilder || SHOW_SLOTS) && (
-        <div className="mt-12 max-w-2xl">
-          <Builder />
+      {/* Desktop: the builder card on the left, the heading on the right. Phones: heading first. */}
+      <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:gap-14">
+        <div className="lg:order-2">
+          <SectionHeading title="Real software, built by a real person.">
+            No stock photos and no made-up customers. Here is who builds Campusnex and what the app looks like inside.
+          </SectionHeading>
         </div>
-      )}
+        {(hasBuilder || SHOW_SLOTS) && (
+          <div className="lg:order-1">
+            <Builder />
+          </div>
+        )}
+      </div>
       <Screens />
     </>
   )
