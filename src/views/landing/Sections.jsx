@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, BellRing, BookOpen, Check, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -350,6 +350,17 @@ const FOOTER_LINKS = [
 
 export function Footer({ onSignIn }) {
   const requestPilot = useRequestPilot()
+  // Footer hover touches: a torch glow follows the pointer across the big name, the logo's cap
+  // tosses, and footer links get a small arrow.
+  const wordRef = useRef(null)
+  const moveTorch = (e) => {
+    const el = wordRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    el.style.setProperty('--wx', `${e.clientX - r.left}px`)
+    el.style.setProperty('--wy', `${e.clientY - r.top}px`)
+  }
+  const hideTorch = () => wordRef.current?.style.setProperty('--wx', '-9999px')
   // The footer loads after smooth scrolling first measured the page. A resize event makes it
   // measure again, so scrolling and links reach the real end of the page.
   useEffect(() => {
@@ -358,13 +369,17 @@ export function Footer({ onSignIn }) {
   }, [])
   const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
-    <footer id="about" className="relative scroll-mt-20 overflow-hidden border-t border-white/10">
+    <footer id="about" onPointerMove={moveTorch} onPointerLeave={hideTorch} className="group/foot relative scroll-mt-20 overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
         <div className="col-span-2 max-w-md sm:col-span-3 lg:col-span-1">
           <span className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 shadow-[0_0_30px_-6px_rgba(255,92,0,0.6)]">
+            <motion.span
+              whileHover={{ y: [0, -14, 0], rotate: [0, -24, 0] }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 shadow-[0_0_30px_-6px_rgba(255,92,0,0.6)]"
+            >
               <GraduationCap className="h-6 w-6" aria-hidden="true" />
-            </span>
+            </motion.span>
             <span className="font-display text-2xl font-bold tracking-tight text-white">Campusnex</span>
           </span>
           <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
@@ -415,16 +430,25 @@ export function Footer({ onSignIn }) {
             <ul className="mt-3 space-y-1 lg:space-y-2.5">
               {links.map(([label, href]) => (
                 <li key={label}>
-                  <a href={href ?? contactHref('Campusnex enquiry')} className="inline-block py-1.5 text-mist hover:text-white lg:py-0">{label}</a>
+                  <a href={href ?? contactHref('Campusnex enquiry')} className="group/link inline-flex items-center gap-1.5 py-1.5 text-mist transition-colors hover:text-white lg:py-0">
+                    <ArrowRight className="h-3.5 w-3.5 -ml-4 shrink-0 text-brand-300 opacity-0 transition-[opacity,margin] duration-300 group-hover/link:ml-0 group-hover/link:opacity-100 motion-reduce:transition-none" aria-hidden="true" />
+                    {label}
+                  </a>
                 </li>
               ))}
               {group === 'Help' && (
                 <>
                   <li>
-                    <button type="button" onClick={() => setPrivacyOpen(true)} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Privacy policy</button>
+                    <button type="button" onClick={() => setPrivacyOpen(true)} className="group/link inline-flex cursor-pointer items-center gap-1.5 py-1.5 text-mist hover:text-white lg:py-0">
+                      <ArrowRight className="h-3.5 w-3.5 -ml-4 shrink-0 text-brand-300 opacity-0 transition-[opacity,margin] duration-300 group-hover/link:ml-0 group-hover/link:opacity-100 motion-reduce:transition-none" aria-hidden="true" />
+                      Privacy policy
+                    </button>
                   </li>
                   <li>
-                    <button type="button" onClick={onSignIn} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Sign in</button>
+                    <button type="button" onClick={onSignIn} className="group/link inline-flex cursor-pointer items-center gap-1.5 py-1.5 text-mist hover:text-white lg:py-0">
+                      <ArrowRight className="h-3.5 w-3.5 -ml-4 shrink-0 text-brand-300 opacity-0 transition-[opacity,margin] duration-300 group-hover/link:ml-0 group-hover/link:opacity-100 motion-reduce:transition-none" aria-hidden="true" />
+                      Sign in
+                    </button>
                   </li>
                 </>
               )}
@@ -439,9 +463,16 @@ export function Footer({ onSignIn }) {
 
       <div aria-hidden="true" className="pointer-events-none relative -mb-[0.18em] flex items-center justify-center gap-[0.12em] text-[15vw] leading-none select-none">
         <span className="flex h-[0.8em] w-[0.8em] items-center justify-center rounded-[0.18em] bg-brand-500/15">
-          <GraduationCap className="h-[0.55em] w-[0.55em] text-brand-400/40" strokeWidth={2.25} />
+          <GraduationCap
+            className={cn('h-[0.55em] w-[0.55em] text-brand-400/40', 'transition-[translate,rotate,color] duration-700 ease-out group-hover/foot:-translate-y-[0.12em] group-hover/foot:-rotate-12 group-hover/foot:text-brand-400/80 motion-reduce:transition-none')}
+            strokeWidth={2.25}
+          />
         </span>
-        <span className="bg-gradient-to-b from-white/[0.14] to-white/[0.02] bg-clip-text font-display font-extrabold tracking-tighter text-transparent">
+        <span
+          ref={wordRef}
+          style={{ '--wx': '-9999px', '--wy': '50%', backgroundImage: 'radial-gradient(240px circle at var(--wx) var(--wy), rgba(255,140,60,0.85), transparent 70%), linear-gradient(to bottom, rgba(255,255,255,0.14), rgba(255,255,255,0.02))' }}
+          className="bg-clip-text font-display font-extrabold tracking-tighter text-transparent"
+        >
           Campusnex
         </span>
       </div>
