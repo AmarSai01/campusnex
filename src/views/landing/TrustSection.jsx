@@ -20,12 +20,14 @@ const BUILDER = {
   note: 'Every semester, some students learn about an attendance shortage only when the eligibility list goes up, and by then nothing can be fixed. I built Campusnex so the student, the subject teacher and the HOD all see it weeks earlier, while there is still time to act. Try it with one department, and judge it by what changes.',
 }
 
-// Real screenshots of the signed-in app, taken with test data. Put the files in public/screens/.
+// Real screenshots of the signed-in app, taken with test data (test emails hidden). Files live in
+// public/screens/. Three on the top row, two wider ones below.
 const SCREENS = [
-  { role: 'Admin', caption: 'Institution analytics', src: null },
-  { role: 'HOD', caption: 'Department overview', src: null },
-  { role: 'Faculty', caption: 'Marking attendance', src: null },
-  { role: 'Student', caption: 'Attendance and results', src: null },
+  { role: 'Admin', caption: 'Institution analytics', src: '/screens/admin.webp' },
+  { role: 'HOD', caption: 'Class analytics', src: '/screens/hod.webp' },
+  { role: 'Faculty', caption: 'Student analytics', src: '/screens/faculty.webp' },
+  { role: 'Student', caption: 'Attendance and IA marks', src: '/screens/student.webp' },
+  { role: 'Admin', caption: 'Exam seating plan', src: '/screens/seating.webp' },
 ]
 
 const SHOW_SLOTS = import.meta.env.DEV
@@ -97,17 +99,27 @@ function Screens() {
   if (!ready.length && !SHOW_SLOTS) return null
   const list = SHOW_SLOTS ? SCREENS : ready
   return (
-    <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {list.map((s) =>
+    <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      {list.map((s, i) =>
         s.src ? (
-          <figure key={s.role} className="overflow-hidden rounded-2xl border border-white/10 bg-night-2/60">
-            <img src={s.src} alt={`${s.role} screen: ${s.caption}`} loading="lazy" className="aspect-[4/3] w-full object-cover object-top" />
+          // Top row: three screens (2 of 6 columns each). Bottom row: two wider ones (3 of 6).
+          <figure key={s.caption} className={cn('group overflow-hidden rounded-2xl border border-white/10 bg-night-2/60', i < 3 ? 'lg:col-span-2' : 'lg:col-span-3', i === list.length - 1 && list.length % 2 === 1 && 'sm:col-span-2 lg:col-span-3')}>
+            <a href={s.src} target="_blank" rel="noreferrer" className="block overflow-hidden" aria-label={`Open the ${s.role} screen (${s.caption}) full size`}>
+              <img
+                src={s.src}
+                alt={`${s.role} screen: ${s.caption}`}
+                loading="lazy"
+                width="1440"
+                height="900"
+                className="aspect-[16/10] w-full object-cover object-top-left transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none"
+              />
+            </a>
             <figcaption className="px-4 py-3 text-sm">
               <span className="font-semibold text-white">{s.role}</span> <span className="text-mist">{s.caption}</span>
             </figcaption>
           </figure>
         ) : (
-          <Slot key={s.role}>
+          <Slot key={s.caption}>
             <span className="flex aspect-[4/3] flex-col items-center justify-center gap-2 text-center">
               <ImageIcon className="h-6 w-6 text-amber-300" aria-hidden="true" />
               Screenshot of the {s.role} screen ({s.caption.toLowerCase()}), taken with test data.
