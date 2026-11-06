@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, BellRing, BookOpen, Check, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
+import { ArrowRight, BellRing, BookOpen, Check, Copy, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
 import DataFacts from './DataFacts'
@@ -348,6 +348,66 @@ const FOOTER_LINKS = [
 ]
 
 
+// Contact rows in the footer. On hover each icon moves its own way (the envelope flaps, the
+// phone rings, the chat bubble pops), and email and phone get a small Copy button.
+const WIGGLE = {
+  mail: { hover: { rotate: [0, -14, 10, 0], y: [0, -2, 0] } },
+  phone: { hover: { rotate: [0, -18, 16, -12, 8, 0] } },
+  chat: { hover: { scale: [1, 1.3, 0.95, 1] } },
+}
+
+function CopyButton({ value, label }) {
+  const [done, setDone] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setDone(true)
+      window.setTimeout(() => setDone(false), 1500)
+    } catch {
+      // Clipboard can be blocked; the link itself still works.
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={`Copy ${label}`}
+      className="ml-1 inline-flex cursor-pointer items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5 text-[11px] font-semibold text-mist opacity-0 transition-opacity duration-200 group-hover/row:opacity-100 focus-visible:opacity-100 hover:text-white"
+    >
+      {done ? <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" /> : <Copy className="h-3 w-3" aria-hidden="true" />}
+      {done ? 'Copied' : 'Copy'}
+    </button>
+  )
+}
+
+function ContactLinks() {
+  const rows = [
+    HAS_CONTACT_EMAIL && { key: 'mail', icon: Mail, text: CONTACT_EMAIL, href: contactHref('Campusnex enquiry'), copy: CONTACT_EMAIL },
+    { key: 'phone', icon: Phone, text: CONTACT_PHONE, href: phoneHref, copy: CONTACT_PHONE },
+    { key: 'chat', icon: MessageCircle, text: 'WhatsApp', href: whatsappHref('Hi, I would like to know more about Campusnex.'), external: true, green: true },
+  ].filter(Boolean)
+  return (
+    <ul className="mt-4 space-y-2 text-sm">
+      {rows.map(({ key, icon: Icon, text, href, copy, external, green }) => (
+        <li key={key} className="group/row flex items-center">
+          <motion.a
+            href={href}
+            {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            whileHover="hover"
+            className="inline-flex items-center gap-2 text-white/80 transition-colors hover:text-white"
+          >
+            <motion.span variants={WIGGLE[key]} transition={{ duration: 0.6 }} className="inline-flex">
+              <Icon className={cn('h-4 w-4', green ? 'text-emerald-400' : 'text-brand-300')} aria-hidden="true" />
+            </motion.span>
+            {text}
+          </motion.a>
+          {copy && <CopyButton value={copy} label={key === 'mail' ? 'email address' : 'phone number'} />}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function Footer({ onSignIn }) {
   const requestPilot = useRequestPilot()
   // Footer hover touches: a torch glow follows the pointer across the big name, the logo's cap
@@ -390,31 +450,7 @@ export function Footer({ onSignIn }) {
             all work the way your college already does. Tell us your rules, and we set Campusnex up to match before your
             pilot starts.
           </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {HAS_CONTACT_EMAIL && (
-              <li>
-                <a href={contactHref('Campusnex enquiry')} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
-                  <Mail className="h-4 w-4 text-brand-300" aria-hidden="true" />
-                  {CONTACT_EMAIL}
-                </a>
-              </li>
-            )}
-            <li className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <a href={phoneHref} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
-                <Phone className="h-4 w-4 text-brand-300" aria-hidden="true" />
-                {CONTACT_PHONE}
-              </a>
-              <a
-                href={whatsappHref('Hi, I would like to know more about Campusnex.')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/80 hover:text-white"
-              >
-                <MessageCircle className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-                WhatsApp
-              </a>
-            </li>
-          </ul>
+          <ContactLinks />
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
               Request a pilot
