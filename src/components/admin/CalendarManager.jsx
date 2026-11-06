@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Dropdown } from '@/components/ui/dropdown-01';
 import {
   CalendarDays,
   Plus,
@@ -12,6 +13,12 @@ import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
 import { describeScope, eventAppliesTo } from '../../utils/calendarScope';
+
+const EVENT_TYPE_OPTIONS = [
+  { value: 'holiday', label: 'Official Holiday', description: 'Campus closed for everyone' },
+  { value: 'exam', label: 'Examination', description: 'Mid-term cycle or semester exams' },
+  { value: 'working_day', label: 'Working Day / Event', description: 'Compensatory working day or a symposium' },
+];
 
 // Parse 'YYYY-MM-DD' as a local date; new Date('YYYY-MM-DD') is UTC and can show the previous day.
 const parseLocalDate = (value) => {
@@ -243,15 +250,13 @@ export default function CalendarManager() {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Event Type *
               </label>
-              <select
+              <Dropdown
+                aria-label="Event type"
+                options={EVENT_TYPE_OPTIONS}
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              >
-                <option value="holiday">Official Holiday (Campus Closed)</option>
-                <option value="exam">Examination / Mid-Term Cycle</option>
-                <option value="working_day">Compensatory Working Day / Symposium</option>
-              </select>
+                onChange={(type) => setFormData((prev) => ({ ...prev, type }))}
+                className="px-3 py-2 text-xs"
+              />
             </div>
 
             <div>
