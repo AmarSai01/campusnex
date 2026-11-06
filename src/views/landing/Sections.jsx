@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { lazy, Suspense, useState } from 'react'
 import { motion } from 'framer-motion'
 import { GraduationCap, Mail, MessageCircle, MessageCircleQuestion, Moon, Phone, ShieldCheck } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import DataFacts from './DataFacts'
 import { useRequestPilot } from './PilotRequest'
 import { RISK_RULES } from '@/utils/risk'
+
+const PrivacyDialog = lazy(() => import('./PrivacyDialog'))
 
 // Contact details shown on the landing page. Switch the email to hello@<domain> once one is bought.
 export const CONTACT_EMAIL = 'campusnex.official@gmail.com'
@@ -277,6 +279,7 @@ const FOOTER_LINKS = [
 
 export function Footer({ onSignIn }) {
   const requestPilot = useRequestPilot()
+  const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
     <footer id="about" className="relative scroll-mt-20 overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
@@ -336,9 +339,14 @@ export function Footer({ onSignIn }) {
                 </li>
               ))}
               {group === 'Help' && (
-                <li>
-                  <button type="button" onClick={onSignIn} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Sign in</button>
-                </li>
+                <>
+                  <li>
+                    <button type="button" onClick={() => setPrivacyOpen(true)} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Privacy policy</button>
+                  </li>
+                  <li>
+                    <button type="button" onClick={onSignIn} className="cursor-pointer py-1.5 text-mist hover:text-white lg:py-0">Sign in</button>
+                  </li>
+                </>
               )}
             </ul>
           </nav>
@@ -358,6 +366,12 @@ export function Footer({ onSignIn }) {
         </span>
       </div>
       <p className="relative mx-auto max-w-6xl border-t border-white/5 px-4 py-5 text-xs text-white/55 sm:px-6">© {new Date().getFullYear()} Campusnex</p>
+      {/* Loaded only when someone first opens it. */}
+      {privacyOpen && (
+        <Suspense fallback={null}>
+          <PrivacyDialog open={privacyOpen} onOpenChange={setPrivacyOpen} />
+        </Suspense>
+      )}
     </footer>
   )
 }
