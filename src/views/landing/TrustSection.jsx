@@ -10,14 +10,14 @@ import { SectionHeading } from './Sections'
 // dashed "to fill in" slot on the dev server and is left out of the live site, so the
 // public page never shows a placeholder.
 
-// TEST DATA for now: replace the city and note with your own words before launch.
+// Check the city before launch.
 const BUILDER = {
   name: 'Amar Sai',
   city: 'Bengaluru',
   role: 'Founder and developer',
   photo: '/team/amar.jpg',
   linkedin: null, // full profile URL
-  note: 'Too many students find out about an attendance shortage only when it is too late to fix. I am building Campusnex so the student, the teacher and the HOD all see it in time.',
+  note: 'Every semester, some students learn about an attendance shortage only when the eligibility list goes up, and by then nothing can be fixed. I built Campusnex so the student, the subject teacher and the HOD all see it weeks earlier, while there is still time to act. Try it with one department, and judge it by what changes.',
 }
 
 // Real screenshots of the signed-in app, taken with test data. Put the files in public/screens/.
