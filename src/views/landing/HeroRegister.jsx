@@ -161,7 +161,7 @@ export default function HeroRegister() {
             {!phone && (
               <div aria-hidden="true" className="pointer-events-none absolute top-0 bottom-0" style={{ left: 20 + BEAM_LEFT }}>
                 <div className="absolute inset-y-2 w-px bg-brand-500 shadow-[0_0_14px_3px_rgba(255,92,0,0.55)]" />
-                <span className="absolute -top-0 -translate-x-1/2 rounded-sm bg-brand-500 px-1 text-[10px] font-bold text-white">{SHORTAGE}%</span>
+                <span className="absolute -top-0 -translate-x-1/2 rounded-sm bg-brand-500 px-1 text-[10px] font-bold text-night">{SHORTAGE}%</span>
               </div>
             )}
 

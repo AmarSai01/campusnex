@@ -194,7 +194,7 @@ export function MobileMenu({ onRequestPilot }) {
               setOpen(false)
               onRequestPilot()
             }}
-            className="w-full cursor-pointer rounded-lg bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+            className="w-full cursor-pointer rounded-lg bg-brand-500 px-4 py-3 text-sm font-semibold text-night hover:bg-brand-600"
           >
             Request a pilot
           </button>

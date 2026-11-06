@@ -79,7 +79,7 @@ function StickyPilotBar({ heroRef }) {
           <button
             type="button"
             onClick={() => requestPilot('pilot')}
-            className="w-full cursor-pointer rounded-lg bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+            className="w-full cursor-pointer rounded-lg bg-brand-500 py-3 text-sm font-semibold text-night hover:bg-brand-600"
           >
             Request a pilot
           </button>
@@ -121,7 +121,7 @@ function Page({ onSignIn }) {
             <button
               type="button"
               onClick={() => requestPilot('pilot')}
-              className="hidden rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 cursor-pointer sm:block"
+              className="hidden rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-night hover:bg-brand-600 cursor-pointer sm:block"
             >
               Request a pilot
             </button>
@@ -176,7 +176,7 @@ function Page({ onSignIn }) {
                 duration={3200}
                 containerClassName="h-12 w-full max-w-64 sm:w-44"
                 borderClassName="bg-[radial-gradient(#ffd7bf_40%,transparent_60%)]"
-                className="border-brand-500 bg-brand-500 text-sm font-semibold text-white hover:bg-brand-600"
+                className="border-brand-500 bg-brand-500 text-sm font-semibold text-night hover:bg-brand-600"
               >
                 Request a pilot
               </MovingBorderButton>

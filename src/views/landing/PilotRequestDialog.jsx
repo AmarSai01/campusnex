@@ -201,7 +201,7 @@ function PilotForm({ plan, onDone }) {
       <button
         type="submit"
         disabled={status === 'saving'}
-        className="mt-6 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-wait disabled:opacity-80"
+        className="mt-6 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-night hover:bg-brand-600 disabled:cursor-wait disabled:opacity-80"
       >
         {status === 'saving' && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {status === 'saving' ? 'Sending request' : 'Send request'}

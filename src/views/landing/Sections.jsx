@@ -181,7 +181,7 @@ export function Plans() {
           <h3 className="font-display text-2xl font-semibold text-white">Department pilot</h3>
           <p className="mt-2 text-sm text-mist">Start with one department. Try a demo for a few days, then we shape it around your college.</p>
           <PlanList items={['Attendance, IA marks and assignments', 'Timetable with clash checks', 'HOD overview and risk alerts', 'CSV student import']} />
-          <button type="button" onClick={() => requestPilot('pilot')} className="group/btn mt-8 inline-flex items-center gap-1.5 cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
+          <button type="button" onClick={() => requestPilot('pilot')} className="group/btn mt-8 inline-flex items-center gap-1.5 cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-night hover:bg-brand-600">
             Request a pilot
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
           </button>
@@ -330,7 +330,7 @@ export function ClosingCall({ onSignIn }) {
         Timetable checked for clashes, seats allotted, shortage alerts sent. That could be your college tomorrow.
       </p>
       <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600">
+        <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-6 py-3 text-sm font-semibold text-night hover:bg-brand-600">
           Request a pilot
         </button>
         <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
@@ -452,7 +452,7 @@ export function Footer({ onSignIn }) {
           </p>
           <ContactLinks />
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+            <button type="button" onClick={() => requestPilot('pilot')} className="cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-night hover:bg-brand-600">
               Request a pilot
             </button>
             <button type="button" onClick={onSignIn} className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">

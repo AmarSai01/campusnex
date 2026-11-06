@@ -87,7 +87,7 @@ function SeatingDemo() {
           onClick={() => setOn((v) => !v)}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold cursor-pointer',
-            on ? 'border border-white/15 text-white hover:bg-white/5' : 'bg-brand-500 text-white hover:bg-brand-600'
+            on ? 'border border-white/15 text-white hover:bg-white/5' : 'bg-brand-500 text-night hover:bg-brand-600'
           )}
         >
           {on ? <RotateCcw className="h-4 w-4" aria-hidden="true" /> : <Shuffle className="h-4 w-4" aria-hidden="true" />}

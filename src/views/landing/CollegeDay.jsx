@@ -219,8 +219,8 @@ export default function CollegeDay() {
               <motion.div className="w-px origin-top bg-brand-500 shadow-[0_0_10px_2px_rgba(255,92,0,0.5)]" style={{ height: '100%', scaleY: progress }} />
             </div>
             {STEPS.map((s, i) => (
-              <li key={s.time} className={cn('rounded-lg px-3 py-3 transition-colors duration-300', i === step ? 'bg-white/[0.04]' : 'opacity-45')}>
-                <p className="text-xs font-medium text-brand-400">{s.time}, {s.who}</p>
+              <li key={s.time} className={cn('rounded-lg px-3 py-3 transition-colors duration-300', i === step ? 'bg-white/[0.04]' : 'opacity-70')}>
+                <p className="text-xs font-medium text-brand-300">{s.time}, {s.who}</p>
                 <p className="mt-0.5 font-display text-lg font-semibold text-white">{s.title}</p>
                 {i === step && (
                   <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-1 text-sm text-mist">

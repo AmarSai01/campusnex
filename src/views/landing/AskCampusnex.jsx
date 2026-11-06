@@ -161,7 +161,7 @@ function DemoChat() {
               type="button"
               aria-selected={role === r}
               onClick={() => switchRole(r)}
-              className={cn('relative cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors', role === r ? 'text-white' : 'text-mist hover:text-white')}
+              className={cn('relative cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors', role === r ? 'text-night' : 'text-mist hover:text-white')}
             >
               {role === r && <motion.span layoutId="ask-role" className="absolute inset-0 rounded-md bg-brand-500" transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }} />}
               <span className="relative">{r}</span>
@@ -178,7 +178,7 @@ function DemoChat() {
             return (
               <motion.div key={`${role}-${index}`} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
                 <div className="flex justify-end">
-                  <div className="max-w-[80%] rounded-2xl rounded-br-md bg-brand-500 px-4 py-2.5 text-sm text-white">{item.q}</div>
+                  <div className="max-w-[80%] rounded-2xl rounded-br-md bg-brand-500 px-4 py-2.5 text-sm text-night">{item.q}</div>
                 </div>
                 {pending ? (
                   <div className="flex w-fit gap-1 rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.05] px-4 py-3" aria-hidden="true">
@@ -271,7 +271,7 @@ export default function AskCampusnex() {
         <button
           type="button"
           onClick={() => requestPilot('institution')}
-          className="shrink-0 cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
+          className="shrink-0 cursor-pointer rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-night hover:bg-brand-600"
         >
           Talk to us about AI
         </button>

@@ -96,7 +96,7 @@ function Tile({ tile }) {
           <p className="font-display text-2xl font-semibold text-white">{tile.data.value}</p>
           <p className="mt-1 text-xs text-mist">{tile.data.label}</p>
           {tile.data.action && (
-            <span className="mt-3 inline-block rounded-md bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white">{tile.data.action}</span>
+            <span className="mt-3 inline-block rounded-md bg-brand-500 px-2.5 py-1 text-xs font-semibold text-night">{tile.data.action}</span>
           )}
         </div>
       )}
@@ -138,7 +138,7 @@ export default function CampusOverview() {
                 picked.current = true
                 setRole(r)
               }}
-              className={cn('relative cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors', role === r ? 'text-white' : 'text-mist hover:text-white')}
+              className={cn('relative cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors', role === r ? 'text-night' : 'text-mist hover:text-white')}
             >
               {role === r && <motion.span layoutId="role-pill" className="absolute inset-0 rounded-md bg-brand-500" transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }} />}
               <span className="relative">{r}</span>
