@@ -5,6 +5,7 @@ import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import CampusOverview from './CampusOverview'
+import LandingNav from './LandingNav'
 import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 
 // The hero loads first; everything below it comes as a separate file a moment later.
@@ -110,14 +111,7 @@ function Page({ onSignIn }) {
             </span>
             <span className="font-display text-lg font-bold">Campusnex</span>
           </span>
-          <nav aria-label="Main" className="hidden gap-4 text-sm whitespace-nowrap text-mist min-[920px]:flex lg:gap-7">
-            <a href="#day" className="hover:text-white">A day at college</a>
-            <a href="#features" className="hover:text-white">Features</a>
-            <a href="#security" className="hover:text-white">Security</a>
-            <a href="#faq" className="hover:text-white">FAQ</a>
-            <a href="#about" className="hover:text-white">About</a>
-            <a href="#trust" className="hover:text-white">The Last Bench</a>
-          </nav>
+          <LandingNav />
           <div className="flex items-center gap-2">
             {/* Phones get the sticky bar at the bottom instead. */}
             <button
