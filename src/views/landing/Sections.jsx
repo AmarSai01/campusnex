@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useAnimationControls, useInView, useReducedMotion } from 'framer-motion'
 import { ArrowRight, BellRing, BookOpen, Check, Copy, Download, GraduationCap, Lock, Mail, MapPin, MessageCircle, MessageCircleQuestion, Moon, Network, Phone, Rocket, ShieldCheck, Smartphone, Upload, UserCheck, Users } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
@@ -428,6 +428,30 @@ export function Footer({ onSignIn }) {
     return () => cancelAnimationFrame(frame)
   }, [])
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  const reduceMotion = useReducedMotion()
+  // The big footer cap is tossed like at a graduation: once when the footer comes into view,
+  // then every 12 seconds while it stays on screen, and whenever someone taps it.
+  const capTileRef = useRef(null)
+  const capInView = useInView(capTileRef, { amount: 0.5 })
+  const capControls = useAnimationControls()
+  const tossCap = () => {
+    if (reduceMotion) return
+    capControls.start({
+      y: ['0em', '-0.24em', '-0.24em', '0em', '-0.03em', '0em'],
+      rotate: [0, -30, -330, -360, -362, -360],
+      transition: { duration: 1.3, times: [0, 0.25, 0.6, 0.82, 0.92, 1], ease: 'easeInOut' },
+    }).then(() => capControls.set({ rotate: 0 }))
+  }
+  useEffect(() => {
+    if (!capInView || reduceMotion) return
+    const first = setTimeout(tossCap, 300)
+    const repeat = setInterval(tossCap, 12000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(repeat)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capInView, reduceMotion])
   return (
     <footer id="about" onPointerMove={moveTorch} onPointerLeave={hideTorch} className="group/foot relative scroll-mt-20 overflow-hidden border-t border-white/10">
       <div className="relative mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-16 pb-12 sm:grid-cols-3 sm:px-6 lg:grid-cols-[minmax(0,5fr)_repeat(3,minmax(0,2fr))] lg:gap-10">
@@ -498,11 +522,16 @@ export function Footer({ onSignIn }) {
       </div>
 
       <div aria-hidden="true" className="pointer-events-none relative -mb-[0.18em] flex items-center justify-center gap-[0.12em] text-[15vw] leading-none select-none">
-        <span className="flex h-[0.8em] w-[0.8em] items-center justify-center rounded-[0.18em] bg-brand-500/15">
-          <GraduationCap
-            className={cn('h-[0.55em] w-[0.55em] text-brand-400/40', 'transition-[translate,rotate,color] duration-700 ease-out group-hover/foot:-translate-y-[0.12em] group-hover/foot:-rotate-12 group-hover/foot:text-brand-400/80 motion-reduce:transition-none')}
-            strokeWidth={2.25}
-          />
+        {/* Solid tile (floating background words no longer show through), lifted clear of the
+            bottom line. The cap flips every few seconds while in view (see tossCap), tap to toss
+            it again, and it tilts up while the pointer is over the footer. */}
+        <span ref={capTileRef} onClick={tossCap} className="pointer-events-auto flex h-[0.8em] w-[0.8em] -translate-y-[0.14em] cursor-pointer items-center justify-center rounded-[0.18em] bg-night bg-[linear-gradient(rgba(255,92,0,0.16),rgba(255,92,0,0.16))] ring-1 ring-brand-500/25">
+          <motion.span className="flex" animate={capControls}>
+            <GraduationCap
+              className={cn('h-[0.55em] w-[0.55em] text-brand-400/75', 'transition-[translate,rotate,color] duration-700 ease-out group-hover/foot:-translate-y-[0.1em] group-hover/foot:-rotate-[18deg] group-hover/foot:text-brand-400 motion-reduce:transition-none motion-reduce:group-hover/foot:translate-y-0 motion-reduce:group-hover/foot:rotate-0')}
+              strokeWidth={2.25}
+            />
+          </motion.span>
         </span>
         <span
           ref={wordRef}
