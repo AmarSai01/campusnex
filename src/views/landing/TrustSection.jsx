@@ -1,5 +1,6 @@
 import React from 'react'
-import { ExternalLink, ImageIcon, UserRound } from 'lucide-react'
+import { ImageIcon, UserRound } from 'lucide-react'
+import { SocialIcons } from '@/components/ui/social-icon'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from './Sections'
 
@@ -16,7 +17,13 @@ const BUILDER = {
   city: 'Bengaluru',
   role: 'Founder and developer',
   photo: '/team/amar.jpg',
-  linkedin: null, // full profile URL
+  // Profile links shown as round icons under the note. Remove a line to hide that icon.
+  socials: [
+    { network: 'linkedin', href: 'https://www.linkedin.com/in/amareshwar9347' },
+    { network: 'github', href: 'https://github.com/AmarSai01' },
+    { network: 'x', href: 'https://x.com/Amarsai93' },
+    { network: 'instagram', href: 'https://www.instagram.com/amarsai_1' },
+  ],
   note: 'Every semester, some students learn about an attendance shortage only when the eligibility list goes up, and by then nothing can be fixed. I built Campusnex so the student, the subject teacher and the HOD all see it weeks earlier, while there is still time to act. Try it with one department, and judge it by what changes.',
 }
 
@@ -42,7 +49,7 @@ function Slot({ children, className }) {
 }
 
 function Builder() {
-  const { name, city, role, photo, linkedin, note } = BUILDER
+  const { name, city, role, photo, socials, note } = BUILDER
   if (!name || !city) {
     return SHOW_SLOTS ? (
       <Slot className="h-full">
@@ -84,11 +91,7 @@ function Builder() {
             {note}
           </p>
         )}
-        {linkedin && (
-          <a href={linkedin} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-300 hover:text-brand-200">
-            <ExternalLink className="h-4 w-4" aria-hidden="true" /> LinkedIn profile
-          </a>
-        )}
+        <SocialIcons links={socials} name={name} className="mt-5 justify-center sm:justify-start xl:mt-6" />
       </div>
     </div>
   )
