@@ -363,8 +363,11 @@ export function Footer({ onSignIn }) {
           </span>
           <p className="mt-4 text-sm text-white/85">The academic portal built for Indian colleges.</p>
           <p className="mt-2 text-sm leading-relaxed text-mist">
-            Built for engineering, degree and diploma colleges, with 10-point grading, USN-based records and the {SHORTAGE}%
-            attendance rule for SEE eligibility.
+            For engineering, degree and diploma colleges, whichever university or board you follow. Your minimum
+            attendance (75%, 85% or your own), your grading scale (10-point, percentage or letter grades), your student
+            IDs (USN, roll number or register number) and your exam pattern (CIE and SEE, or internals and externals)
+            all work the way your college already does. Tell us your rules, and we set Campusnex up to match before your
+            pilot starts.
           </p>
           <ul className="mt-4 space-y-2 text-sm">
             {HAS_CONTACT_EMAIL && (
