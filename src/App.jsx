@@ -52,6 +52,13 @@ function AppContent({ initialScreen = 'landing' }) {
   const [hodView, setHodView] = useState(true)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  // Desktop only: the sidebar can shrink to icons. Remembered on this device.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === '1')
+  const toggleSidebarCollapsed = () =>
+    setSidebarCollapsed((c) => {
+      localStorage.setItem('sidebar_collapsed', c ? '0' : '1')
+      return !c
+    })
 
   const landing = (
     <SmoothScroll>
@@ -111,8 +118,7 @@ function AppContent({ initialScreen = 'landing' }) {
       calendar: 'Academic Calendar',
       announcements: 'Global Broadcasts',
       requests: 'Student Requests',
-      feedback_results: 'Course Feedback',
-      pilot_requests: 'Pilot Requests'
+      feedback_results: 'Course Feedback'
     }
     if (currentUser.role === 'admin' && adminTitles[tab]) return adminTitles[tab]
     const titles = {
@@ -142,7 +148,6 @@ function AppContent({ initialScreen = 'landing' }) {
       hod_overview: 'Department Overview',
       results: currentUser.role === 'admin' ? 'Semester Results' : 'Results: SGPA and CGPA',
       hod_compliance: 'Faculty Compliance',
-      pilot_requests: 'Pilot Requests from the Website',
       student_analytics: 'Student Analytics',
       hod_student_analytics: 'Student Analytics',
       class_analytics: 'Class Analytics',
@@ -211,9 +216,14 @@ function AppContent({ initialScreen = 'landing' }) {
         onSwitchView={switchView}
         mobileOpen={isMobileSidebarOpen}
         setMobileOpen={setIsMobileSidebarOpen}
+        collapsed={sidebarCollapsed}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-6 lg:pl-64">
+      <div
+        className={`flex min-w-0 flex-1 flex-col pb-16 transition-[padding] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none lg:pb-6 ${
+          sidebarCollapsed ? 'lg:pl-[76px]' : 'lg:pl-72'
+        }`}
+      >
         <Header
           currentTabTitle={getTabTitle()}
           onOpenProfile={currentUser.role === 'student' ? () => setActiveTab('profile') : undefined}
@@ -221,6 +231,8 @@ function AppContent({ initialScreen = 'landing' }) {
           onToggleMobileSidebar={() =>
             setIsMobileSidebarOpen(!isMobileSidebarOpen)
           }
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebarCollapsed={toggleSidebarCollapsed}
         />
 
         <main className="flex-1">

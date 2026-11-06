@@ -8,6 +8,7 @@ import {
   Briefcase,
   RotateCcw,
   Menu,
+  PanelLeft,
   UserRound,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -29,6 +30,8 @@ export default function Header({
   onToggleMobileSidebar,
   currentTabTitle = 'Dashboard',
   onOpenProfile,
+  sidebarCollapsed,
+  onToggleSidebarCollapsed,
 }) {
   const { currentUser, logout, isHod, hodDepartments } = useAuth()
   const { notifications, refreshData } = useData()
@@ -56,10 +59,24 @@ export default function Header({
           variant="ghost"
           size="icon"
           onClick={onToggleMobileSidebar}
+          aria-label="Open menu"
           className="rounded-xl text-slate-500 lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </Button>
+        {onToggleSidebarCollapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebarCollapsed}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden rounded-xl text-slate-500 lg:inline-flex"
+          >
+            <PanelLeft className="h-[18px] w-[18px]" />
+          </Button>
+        )}
 
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-1.5 text-xs font-semibold text-slate-400 sm:flex">

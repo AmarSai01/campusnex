@@ -7,6 +7,7 @@ import LandingPage from './views/landing/LandingPage'
 // is not signed in sees the landing page straight away; the app loads when they press Sign in.
 const App = lazy(() => import('./App'))
 const CalendarDemo = lazy(() => import('./views/preview/CalendarDemo'))
+const SidebarDemo = lazy(() => import('./views/preview/SidebarDemo'))
 
 const params = new URLSearchParams(window.location.search)
 const OPENS_APP_DIRECTLY = MAY_HAVE_SESSION || params.has('preview')
@@ -24,6 +25,13 @@ const Spinner = () => (
 export default function Root() {
   const [start, setStart] = useState(OPENS_SIGN_IN ? 'login' : OPENS_APP_DIRECTLY ? 'landing' : null)
 
+  if (params.has('sidebar-demo')) {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <SidebarDemo />
+      </Suspense>
+    )
+  }
   if (params.has('calendar-demo')) {
     return (
       <Suspense fallback={<Spinner />}>
