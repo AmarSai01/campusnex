@@ -32,11 +32,16 @@ function useShowBelow() {
   return show
 }
 
-// Words from an Indian college office, not a generic ERP brochure.
+// Words from an Indian college office, not a generic ERP brochure. Each one is a moment from a
+// real feature (notices, Class Sheets, the activity log, risk alerts and so on).
 const STRIP = [
-  'Sem 5 Sec A', 'IA-2 published', 'Circular No. 42', 'HOD review', 'Seat S-07, LH-101',
-  'Shortage list', 'USN 1CN23CS027', 'Timetable: 0 clashes', `${RISK_RULES.attendance.shortage}% attendance rule`, 'Exam hall LH-102',
+  'Sem 5 Sec A', 'Notice to CSE 5A', 'IA-2 published', 'Class sheet uploaded', 'Circular No. 42', 'HOD review',
+  'Shortage alert sent', 'Seat S-07, LH-101', 'Shortage list', 'Semester calendar published', 'USN 1CN23CS027',
+  'Lab batch B1', 'Timetable: 0 clashes', 'Admin change logged', `${RISK_RULES.attendance.shortage}% attendance rule`,
+  'Results published', 'Exam hall LH-102', 'Assignment due Friday',
 ]
+// Same scrolling speed as before, whatever the number of chips (40s for the first 10).
+const STRIP_SECONDS = STRIP.length * 4
 
 const HEADLINE = 'No student should find out about an attendance or marks shortage on the last day.'.split(' ')
 
@@ -206,7 +211,7 @@ function Page({ onSignIn }) {
           <motion.ul
             className="flex w-max gap-3"
             animate={{ x: ['0%', '-50%'] }}
-            transition={{ duration: 40, ease: 'linear', repeat: Infinity }}
+            transition={{ duration: STRIP_SECONDS, ease: 'linear', repeat: Infinity }}
           >
             {[...STRIP, ...STRIP].map((item, i) => (
               <li
