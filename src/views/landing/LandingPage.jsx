@@ -113,7 +113,7 @@ function Page({ onSignIn }) {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
               <GraduationCap className="h-4.5 w-4.5" aria-hidden="true" />
             </span>
-            <span className="font-display text-lg font-bold">Campusnex</span>
+            <span className="font-display text-lg font-bold">Campus<span className="text-brand-500">nex</span></span>
           </span>
           <LandingNav />
           <div className="flex items-center gap-2">
