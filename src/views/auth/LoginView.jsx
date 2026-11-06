@@ -35,25 +35,25 @@ const rolePresets = {
     title: 'Student Portal',
     description:
       'Access attendance, published IA marks, submit assignments & view schedules.',
-    badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    badgeClass: 'border-2 border-emerald-500 bg-emerald-100 text-emerald-700',
   },
   faculty: {
     title: 'Faculty Workspace',
     description:
       'Mark session attendance, publish IA marks, manage assignments & grade submissions.',
-    badgeClass: 'border-brand-200 bg-brand-50 text-brand-700',
+    badgeClass: 'border-2 border-brand-500 bg-brand-100 text-brand-700',
   },
   hod: {
     title: 'HOD Console',
     description:
       "Your department panel for attendance, marks, at-risk students and faculty compliance. Switch to your teaching workspace anytime.",
-    badgeClass: 'border-sky-200 bg-sky-50 text-sky-700',
+    badgeClass: 'border-2 border-sky-500 bg-sky-100 text-sky-700',
   },
   admin: {
     title: 'Administrative Console',
     description:
       'Manage users, assign course faculty, configure timetables & post campus broadcasts.',
-    badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
+    badgeClass: 'border-2 border-violet-500 bg-violet-100 text-violet-700',
   },
 }
 
@@ -121,7 +121,7 @@ export default function LoginView({ initialRole, onBack }) {
     <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-muted/40 px-4 py-12 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,_rgba(255,92,0,0.12),_transparent_65%)]" />
 
-      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md lg:max-w-xl 2xl:max-w-2xl">
         {onBack && (
           <Button
             variant="ghost"
@@ -156,32 +156,32 @@ export default function LoginView({ initialRole, onBack }) {
             onValueChange={setActiveRoleTab}
             className="gap-0"
           >
-            <div className="border-b border-border bg-muted/60 p-2">
+            <div className="border-b border-border bg-muted/60 p-2 lg:p-3">
               <TabsList className="grid h-auto w-full grid-cols-4 gap-1 bg-transparent p-0">
                 <TabsTrigger
                   value="student"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 lg:py-3 lg:text-sm data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-600 data-[state=active]:shadow-xs data-[state=active]:ring-2 data-[state=active]:ring-emerald-500"
                 >
                   <GraduationCap className="h-4 w-4" />
                   Student
                 </TabsTrigger>
                 <TabsTrigger
                   value="faculty"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-brand-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 lg:py-3 lg:text-sm data-[state=active]:bg-brand-50 data-[state=active]:text-brand-600 data-[state=active]:shadow-xs data-[state=active]:ring-2 data-[state=active]:ring-brand-500"
                 >
                   <Briefcase className="h-4 w-4" />
                   Faculty
                 </TabsTrigger>
                 <TabsTrigger
                   value="hod"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-sky-700 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 lg:py-3 lg:text-sm data-[state=active]:bg-sky-50 data-[state=active]:text-sky-600 data-[state=active]:shadow-xs data-[state=active]:ring-2 data-[state=active]:ring-sky-500"
                 >
                   <ShieldCheck className="h-4 w-4" />
                   HOD
                 </TabsTrigger>
                 <TabsTrigger
                   value="admin"
-                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs data-[state=active]:ring-1 data-[state=active]:ring-border"
+                  className="flex-col gap-1 rounded-xl px-1 py-2 text-xs font-bold sm:flex-row sm:gap-1.5 sm:py-2.5 lg:py-3 lg:text-sm data-[state=active]:bg-violet-50 data-[state=active]:text-violet-600 data-[state=active]:shadow-xs data-[state=active]:ring-2 data-[state=active]:ring-violet-500"
                 >
                   <ShieldAlert className="h-4 w-4" />
                   Admin
@@ -189,22 +189,22 @@ export default function LoginView({ initialRole, onBack }) {
               </TabsList>
             </div>
 
-            <CardHeader className="space-y-2 border-b border-border px-6 pt-6 pb-4 sm:px-8">
+            <CardHeader className="space-y-2 border-b border-border px-6 pt-6 pb-4 sm:px-8 lg:px-10 lg:pt-8 lg:pb-6">
               <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base font-bold">{preset.title}</CardTitle>
+                <CardTitle className="text-base font-bold lg:text-lg">{preset.title}</CardTitle>
                 <Badge
                   variant="outline"
-                  className={cn('rounded-md text-[11px] font-bold capitalize', preset.badgeClass)}
+                  className={cn('rounded-md text-[11px] font-bold capitalize lg:text-xs', preset.badgeClass)}
                 >
                   Role: {activeRoleTab === 'hod' ? 'HOD' : activeRoleTab}
                 </Badge>
               </div>
-              <CardDescription className="text-xs leading-relaxed">
+              <CardDescription className="text-xs leading-relaxed lg:text-sm">
                 {preset.description}
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6 px-6 py-6 sm:px-8 sm:pb-8">
+            <CardContent className="space-y-6 px-6 py-6 sm:px-8 sm:pb-8 lg:px-10 lg:py-8 lg:pb-10">
               {error && (
                 <Alert variant="destructive" className="border-rose-200 bg-rose-50 text-rose-700">
                   <AlertCircle className="h-4 w-4" />
@@ -221,7 +221,7 @@ export default function LoginView({ initialRole, onBack }) {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-bold">
+                  <Label htmlFor="email" className="text-xs font-bold lg:text-sm">
                     Institutional Email
                   </Label>
                   <div className="relative">
@@ -234,7 +234,7 @@ export default function LoginView({ initialRole, onBack }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@yourcollege.edu"
-                      className="h-10 rounded-xl pl-9"
+                      className="h-10 rounded-xl pl-9 lg:h-11"
                     />
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default function LoginView({ initialRole, onBack }) {
                 {mode !== 'forgot' && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-xs font-bold">
+                      <Label htmlFor="password" className="text-xs font-bold lg:text-sm">
                         {mode === 'activate' ? 'Choose a Password' : 'Password'}
                       </Label>
                       {mode === 'signin' && (
@@ -266,7 +266,7 @@ export default function LoginView({ initialRole, onBack }) {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={mode === 'activate' ? `At least ${MIN_PASSWORD_LENGTH} characters` : '••••••••••••'}
-                        className="h-10 rounded-xl pl-9"
+                        className="h-10 rounded-xl pl-9 lg:h-11"
                       />
                     </div>
                   </div>
@@ -276,7 +276,7 @@ export default function LoginView({ initialRole, onBack }) {
                   type="submit"
                   disabled={isLoading}
                   size="lg"
-                  className="h-11 w-full rounded-xl bg-brand-500 text-sm font-bold hover:bg-brand-600"
+                  className="h-11 w-full rounded-xl bg-brand-500 text-sm font-bold hover:bg-brand-600 lg:h-12 lg:text-base"
                 >
                   {isLoading ? (
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
