@@ -5,7 +5,7 @@ import { RISK_RULES } from '@/utils/risk'
 import { Button as MovingBorderButton } from '@/components/ui/moving-border'
 import { BackdropProvider, useSectionBackdrop } from './Backdrop'
 import CampusOverview from './CampusOverview'
-import LandingNav from './LandingNav'
+import LandingNav, { MobileMenu } from './LandingNav'
 import { PilotRequestProvider, useRequestPilot } from './PilotRequest'
 
 // The hero loads first; everything below it comes as a separate file a moment later.
@@ -133,6 +133,7 @@ function Page({ onSignIn }) {
             >
               Sign in
             </button>
+            <MobileMenu onRequestPilot={() => requestPilot('pilot')} />
           </div>
         </div>
       </header>
