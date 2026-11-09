@@ -28,7 +28,6 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
-const MIN_PASSWORD_LENGTH = 8
 
 const rolePresets = {
   student: {
@@ -59,12 +58,11 @@ const rolePresets = {
 
 const MODE_COPY = {
   signin: { button: null, switchPrompt: null, switchLabel: null },
-  activate: { button: 'Activate Account', switchPrompt: 'Already activated?', switchLabel: 'Sign in' },
   forgot: { button: 'Send Reset Link', switchPrompt: 'Remembered it?', switchLabel: 'Back to sign in' },
 }
 
 export default function LoginView({ initialRole, onBack }) {
-  const { login, activateAccount, requestPasswordReset } = useAuth()
+  const { login, requestPasswordReset } = useAuth()
 
   const [activeRoleTab, setActiveRoleTab] = useState(Object.hasOwn(rolePresets, initialRole ?? '') ? initialRole : 'student')
   const [email, setEmail] = useState('')
@@ -94,16 +92,6 @@ export default function LoginView({ initialRole, onBack }) {
       if (mode === 'forgot') {
         await requestPasswordReset(email)
         setNotice('If this email has an account, a password reset link is on its way. Check your inbox.')
-      } else if (mode === 'activate') {
-        if (password.length < MIN_PASSWORD_LENGTH) {
-          throw new Error(`Choose a password with at least ${MIN_PASSWORD_LENGTH} characters.`)
-        }
-        const result = await activateAccount(email, password)
-        if (result === 'confirm_email') {
-          setNotice('Almost done. Check your email and click the confirmation link, then sign in.')
-          setMode('signin')
-          setPassword('')
-        }
       } else {
         await login(email, password)
       }
@@ -142,11 +130,7 @@ export default function LoginView({ initialRole, onBack }) {
             Campusnex
           </h2>
           <p className="mt-2 text-sm font-medium text-muted-foreground">
-            {mode === 'forgot'
-              ? 'Reset your password'
-              : mode === 'activate'
-                ? 'Activate your institutional account'
-                : 'Sign in to your institutional workspace'}
+            {mode === 'forgot' ? 'Reset your password' : 'Sign in to your institutional workspace'}
           </p>
         </div>
 
@@ -243,7 +227,7 @@ export default function LoginView({ initialRole, onBack }) {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password" className="text-xs font-bold lg:text-sm">
-                        {mode === 'activate' ? 'Choose a Password' : 'Password'}
+                        Password
                       </Label>
                       {mode === 'signin' && (
                         <button
@@ -261,11 +245,10 @@ export default function LoginView({ initialRole, onBack }) {
                         id="password"
                         type="password"
                         required
-                        minLength={mode === 'activate' ? MIN_PASSWORD_LENGTH : undefined}
-                        autoComplete={mode === 'activate' ? 'new-password' : 'current-password'}
+                        autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder={mode === 'activate' ? `At least ${MIN_PASSWORD_LENGTH} characters` : '••••••••••••'}
+                        placeholder="••••••••••••"
                         className="h-10 rounded-xl pl-9 lg:h-11"
                       />
                     </div>
@@ -289,8 +272,8 @@ export default function LoginView({ initialRole, onBack }) {
                 </Button>
               </form>
 
-              {/* Self-activation is switched off: the college's admin creates each login.
-                  Only the "Back to sign in" link from Forgot password remains. */}
+              {/* No self sign-up: the college's admin creates each login (Admin → Users).
+                  The only switch left is "Back to sign in" from Forgot password. */}
               {mode !== 'signin' && (
                 <p className="text-center text-xs text-muted-foreground">
                   {copy.switchPrompt}{' '}

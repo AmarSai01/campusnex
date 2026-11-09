@@ -68,10 +68,10 @@ flowchart LR
   end
 
   subgraph SB["Supabase · Mumbai region"]
-    Auth["Auth<br/>sign-in, activation, password reset"]
+    Auth["Auth<br/>sign-in, password reset"]
     DB[("PostgreSQL<br/>row-level security per role")]
     Storage["Storage<br/>assignments, circulars, sheets"]
-    Fn["Edge Function<br/>notify-pilot-request"]
+    Fn["Edge Functions<br/>admin-logins, notify-pilot-request"]
   end
 
   Resend["Resend<br/>email"]
@@ -113,12 +113,15 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  A["Admin (or HOD for their department)<br/>adds a profile with the person's email"] --> B["Person opens the site and chooses<br/>Activate your account"]
-  B --> C{"Email matches<br/>a profile?"}
-  C -- yes --> D["Login is linked to the profile<br/>role comes from the profile"]
-  C -- no --> E["Sign-up refused"]
-  D --> F["Dashboard for Admin, HOD, Faculty or Student"]
+  A["Admin adds a person<br/>(form or CSV import)<br/>with email and date of birth"] --> B["admin-logins Edge Function<br/>checks the caller is an admin"]
+  B --> C["Login created, linked to the profile<br/>role comes from the profile"]
+  C --> D["Starting password shown once<br/>class-wise sheets for imports"]
+  D --> E["Person signs in<br/>dashboard for their role"]
 ```
+
+- **Starting password:** students get USN + date of birth (`1MJ23CS001` + 15-08-2004 → `1MJ23CS00115082004`); staff get the part of their email before the @ + date of birth.
+- Passwords are shown to the admin once and never stored. **Reset password** in the user's Edit window sets it back to the starting password.
+- HODs can add students to their department, but only an admin creates logins.
 
 ### Pilot requests from the landing page
 
@@ -155,7 +158,7 @@ src/
   lib/              Supabase client and helpers
 supabase/
   migrations/       schema and row-level security, applied in order
-  functions/        notify-pilot-request (Edge Function)
+  functions/        admin-logins, notify-pilot-request (Edge Functions)
 public/screens/     screenshots used on the landing page and here
 ```
 
@@ -182,7 +185,7 @@ Set up the database by running the files in [`supabase/migrations`](supabase/mig
 ## Security and privacy
 
 - Access rules live in the database, not only in the interface: each role sees only its own college data.
-- Sign-up works only for emails an admin has already added, so there is no open registration.
+- There is no open registration: only an admin creates logins, through a server function that checks the caller's role.
 - Secrets (the Supabase service key, the Resend key) live in Supabase's secret settings, never in this repository.
 - The full privacy policy is on the [live site](https://campusnex.amarsai.in) (footer → Privacy policy).
 

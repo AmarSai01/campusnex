@@ -54,17 +54,6 @@ export function AuthProvider({ children }) {
     if (error) throw new Error(friendlyAuthError(error));
   };
 
-  // First sign-in for a profile an admin created: sets the password and links the account.
-  const activateAccount = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: { emailRedirectTo: redirectUrl() }
-    });
-    if (error) throw new Error(friendlyAuthError(error));
-    return data.session ? 'signed_in' : 'confirm_email';
-  };
-
   const requestPasswordReset = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: redirectUrl()
@@ -85,7 +74,6 @@ export function AuthProvider({ children }) {
       value={{
         currentUser,
         login,
-        activateAccount,
         requestPasswordReset,
         updatePassword,
         passwordRecovery,
