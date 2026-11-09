@@ -58,7 +58,7 @@ const rolePresets = {
 }
 
 const MODE_COPY = {
-  signin: { button: null, switchPrompt: 'First time signing in?', switchLabel: 'Activate your account' },
+  signin: { button: null, switchPrompt: null, switchLabel: null },
   activate: { button: 'Activate Account', switchPrompt: 'Already activated?', switchLabel: 'Sign in' },
   forgot: { button: 'Send Reset Link', switchPrompt: 'Remembered it?', switchLabel: 'Back to sign in' },
 }
@@ -289,22 +289,26 @@ export default function LoginView({ initialRole, onBack }) {
                 </Button>
               </form>
 
-              <p className="text-center text-xs text-muted-foreground">
-                {copy.switchPrompt}{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode(mode === 'signin' ? 'activate' : 'signin')}
-                  className="font-bold text-brand-700 hover:underline cursor-pointer"
-                >
-                  {copy.switchLabel}
-                </button>
-              </p>
+              {/* Self-activation is switched off: the college's admin creates each login.
+                  Only the "Back to sign in" link from Forgot password remains. */}
+              {mode !== 'signin' && (
+                <p className="text-center text-xs text-muted-foreground">
+                  {copy.switchPrompt}{' '}
+                  <button
+                    type="button"
+                    onClick={() => switchMode('signin')}
+                    className="font-bold text-brand-700 hover:underline cursor-pointer"
+                  >
+                    {copy.switchLabel}
+                  </button>
+                </p>
+              )}
 
               <Alert className="border-border bg-muted/50">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <AlertDescription className="text-[11px] text-muted-foreground">
-                  <strong>No public signup.</strong> Accounts are created by your institution's
-                  administrator. Activate yours with the email they registered for you.
+                  <strong>No public signup.</strong> Your college gives you your login email and
+                  password. If you don't have them, ask your institution's administrator.
                 </AlertDescription>
               </Alert>
             </CardContent>

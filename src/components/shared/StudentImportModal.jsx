@@ -258,7 +258,7 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
             </p>
             <p className="mt-1 text-xs text-slate-600">
               They were enrolled in every course matching their department, semester and section.
-              Each student now activates their own account from the login page with their email.
+              Give each student their login email and password so they can sign in.
             </p>
           </div>
           <button

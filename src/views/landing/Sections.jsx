@@ -119,7 +119,7 @@ export function SecuritySection() {
       </div>
       <ul className="mt-10 grid gap-6 sm:grid-cols-3">
         {[
-          'No public sign-up. Only people your administrator adds can activate an account.',
+          'No public sign-up. Only your college administrator creates logins.',
           'Deactivating someone removes their access immediately.',
           'Marks and results stay hidden from students until they are published.',
         ].map((t) => (
@@ -137,7 +137,7 @@ const STEPS = [
   ['Add departments and courses', 'Create departments, courses and the class timetable. Rooms and teachers are checked for clashes.'],
   ['Import your students', 'Upload a CSV with USN, name, semester, department, section and email. Every row is checked first.'],
   ['Add faculty and choose HODs', 'Add teachers, assign their courses and pick the head of each department.'],
-  ['Everyone activates their account', 'Students and staff set their own password with the email you registered.'],
+  ['Hand out the logins', 'Your administrator creates each login and gives students and staff their email and password.'],
 ]
 
 export function SetupSteps() {
@@ -221,7 +221,7 @@ function PlanList({ items }) {
 const SHORTAGE = RISK_RULES.attendance.shortage
 
 const FAQS = [
-  ['Who can sign in?', 'Only people your administrator has added. There is no public sign-up. Each person chooses “Activate your account” on the login page and sets their own password using the email the college registered.'],
+  ['Who can sign in?', 'Only people your college has given a login. There is no public sign-up: your administrator creates each account and gives every student and staff member their login email and password.'],
   [`How does the ${SHORTAGE}% alert work?`, `Attendance is calculated per subject, with a late counting as half a class. Students need ${SHORTAGE}% in each subject to sit the SEE. Once at least four classes are held, a student who drops below ${SHORTAGE}% is flagged, and the student, the subject teacher and the HOD are notified. The same happens when a published IA average falls below ${RISK_RULES.marks.fail}%.`],
   ['Can we bring in our existing student list?', 'Yes. Save your list as a CSV with the columns USN, NAME, SEMESTER, DEPARTMENT, SECTION and EMAIL and upload it. Every row is checked before anything is saved, and students are enrolled in their courses automatically.'],
   ['How do semester results work?', 'The admin uploads the university result file as CSV. Grades follow the 10-point scale, and SGPA and CGPA are worked out automatically. Students see their results only after the admin publishes the semester, and they get a notification when that happens.'],
