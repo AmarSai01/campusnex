@@ -3,12 +3,12 @@
 </p>
 
 <p align="center">
-  <a href="https://campusnex.amarsai.in"><img alt="Live site" src="https://img.shields.io/badge/live-campusnex.amarsai.in-ff5c00?style=for-the-badge"></a>
-  <img alt="React 19" src="https://img.shields.io/badge/React-19-0a1022?style=for-the-badge&logo=react&logoColor=61dafb">
-  <img alt="Vite 8" src="https://img.shields.io/badge/Vite-8-0a1022?style=for-the-badge&logo=vite&logoColor=ffd62e">
-  <img alt="Tailwind CSS 4" src="https://img.shields.io/badge/Tailwind-4-0a1022?style=for-the-badge&logo=tailwindcss&logoColor=38bdf8">
-  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-0a1022?style=for-the-badge&logo=supabase&logoColor=3ecf8e">
-  <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare-Pages-0a1022?style=for-the-badge&logo=cloudflare&logoColor=f38020">
+  <a href="https://campusnex.amarsai.in"><img alt="Live site" src="docs/readme/badges/live-site.svg"></a>
+  <img alt="React 19" src="docs/readme/badges/react-19.svg">
+  <img alt="Vite 8" src="docs/readme/badges/vite-8.svg">
+  <img alt="Tailwind CSS 4" src="docs/readme/badges/tailwind-css-4.svg">
+  <img alt="Supabase" src="docs/readme/badges/supabase.svg">
+  <img alt="Cloudflare Pages" src="docs/readme/badges/cloudflare-pages.svg">
 </p>
 
 <p align="center">
