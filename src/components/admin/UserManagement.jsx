@@ -5,7 +5,8 @@ import {
   Search,
   Edit2,
   Power,
-  Mail
+  Mail,
+  KeyRound
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -13,12 +14,14 @@ import { hodLabel } from '../../utils/hod';
 import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { useLogins } from './useLogins';
 
 import { FACULTY_DESIGNATIONS, classRoleText } from '../../utils/faculty';
 const OTHER_DESIGNATION = '__other__';
 
 export default function UserManagement() {
   const { users, departments, createUser, updateUser, class_roles: classRoles = [] } = useData();
+  const { runLogins, loginSheet } = useLogins();
   const { currentUser } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +44,7 @@ export default function UserManagement() {
     semester: 1,
     section: 'A',
     phone: '',
+    dob: '',
     status: 'active'
   });
 
@@ -83,6 +87,7 @@ export default function UserManagement() {
       semester: 1,
       section: 'A',
       phone: '',
+      dob: '',
       status: 'active'
     });
     setFormError('');
@@ -104,6 +109,7 @@ export default function UserManagement() {
       semester: user.semester || 5,
       section: user.section || 'A',
       phone: user.phone || '',
+      dob: user.dob || '',
       status: user.status || 'active'
     });
     setFormError('');
@@ -167,16 +173,26 @@ export default function UserManagement() {
       formData.roll_no = formattedUSN;
     }
 
+    if (!editingUser && !formData.dob) {
+      setFormError('Add a date of birth: it is needed for the starting password.');
+      return;
+    }
+
     try {
       if (editingUser) {
-        updateUser(editingUser.id, formData, currentUser?.id);
+        updateUser(editingUser.id, { ...formData, dob: formData.dob || null }, currentUser?.id);
+        // A corrected email must also change the login, or the person can't sign in.
+        const emailChanged = formData.email.trim().toLowerCase() !== (editingUser.email || '').toLowerCase();
+        if (emailChanged && editingUser.auth_id) runLogins('sync_email', [editingUser.id], { quiet: true });
       } else {
         // Check duplicate email
         if (users.some(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
           setFormError('A user with this email address already exists.');
           return;
         }
-        createUser(formData, currentUser?.id);
+        const created = createUser({ ...formData, dob: formData.dob || null }, currentUser?.id);
+        // Every new person gets their login straight away; the window shows the password.
+        if (created?.id) runLogins('create', [created.id]);
       }
 
       setIsModalOpen(false);
@@ -184,6 +200,15 @@ export default function UserManagement() {
       setFormError(err.message || 'Operation failed.');
     }
   };
+
+  const askReset = (user) =>
+    setConfirmRequest({
+      title: `Reset ${user.name}'s password?`,
+      message: 'Their password goes back to the starting password (USN or email name + date of birth). Their current password stops working.',
+      confirmLabel: 'Reset password',
+      tone: 'neutral',
+      onConfirm: () => runLogins('reset', [user.id])
+    });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -626,6 +651,22 @@ export default function UserManagement() {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                value={formData.dob || ''}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                max={new Date().toISOString().slice(0, 10)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">
+                A login is created when you save. Starting password: {formData.role === 'student' ? 'USN' : 'email name'} + date of birth (DDMMYYYY).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
                 Status
               </label>
               <select
@@ -640,6 +681,25 @@ export default function UserManagement() {
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            {editingUser && editingUser.status === 'active' && !isSelf(editingUser) && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Uses the saved date of birth: save any change to it first.
+                  if (!editingUser.dob) {
+                    setFormError('Add a date of birth and save first, then create the login.');
+                    return;
+                  }
+                  setIsModalOpen(false);
+                  if (editingUser.auth_id) askReset(editingUser);
+                  else runLogins('create', [editingUser.id]);
+                }}
+                className="mr-auto flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50 cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" />
+                {editingUser.auth_id ? 'Reset password' : 'Create login'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
@@ -658,6 +718,7 @@ export default function UserManagement() {
       </Modal>
 
       <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      {loginSheet}
     </div>
   );
 }

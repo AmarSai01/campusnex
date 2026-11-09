@@ -623,6 +623,7 @@ export function DataProvider({ children }) {
   // Faculty from a validated CSV (utils/faculty.js): new emails are added, existing teachers updated.
   const importFaculty = (rows) => {
     const now = new Date().toISOString();
+    const freshIds = rows.filter(r => !r.existingId).map(() => `faculty_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`);
     setData(prev => {
       const byId = new Map(rows.filter(r => r.existingId).map(r => [r.existingId, r]));
       const users = prev.users.map(u => {
@@ -630,13 +631,14 @@ export function DataProvider({ children }) {
         if (!r) return u;
         return { ...u, name: r.name, department_id: r.department_id, designation: r.designation, updated_by: currentProfileId || u.updated_by, updated_at: now };
       });
-      const fresh = rows.filter(r => !r.existingId).map(r => ({
-        id: `faculty_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      const fresh = rows.filter(r => !r.existingId).map((r, i) => ({
+        id: freshIds[i],
         name: r.name,
         email: r.email,
         role: 'faculty',
         department_id: r.department_id,
         designation: r.designation,
+        dob: r.dob || null,
         status: 'active',
         photo_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.name)}`,
         created_by: currentProfileId,
@@ -646,7 +648,7 @@ export function DataProvider({ children }) {
       }));
       return { ...prev, users: [...users, ...fresh] };
     });
-    return { added: rows.filter(r => !r.existingId).length, updated: rows.filter(r => r.existingId).length };
+    return { added: freshIds.length, updated: rows.filter(r => r.existingId).length, addedIds: freshIds };
   };
 
   // Lab batches for students: { studentId: 'B1' | 'B2' | ... | null }.
@@ -665,6 +667,16 @@ export function DataProvider({ children }) {
   // Resolves once every edit made so far has been written to Supabase. The short wait lets
   // React run the persist effect, which queues the write, before we wait on the queue.
   const whenSynced = () => new Promise(resolve => setTimeout(() => queue.current.then(resolve, resolve), 300));
+
+  // Stricter version for new people: waits (up to ~10 s) until the persist effect has picked up
+  // these profile ids, then until the queued write has finished. Used before creating logins.
+  const whenSaved = async (ids) => {
+    for (let i = 0; i < 100; i++) {
+      if (ids.every(id => snapshot.current?.users?.some(u => u.id === id))) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    await queue.current.catch(() => {});
+  };
 
   // USN Validation Regex: 1XX00XX000 (1 digit + 2 letters + 2 digits + 2 letters + 3 digits)
   const USN_REGEX = /^1[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
@@ -706,6 +718,7 @@ export function DataProvider({ children }) {
       semester: Number(studentData.semester) || 5,
       section: studentData.section || 'A',
       phone: studentData.phone || '',
+      dob: studentData.dob || null,
       status: studentData.status || 'active',
       photo_url: studentData.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentData.name)}`,
       created_by: authorId || currentProfileId,
@@ -745,6 +758,7 @@ export function DataProvider({ children }) {
       semester: st.semester,
       section: st.section,
       phone: '',
+      dob: st.dob || null,
       status: 'active',
       photo_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(st.name)}`,
       created_by: actor,
@@ -763,7 +777,7 @@ export function DataProvider({ children }) {
         enrollments: [...prev.enrollments, ...missingEnrollments(prev.enrollments, pairs)]
       };
     });
-    return newStudents.length;
+    return newStudents;
   };
 
   // Semester results from a validated CSV (see utils/results.js). A row for the same student,
@@ -2058,6 +2072,7 @@ export function DataProvider({ children }) {
         removeClassRole,
         importFaculty,
         whenSynced,
+        whenSaved,
         createSemesterCalendar,
         publishSemesterCalendar,
         deleteSemesterCalendar,

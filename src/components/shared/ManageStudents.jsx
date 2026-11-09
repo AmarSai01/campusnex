@@ -15,6 +15,7 @@ import {
   Power
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLogins } from '../admin/useLogins';
 import StudentImportModal from './StudentImportModal';
 import { useData } from '../../context/DataContext';
 import Modal from '../common/Modal';
@@ -31,6 +32,8 @@ export default function ManageStudents() {
   } = useData();
 
   const isAdmin = currentUser?.role === 'admin';
+  // Only admins create logins (students: USN + date of birth).
+  const { runLogins, loginSheet } = useLogins();
   // Non-admins reach this screen only as HOD, scoped to the departments they head.
   const isHodView = !isAdmin && hodDepartments.length > 0;
   const scopeDepartments = isAdmin ? departments : hodDepartments;
@@ -61,6 +64,7 @@ export default function ManageStudents() {
     semester: 1,
     section: 'A',
     phone: '',
+    dob: '',
     status: 'active'
   });
 
@@ -119,6 +123,7 @@ export default function ManageStudents() {
       semester: 1,
       section: 'A',
       phone: '',
+      dob: '',
       status: 'active'
     });
     setFormError('');
@@ -135,6 +140,7 @@ export default function ManageStudents() {
       semester: student.semester || 1,
       section: student.section || 'A',
       phone: student.phone || '',
+      dob: student.dob || '',
       status: student.status || 'active'
     });
     setFormError('');
@@ -179,21 +185,32 @@ export default function ManageStudents() {
       return;
     }
 
+    // 4. Admins create the login on save, so the date of birth is needed for a new student.
+    if (isAdmin && !editingStudent && !formData.dob) {
+      setFormError('Add a date of birth: the starting password is USN + date of birth.');
+      return;
+    }
+
     try {
       if (editingStudent) {
         updateStudent(editingStudent.id, {
           ...formData,
+          dob: formData.dob || null,
           usn: formattedUSN,
           roll_no: formattedUSN
         }, currentUser?.id);
         setSuccessToast(`Student record for ${formData.name} updated successfully.`);
+        const emailChanged = formData.email.trim().toLowerCase() !== (editingStudent.email || '').toLowerCase();
+        if (isAdmin && emailChanged && editingStudent.auth_id) runLogins('sync_email', [editingStudent.id], { quiet: true });
       } else {
-        createStudent({
+        const created = createStudent({
           ...formData,
+          dob: formData.dob || null,
           usn: formattedUSN,
           roll_no: formattedUSN
         }, currentUser?.id);
         setSuccessToast(`Student ${formData.name} (${formattedUSN}) enrolled successfully.`);
+        if (isAdmin && created?.id) runLogins('create', [created.id]);
       }
 
       setIsModalOpen(false);
@@ -638,6 +655,25 @@ export default function ManageStudents() {
                 {sectionOptions.map(sec => <option key={sec} value={sec}>Section {sec}</option>)}
               </select>
             </div>
+
+            {/* Date of birth */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Date of Birth {isAdmin && !editingStudent ? '*' : ''}
+              </label>
+              <input
+                type="date"
+                value={formData.dob || ''}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                max={new Date().toISOString().slice(0, 10)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">
+                {isAdmin
+                  ? 'A login is created when you register. Starting password: USN + date of birth (DDMMYYYY).'
+                  : 'The administrator uses it to create the student\'s login.'}
+              </p>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -721,12 +757,15 @@ export default function ManageStudents() {
         </div>
       </Modal>
       <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      {loginSheet}
       <StudentImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         allowedDepartments={scopeDepartments}
-        onImported={(count) => {
-          showToast(`Imported ${count} student${count === 1 ? '' : 's'} successfully.`);
+        onImported={(created) => {
+          showToast(`Imported ${created.length} student${created.length === 1 ? '' : 's'} successfully.`);
+          // Admins: every imported student gets a login; the window gives class-wise sheets.
+          if (isAdmin && created.length) runLogins('create', created.map((st) => st.id));
         }}
       />
     </div>

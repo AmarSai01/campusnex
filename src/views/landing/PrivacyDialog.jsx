@@ -6,12 +6,12 @@ import { CONTACT_EMAIL, CONTACT_PHONE, contactHref, whatsappHref } from './Secti
 // The privacy policy, opened from the footer. Keep every line true for the live app:
 // "Who else handles it" must name any new service that receives college records (for example an
 // email sender such as Resend), and change UPDATED whenever the text changes.
-const UPDATED = '6 November 2026'
+const UPDATED = '9 November 2026'
 
 const POINTS = [
   ['Your college owns the data', "Your college decides what goes into Campusnex and who is added. We keep and process it only on your college's behalf. Students or parents with a question about their data should ask their college first."],
-  ['What we store', 'Names, email addresses, USNs, departments and classes, attendance, IA marks, results, timetables, assignments, exam seating and notices. Your college enters this; we do not collect it from anywhere else.'],
-  ['Who adds people', "Only your college's admin, and HODs for their own department, can add students; only the admin adds staff. There is no public sign-up, and deactivating someone removes their access straight away."],
+  ['What we store', 'Names, email addresses, USNs, dates of birth, departments and classes, attendance, IA marks, results, timetables, assignments, exam seating and notices. Your college enters this; we do not collect it from anywhere else.'],
+  ['Who adds people', "Only your college's admin, and HODs for their own department, can add students; only the admin adds staff and creates logins. The starting password is built from the USN (or email name, for staff) and date of birth, and is shown to the admin once, never stored. There is no public sign-up, and deactivating someone removes their access straight away."],
   ['Students under 18', 'If some students are under 18, your college collects any consent it needs from them or their parents before adding them.'],
   ['Where it is kept', 'In India, in a Mumbai data centre run by our database provider, Supabase. Every connection to Campusnex is encrypted.'],
   ['Who else handles it', "Supabase stores the data and sends the sign-in and password emails. No other company receives your college's records. If we add another service that does, we list it here first."],

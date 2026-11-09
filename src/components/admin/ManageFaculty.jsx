@@ -6,6 +6,7 @@ import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import EmptyState from '../common/EmptyState';
 import FacultyImportModal from './FacultyImportModal';
+import { useLogins } from './useLogins';
 import BatchTag from '../common/BatchTag';
 import { WEEK_DAYS } from '../../utils/classSessions';
 import { formatTimeRange } from '../../utils/time';
@@ -87,6 +88,8 @@ export default function ManageFaculty() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  // Logins for staff: email name + date of birth, created when a teacher is added.
+  const { runLogins, loginSheet } = useLogins();
   const [formError, setFormError] = useState('');
   const [removedRoleIds, setRemovedRoleIds] = useState([]);
   const [newRole, setNewRole] = useState({ role: '', department_id: '', semester: '', section: '' });
@@ -155,7 +158,8 @@ export default function ManageFaculty() {
       department_id: deptId,
       designation: teacher?.designation || 'Assistant Professor',
       phone: teacher?.phone || '',
-      office: teacher?.office || ''
+      office: teacher?.office || '',
+      dob: teacher?.dob || ''
     });
     setRemovedRoleIds([]);
     resetNewRole(deptId);
@@ -185,6 +189,7 @@ export default function ManageFaculty() {
     }
     if (!form.department_id) return setFormError('Choose a department.');
     if (newRole.role && !newRole.section) return setFormError('Pick the class for the responsibility, or choose None.');
+    if (!editing && !form.dob) return setFormError('Add a date of birth: the starting password is email name + date of birth.');
 
     const fields = {
       name,
@@ -193,12 +198,19 @@ export default function ManageFaculty() {
       department_id: form.department_id,
       designation: form.designation.trim() || null,
       phone: form.phone.trim(),
-      office: form.office.trim()
+      office: form.office.trim(),
+      dob: form.dob || null
     };
 
     let facultyId = editing?.id;
-    if (editing) updateUser(editing.id, fields, currentUser?.id);
-    else facultyId = createUser(fields, currentUser?.id).id;
+    if (editing) {
+      updateUser(editing.id, fields, currentUser?.id);
+      // A corrected email must also change the login.
+      if (editing.auth_id && email !== (editing.email || '').toLowerCase()) runLogins('sync_email', [editing.id], { quiet: true });
+    } else {
+      facultyId = createUser(fields, currentUser?.id).id;
+      runLogins('create', [facultyId]);
+    }
 
     removedRoleIds.forEach(removeClassRole);
     if (newRole.role && !holderIsSelf) {
@@ -209,7 +221,7 @@ export default function ManageFaculty() {
     const roleNote = newRole.role && !holderIsSelf ? ` ${CLASS_ROLES[newRole.role].short} of ${newRoleClass}.` : '';
     showNotice(editing
       ? `${name} updated.${roleNote}`
-      : `${name} added.${roleNote} They can sign in with ${email} once they set a password.`);
+      : `${name} added.${roleNote}`);
   };
 
   const askToggle = (teacher) => {
@@ -492,6 +504,11 @@ export default function ManageFaculty() {
               Office / Cabin
               <input type="text" value={form.office || ''} onChange={(e) => setForm({ ...form, office: e.target.value })} placeholder="e.g. CD Block, Room 210" className={`mt-1 ${inputClass}`} />
             </label>
+            <label className="block text-xs font-bold text-slate-700">
+              Date of Birth {editing ? '' : '*'}
+              <input type="date" value={form.dob || ''} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm({ ...form, dob: e.target.value })} className={`mt-1 ${inputClass}`} />
+              <span className="mt-1 block text-[10px] font-normal text-slate-500">A login is created when you add them. Starting password: email name + date of birth (DDMMYYYY).</span>
+            </label>
           </div>
 
           <fieldset className="rounded-xl border border-brand-200 bg-brand-50/30 p-3.5 space-y-3">
@@ -607,8 +624,12 @@ export default function ManageFaculty() {
       <FacultyImportModal
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
-        onImported={(result) => showNotice(`Faculty imported: ${result.added} added, ${result.updated} updated.`)}
+        onImported={(result) => {
+          showNotice(`Faculty imported: ${result.added} added, ${result.updated} updated.`);
+          if (result.addedIds?.length) runLogins('create', result.addedIds);
+        }}
       />
+      {loginSheet}
       <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );

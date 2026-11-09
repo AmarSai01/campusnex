@@ -1,6 +1,6 @@
 // Bulk student import: CSV parsing, header mapping and row validation.
 
-export const IMPORT_COLUMNS = ['USN', 'NAME', 'SEMESTER', 'DEPARTMENT', 'SECTION', 'EMAIL'];
+export const IMPORT_COLUMNS = ['USN', 'NAME', 'SEMESTER', 'DEPARTMENT', 'SECTION', 'EMAIL', 'DOB'];
 export const MAX_IMPORT_ROWS = 2000;
 
 export const USN_REGEX = /^1[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
@@ -14,9 +14,26 @@ const HEADER_ALIASES = {
   semester: ['SEMESTER', 'SEM'],
   department: ['DEPARTMENT', 'DEPT', 'BRANCH'],
   section: ['SECTION', 'SEC'],
-  email: ['EMAIL', 'EMAILID', 'EMAILADDRESS', 'MAIL']
+  email: ['EMAIL', 'EMAILID', 'EMAILADDRESS', 'MAIL'],
+  dob: ['DOB', 'DATEOFBIRTH', 'BIRTHDATE', 'BIRTHDAY']
 };
-const FIELD_ORDER = ['usn', 'name', 'semester', 'department', 'section', 'email'];
+const FIELD_ORDER = ['usn', 'name', 'semester', 'department', 'section', 'email', 'dob'];
+// DOB is optional so older files still import; students without it get no login yet.
+const OPTIONAL_FIELDS = ['dob'];
+
+// Accepts DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY or YYYY-MM-DD. Returns 'YYYY-MM-DD' or null.
+export function parseDob(value) {
+  const v = (value || '').trim();
+  let d, m, y;
+  let match = v.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (match) [, d, m, y] = match;
+  else if ((match = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) [, y, m, d] = match;
+  else return null;
+  const date = new Date(Date.UTC(+y, +m - 1, +d));
+  if (date.getUTCFullYear() !== +y || date.getUTCMonth() !== +m - 1 || date.getUTCDate() !== +d) return null;
+  if (date > new Date() || +y < 1940) return null;
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
 
 export const templateCsv = () => IMPORT_COLUMNS.join(',') + '\r\n';
 
@@ -82,7 +99,7 @@ export function mapColumns(rows) {
     const idx = header.findIndex((h) => HEADER_ALIASES[field].includes(h));
     if (idx >= 0) indexes[field] = idx;
   }
-  const missing = FIELD_ORDER.filter((f) => indexes[f] === undefined);
+  const missing = FIELD_ORDER.filter((f) => indexes[f] === undefined && !OPTIONAL_FIELDS.includes(f));
   if (missing.length) {
     return {
       error: `Missing column${missing.length > 1 ? 's' : ''}: ${missing.map((m) => m.toUpperCase()).join(', ')}. Expected: ${IMPORT_COLUMNS.join(', ')}.`
@@ -121,7 +138,8 @@ export function validateImport({ rows, users, allowedDepartments }) {
       semester: cell('semester'),
       department: cell('department'),
       section: cell('section').toUpperCase(),
-      email: cell('email').toLowerCase()
+      email: cell('email').toLowerCase(),
+      dob: mapped.indexes.dob === undefined ? '' : cell('dob')
     };
     const errors = [];
 
@@ -148,6 +166,9 @@ export function validateImport({ rows, users, allowedDepartments }) {
     else if (existingEmails.has(values.email)) errors.push('Email already used');
     else if (emailLines.has(values.email)) errors.push(`Email repeated (also on row ${emailLines.get(values.email)})`);
 
+    const dob = values.dob ? parseDob(values.dob) : null;
+    if (values.dob && !dob) errors.push(`Date of birth "${values.dob}" must be a real date like 15-08-2004`);
+
     if (values.usn && !usnLines.has(values.usn)) usnLines.set(values.usn, line);
     if (values.email && !emailLines.has(values.email)) emailLines.set(values.email, line);
 
@@ -157,7 +178,7 @@ export function validateImport({ rows, users, allowedDepartments }) {
       errors,
       student: errors.length
         ? null
-        : { usn: values.usn, name: values.name, semester, department_id: dept.id, section: values.section, email: values.email }
+        : { usn: values.usn, name: values.name, semester, department_id: dept.id, section: values.section, email: values.email, dob }
     };
   });
 

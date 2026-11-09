@@ -15,7 +15,7 @@ export const TABLES = [
     table: 'profiles',
     columns: [
       'id', 'name', 'email', 'role', 'department_id', 'designation', 'office', 'phone', 'photo_url',
-      'usn', 'roll_no', 'semester', 'section', 'batch', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at'
+      'usn', 'roll_no', 'semester', 'section', 'batch', 'dob', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at'
     ]
   },
   {

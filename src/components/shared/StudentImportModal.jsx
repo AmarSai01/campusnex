@@ -60,10 +60,16 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
   const visibleRows = onlyProblems ? problemRows : rows;
 
   const handleImport = () => {
-    const count = createStudentsBulk(validRows.map((r) => r.student), currentUser?.id);
+    const created = createStudentsBulk(validRows.map((r) => r.student), currentUser?.id);
+    const count = created.length;
+    onImported?.(created);
+    // Admins go straight on to the login window (class-wise password sheets).
+    if (currentUser?.role === 'admin') {
+      handleClose();
+      return;
+    }
     setImportedCount(count);
     setStep('done');
-    onImported?.(count);
   };
 
   const downloadTemplate = () => downloadCsv('campusnex-student-import-template.csv', IMPORT_COLUMNS, []);
@@ -73,7 +79,7 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
       'campusnex-import-problems.csv',
       [...IMPORT_COLUMNS, 'PROBLEMS'],
       problemRows.map((r) => [
-        r.values.usn, r.values.name, r.values.semester, r.values.department, r.values.section, r.values.email,
+        r.values.usn, r.values.name, r.values.semester, r.values.department, r.values.section, r.values.email, r.values.dob,
         r.errors.join('; ')
       ])
     );
@@ -102,7 +108,7 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
             </li>
             <li>
               <strong className="text-slate-800">2. Use these values:</strong> USN like <code>1MJ23CD006</code>,
-              semester 1–8, section A–Z, and the department code
+              semester 1–8, section A–Z, date of birth as <code>15-08-2004</code>, and the department code
               {allowedDepartments.length ? ` (${allowedDepartments.map((d) => d.code).join(', ')})` : ''}.
             </li>
             <li>
@@ -208,6 +214,7 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
                     <td className="px-3 py-2">{r.values.department || '—'}</td>
                     <td className="px-3 py-2">{r.values.section || '—'}</td>
                     <td className="px-3 py-2 text-slate-600">{r.values.email || '—'}</td>
+                    <td className="px-3 py-2 text-slate-600">{r.values.dob || <span className="font-semibold text-amber-700">None (no login)</span>}</td>
                     <td className="px-3 py-2">
                       {r.student ? (
                         <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
@@ -258,7 +265,7 @@ export default function StudentImportModal({ isOpen, onClose, allowedDepartments
             </p>
             <p className="mt-1 text-xs text-slate-600">
               They were enrolled in every course matching their department, semester and section.
-              Give each student their login email and password so they can sign in.
+              Your administrator creates their logins.
             </p>
           </div>
           <button

@@ -1,4 +1,4 @@
-import { parseCsv } from './studentImport';
+import { parseCsv, parseDob } from './studentImport';
 
 export const FACULTY_DESIGNATIONS = [
   'Professor',
@@ -44,18 +44,19 @@ export function weeklyHours(facultyId, timetable) {
   return Math.round(minutes / 6) / 10;
 }
 
-export const FACULTY_IMPORT_COLUMNS = ['NAME', 'EMAIL', 'DEPARTMENT', 'DESIGNATION'];
+export const FACULTY_IMPORT_COLUMNS = ['NAME', 'EMAIL', 'DEPARTMENT', 'DESIGNATION', 'DOB'];
 export const facultyTemplateCsv = () =>
-  `${FACULTY_IMPORT_COLUMNS.join(',')}\r\nKavya R,kavya.r@college.edu,CD,Assistant Professor\r\n`;
+  `${FACULTY_IMPORT_COLUMNS.join(',')}\r\nKavya R,kavya.r@college.edu,CD,Assistant Professor,03-04-1988\r\n`;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HEADERS = {
   name: ['NAME', 'FULLNAME', 'FACULTYNAME', 'TEACHER'],
   email: ['EMAIL', 'EMAILID', 'MAIL'],
   department: ['DEPARTMENT', 'DEPT', 'DEPTCODE', 'DEPARTMENTCODE'],
-  designation: ['DESIGNATION', 'TITLE', 'POSITION']
+  designation: ['DESIGNATION', 'TITLE', 'POSITION'],
+  dob: ['DOB', 'DATEOFBIRTH', 'BIRTHDATE', 'BIRTHDAY']
 };
-const FIELDS = ['name', 'email', 'department', 'designation'];
+const FIELDS = ['name', 'email', 'department', 'designation', 'dob'];
 const norm = (h) => h.toUpperCase().replace(/[\s_.-]/g, '');
 
 // Checks a faculty CSV. Rows whose email belongs to an existing teacher update that teacher.
@@ -101,10 +102,13 @@ export function validateFacultyImport(text, { users, departments }) {
     if (!dept) problems.push(`department "${get('department') || '—'}" not found`);
     if (seen.has(email)) problems.push('email appears twice in the file');
     if (existing && existing.role !== 'faculty') problems.push(`email belongs to a ${existing.role}`);
+    const dobText = get('dob');
+    const dob = dobText ? parseDob(dobText) : null;
+    if (dobText && !dob) problems.push(`date of birth "${dobText}" must be a real date like 03-04-1988`);
     seen.add(email);
 
     if (problems.length) errors.push({ line, message: problems.join(', ') });
-    else valid.push({ name, email, department_id: dept.id, designation, existingId: existing?.id || null });
+    else valid.push({ name, email, department_id: dept.id, designation, dob, existingId: existing?.id || null });
   });
 
   return { rows: valid, errors };
