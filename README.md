@@ -4,9 +4,9 @@
 
 <p align="center">
   <a href="https://campusnex.amarsai.in"><img alt="Live site" src="docs/readme/badges/live-site.svg"></a>
-  <img alt="React 19" src="docs/readme/badges/react-19.svg">
-  <img alt="Vite 8" src="docs/readme/badges/vite-8.svg">
-  <img alt="Tailwind CSS 4" src="docs/readme/badges/tailwind-css-4.svg">
+  <img alt="React" src="docs/readme/badges/react.svg">
+  <img alt="Vite" src="docs/readme/badges/vite.svg">
+  <img alt="Tailwind CSS" src="docs/readme/badges/tailwind-css.svg">
   <img alt="Supabase" src="docs/readme/badges/supabase.svg">
   <img alt="Cloudflare Pages" src="docs/readme/badges/cloudflare-pages.svg">
 </p>
